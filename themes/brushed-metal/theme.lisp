@@ -15,10 +15,22 @@
      (:top ("top-i" "top-a"))
      (:top-left ("top-left-i" "top-left-a"))
      (:top-right ("top-right-i" "top-right-a"))
-     (:menu-button ("menu-button-i" "menu-button-a"))
-     (:close ("close-i" "close-a"))
-     (:icon-b ("minimize-i" "minimize-a"))
-     (:maximize ("maximize-i" "maximize-a"))
+     (:menu-button ("menu-button-i"
+		    "menu-button-a"
+		    "menu-button-i-clicked"
+		    "menu-button-a-clicked"))
+     (:close ("close-i"
+	      "close-a"
+	      "close-i-clicked"
+	      "close-a-clicked"))
+     (:icon-b ("minimize-i"
+	       "minimize-a"
+	       "minimize-i-clicked"
+	       "minimize-a-clicked"))
+     (:maximize ("maximize-i"
+		 "maximize-a"
+		 "maximize-i-clicked"
+		 "maximize-a-clicked"))
      (:bottom ("bottom-i" "bottom-a"))
      (:bottom-right ("bottom-right-i" "bottom-right-a"))
      (:bottom-left ("bottom-left-i" "bottom-left-a"))

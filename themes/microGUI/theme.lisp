@@ -15,10 +15,22 @@
        (:close :icon-b :maximize 
 	:title-bar :top-left :menu-button))
      (:top ("center"))
-     (:menu-button ("menu-normal" "menu-active"))
-     (:icon-b ("iconify-normal" "iconify-active"))
-     (:maximize ("maximize-normal" "maximize-active"))
-     (:close ("close-normal" "close-active"))
+     (:menu-button ("menu-normal"
+		    "menu-active"
+		    "menu-normal-clicked"
+		    "menu-active-clicked"))
+     (:icon-b ("iconify-normal"
+	       "iconify-active"
+	       "iconify-normal-clicked"
+	       "iconify-active-clicked"))
+     (:maximize ("maximize-normal"
+		 "maximize-active"
+		 "maximize-normal-clicked"
+		 "maximize-active-clicked"))
+     (:close ("close-normal"
+	      "close-active"
+	      "close-normal-clicked"
+	      "close-active-clicked"))
      (:top-left ("top-left-inactive" "top-left"))
      (:top-right ("top-right"))
      (:bottom ("bottom"))
@@ -26,14 +38,19 @@
      (:bottom-left ("bottom-left"))
      (:right ("right"))
      (:left ("left"))
-     (:custom ("top-curves-inactive" "top-curves" 
-	       "top-blue" "top-blue-inactive"))
+     (:custom ("top-curves-inactive"
+	       "top-curves" 
+	       "top-blue"
+	       "top-blue-inactive"))
      )
    (:transient-style
      (:title-bar-position :right)
      (:parts-to-redraw-on-focus (:close))
      (:top ("t-top"))
-     (:close ("t-close-normal" "t-close-active"))
+     (:close ("t-close-normal"
+	      "t-close-active"
+	      "t-close-normal-clicked"
+	      "t-close-active-clicked"))
      (:top-left ("t-top-left"))
      (:top-right ("t-top-right"))
      (:bottom ("t-bottom"))

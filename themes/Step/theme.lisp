@@ -13,8 +13,14 @@
      ()
      (:parts-to-redraw-on-focus (:close :title-bar :menu-button))
      (:top ("top-inactive" "top-active"))
-     (:menu-button ("menu-button-inactive" "menu-button-active"))
-     (:close ("close-inactive" "close-active"))
+     (:menu-button ("menu-button-inactive"
+		    "menu-button-active"
+		    "menu-button-inactive-clicked"
+		    "menu-button-active-clicked"))
+     (:close ("close-inactive"
+	      "close-active"
+	      "close-inactive-clicked"
+	      "close-active-clicked"))
      (:bottom ("bottom"))
      (:bottom-right ("bottom-right"))
      (:bottom-left ("bottom-left"))
@@ -24,7 +30,10 @@
    (:transient-style
      ()
      (:parts-to-redraw-on-focus (:close :title-bar :top-left))
-     (:close ("close-inactive" "close-active"))
+     (:close ("close-inactive"
+	      "close-active"
+	      "close-inactive-clicked"
+	      "close-active-clicked"))
      (:top ("top-inactive" "top-active"))
      (:top-left ("t-top-left-i" "t-top-left-a"))
      (:bottom ("bottom"))

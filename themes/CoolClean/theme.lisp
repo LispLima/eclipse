@@ -15,9 +15,18 @@
      (:top ("top-inactive" "top-active"))
      (:top-right ("top-right"))
      (:menu-button ("menu-button-active"))
-     (:close ("close-active"))
-     (:icon-b ("minimize-active"))
-     (:maximize ("maximize-active"))
+     (:close ("close-active"
+	      "close-active"
+	      "close-active-clicked"
+	      "close-active-clicked"))
+     (:icon-b ("minimize-active"
+	       "minimize-active"
+	       "minimize-active-clicked"
+	       "minimize-active-clicked"))
+     (:maximize ("maximize-active"
+		 "maximize-active"
+		 "maximize-active-clicked"
+		 "maximize-active-clicked"))
      (:bottom ("bottom"))
      (:bottom-right ("bottom-right"))
      (:bottom-left ("bottom-left"))
@@ -28,7 +37,10 @@
      ()
      (:parts-to-redraw-on-focus (:title-bar))
      (:top ("top-inactive" "top-active"))
-     (:close ("t-close-active"))
+     (:close ("t-close-active"
+	      "t-close-active"
+	      "t-close-active-clicked"
+	      "t-close-active-clicked"))
      (:menu-button ("menu-button-active"))
      (:top-right ("top-right"))
      (:bottom ("bottom"))
