@@ -1,0 +1,100 @@
+#!/bin/sh
+#
+# Script to start a nested X server (Xnest) session.  Good for WM hacking.
+#
+# Copyfnord (K) 3168, James A. Crippen <james@unlambda.com>
+# This file is in the public domain.  It's just a throwaway.  No
+# warranties expressed or implied.  If it breaks you get to keep
+# both pieces.
+#
+# If you run this in the foreground you will get messages on your terminal.
+# If however you run this script as
+#   xnest 2>&1 >> $HOME/.xnest-errors &
+# you will get an xterm in the Xnest server that will watch this log file.
+#
+# NOTES:
+# This has only been tested with XFree86 4.  It will *probably* work with
+# other X distributions but there's no guarantee.  Please contribute
+# changes and enhancements back to me.
+#
+# You should probably change the FONTPATH to your own liking.
+#
+# This script doesn't load any X resource files explicitly.  They may
+# be loaded implicitly though.
+
+# First check if X is running.
+if [ -z "$DISPLAY" ]; then
+    echo "X doesn't appear to be running.  Lose lose."
+    exit 1
+fi
+
+# Overwrite the log file.  This is for the test at the end of the script.
+LOGFILE=$HOME/.xnest-errors
+cat /dev/null > $LOGFILE
+
+# Add one to current DISPLAY variable.  The assumption is that the next
+# DISPLAY will be unused.  The sed cruft strips out the colon and the
+# screen number (y in :x.y).
+DISPNUM=`echo $DISPLAY | sed -e 's/://' -e 's/\..//'`
+NEWDISPLAY=:`expr $DISPNUM + 1`
+
+echo "Xnest display will be $NEWDISPLAY but if that is in use you'll lose."
+
+# Set up the font path.  This must be configured for each system.  Why
+# does this exist?  Because Xnest (in XFree86) doesn't read the host
+# X server's font path, nor does it read the font path in the XF86Config
+# file.  Instead it uses the X default, which is not what *I* want.
+XROOT=/usr/X11R6
+FONTS=$XROOT/lib/X11/fonts
+FONTPATH=$FONTS/efont,$FONTS/Type1,$FONTS/TTF,$FONTS/100dpi,$FONTS/75dpi,$FONTS/misc,$FONTS/local
+
+# Now run Xnest.
+#  -ac turns off access control (otherwise you can't get to the Xnest server)
+#  -fp sets the font path
+#  -p  sets the screen-saver timeout
+#
+# By default Xnest makes a window 3/4 the size of the screen.  Specific
+# resolutions can be set with -geometry.
+#
+# There are lots of other options for Xnest.  Read the manual pages Xnest(1)
+# and Xserver(1) for details.
+echo "Starting Xnest..."
+Xnest $NEWDISPLAY -ac -p 0 -fp $FONTPATH &
+
+# For convenience we switch DISPLAY variables.  Everything from here onwards
+# will use the Xnest display automatically.  Exporting it should allow
+# programs started from within the xterm/window manager to get the right
+# DISPLAY value.
+export DISPLAY=$NEWDISPLAY
+
+# Now start an xterm.  This *must* be done first after starting Xnest.
+# Otherwise things get confused.  After the last program exits the Xnest
+# server (like all X servers) will reset itself, and will flush the
+# configured fontpath, colormap, all properties, etc.
+echo "Starting xterm as first client."
+xterm &
+
+# Set the background to something less horrible than 50% stipple.
+echo "Changing the background to something mutual."
+xsetroot -solid gray45
+
+# Now read the xmodmap file.
+if [ -r $HOME/.xmodmap ]; then
+    echo "Reading \$HOME/.xmodmap..."
+    xmodmap $HOME/.xmodmap
+else
+    echo "No \$HOME/.xmodmap file found!  Oh well."
+fi
+
+# If we're writing the log file then start an xterm to watch it.  'test -s'
+# means 'regular file exists and is not empty'.
+if [ -s $LOGFILE ]; then
+    echo "Starting xterm to watch the log file."
+    xterm -geometry 120x10-0-0 -fn 5x8 -name 'Xnest log' -title 'Xnest log' \
+        -bg rgb:0/0/5a -fg steelblue1 -e tail -f $LOGFILE &
+else
+    echo "Logfile appears to be empty.  Not watching it."
+fi
+
+# Now run the window manager.
+exec eclipse
