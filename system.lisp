@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: system.lisp,v 1.6 2003/08/28 14:50:35 hatchond Exp $
+;;; $Id: system.lisp,v 1.7 2003/11/10 10:02:53 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -72,6 +72,7 @@
    "gestures"
    "widgets"
    "virtual-screen"
+   "rectangles"
    "wm"
    "input"
    "move-resize"

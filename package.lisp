@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.9 2003/10/06 17:57:26 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.10 2003/10/09 11:40:38 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -235,15 +235,8 @@
    "CLOSE-WIDGET"			  ;generic function
    "DECORATION-ACTIVE-P"		  ;generic function
    "DECORATION-APPLICATION-GRAVITY"	  ;generic function
-   "DECORATION-BASE-HEIGHT"		  ;generic function
-   "DECORATION-BASE-WIDTH"		  ;generic function
    "DECORATION-CHILDREN"		  ;generic function
    "DECORATION-FRAME-STYLE"		  ;generic function
-   "DECORATION-INC-SIZES"		  ;generic function
-   "DECORATION-MAX-HEIGHT"		  ;generic function
-   "DECORATION-MAX-WIDTH"		  ;generic function
-   "DECORATION-MIN-HEIGHT"		  ;generic function
-   "DECORATION-MIN-WIDTH"		  ;generic function
    "DECORATION-PRECEDENT-TIME"		  ;generic function
    "DECORATION-WM-HINTS"		  ;generic function
    "DECORATION-WM-SIZE-HINTS"		  ;generic function
@@ -352,16 +345,21 @@
    ;; user custom.
    "*CHANGE-DESKTOP-MESSAGE-ACTIVE-P*"	  ;variable
    "*CLOSE-DISPLAY-P*"			  ;variable
+   "*CYCLE-ICONS-P*"                      ;variable
    "*DOUBLE-CLICK-SPEED*"                 ;variable
    "*FOCUS-TYPE*"			  ;variable
    "*FOCUS-NEW-MAPPED-WINDOW*"		  ;variable
    "*FOCUS-WHEN-WINDOW-CYCLE*"		  ;variable
    "*ICON-BOX-SORT-FUNCTION*"		  ;variable
    "*ICON-HINTS*"			  ;variable
+   "*MAXIMIZE-FILL*"                      ;variable
    "*MENU-1-ITEMS*"			  ;variable
    "*MOVE-MODE*"			  ;variable
    "*RESIZE-MODE*"			  ;variable
+   "*SCREEN-EDGE-RESISTANT-P*"            ;variable
+   "*STANDARD-WINDOW-EDGE-RESISTANT-P*"   ;variable
    "*VERBOSE-MOVE*"			  ;variable
    "*VERBOSE-RESIZE*"			  ;variable
+   "*VERBOSE-WINDOW-CYCLING*"             ;variable
    "*WARP-POINTER-WHEN-CYCLE*"		  ;variable
    ))
