@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.8 2003/06/11 18:29:23 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.9 2003/08/28 14:50:35 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -307,14 +307,11 @@ the extended window manager specification."))
 
 (defmethod repaint ((widget button) theme-name (focus t))
   (declare (ignorable theme-name focus))
-  (with-slots (master item-to-draw window gcontext) widget
+  (with-slots (item-to-draw window gcontext) widget
     (xlib:clear-area window)
     (typecase item-to-draw
       (string (draw-centered-text window gcontext item-to-draw))
-      (xlib:pixmap 
-        (multiple-value-bind (width height) (drawable-sizes window)
-	  (xlib:with-gcontext (gcontext :tile item-to-draw :fill-style :tiled)
-	    (xlib:draw-rectangle window gcontext 0 0 width height t)))))))
+      (xlib:pixmap (draw-pixmap window gcontext item-to-draw)))))
 
 (defmethod repaint ((widget button) theme-name (focus null))
   (declare (ignorable theme-name focus))
@@ -326,6 +323,12 @@ the extended window manager specification."))
 
 (defun button-p (widget)
   (typep widget 'button))
+
+(declaim (inline draw-pixmap))
+(defun draw-pixmap (window gcontext pixmap)
+  (multiple-value-bind (width height) (drawable-sizes window)
+    (xlib:with-gcontext (gcontext :tile pixmap :fill-style :tiled)
+      (xlib:draw-rectangle window gcontext 0 0 width height t))))
 
 ;; When calling this function arguments non optional are
 ;; :parent :x :y :width :height
@@ -418,9 +421,9 @@ the extended window manager specification."))
     (setf (button-active-p b) nil)))
 
 (defmethod event-process :around ((event button-press) (b push-button))
+  (setf (button-armed b) t
+	(button-active-p b) t)
   (when (next-method-p)
-    (setf (button-armed b) t
-	  (button-active-p b) t)
     (call-next-method)))
 
 (defmethod event-process :around ((event button-release) (b push-button))
@@ -429,7 +432,44 @@ the extended window manager specification."))
 	(when (next-method-p) (call-next-method))
         (event-process event *root*))
     (setf armed nil
-	  active-p nil)))
+	  (button-active-p b) nil)))
+
+(defmethod (setf button-active-p) :after (value (button push-button))
+  (declare (ignorable value))
+  (with-slots (window master) button
+    ;; We may have irrelevant invokation of this method when it's invoked
+    ;; after a close-widget has been done (such as after clicking on the 
+    ;; close button of a decoration or something similar). To avoid
+    ;; inconsistant X requests we'll ensure that the widget still exists.
+    (when (lookup-widget window)
+      (with-slots (name) (decoration-frame-style master)
+	(repaint button name (focused-p master))))))
+
+(defmethod repaint ((widget push-button) theme-name (focus t))
+  (declare (ignorable theme-name focus))
+  (with-slots (window gcontext armed active-p item-to-draw) widget
+    (xlib:clear-area window)
+    (let ((p (and armed active-p (push-button-pixmap widget :focused-click))))
+      (when (or p item-to-draw)
+	(draw-pixmap window gcontext (or p item-to-draw))))))
+
+(defmethod repaint ((widget push-button) theme-name (focus null))
+  (declare (ignorable theme-name focus))
+  (with-slots (window gcontext armed active-p) widget
+    (xlib:clear-area window)
+    (let ((pixmap (push-button-pixmap widget :unfocused-click)))
+      (when (and armed active-p pixmap)
+	(draw-pixmap window gcontext pixmap)))))
+
+(defun push-button-pixmap (pbutton pixmap-index)
+  (with-slots (frame-style) (button-master pbutton)
+    (aref (frame-item-pixmaps frame-style (widget->frame-item-key pbutton))
+	  (case pixmap-index
+	    (:focused-click 3)
+	    (:unfocused-click 2)
+	    (:focused-unclick 1)
+	    ((and (numberp pixmap-index) (<= 0 pixmap-index 3)) pixmap-index)
+	    (t 0)))))
 
 ;;;; Standard decoration buttons
 
@@ -438,6 +478,13 @@ the extended window manager specification."))
    (vmargin :initform 0)
    (hmargin :initform 0)
    (parent :initform nil)))
+
+(defmethod repaint ((widget title-bar) theme-name focus)
+  (declare (ignorable theme-name focus))
+  (with-slots (item-to-draw window gcontext) widget
+    (xlib:clear-area window)
+    (when item-to-draw
+      (draw-centered-text window gcontext item-to-draw))))
 
 (defclass close-button (push-button) ())
 (defclass iconify-button (push-button) ())
