@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.1 2002/11/07 14:54:27 hatchond Exp $
+;;; $Id: input.lisp,v 1.2 2003/03/16 01:15:49 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -231,7 +231,7 @@
       (ignore-errors (update-lists (get-child master :application) 0 *root*))
       (mapc #'remove-widget (cons master (decoration-children master)))
       (xlib:destroy-window (get-child master :icon :window t))      
-      (dismiss-move *root*)))
+      (dismiss-move-resize *root*)))
   (when (eq *focus-type* :on-click)
     (give-focus-to-next-widget-in-desktop *root*)))
 
