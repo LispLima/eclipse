@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.41 2004/06/18 22:01:53 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.42 2004/11/30 23:48:10 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -47,11 +47,11 @@
   (:documentation "Remove widget from internal cache."))
 
 (defgeneric close-widget (widget)
-    (:method (widget) nil)
+  (:method (widget) nil)
   (:documentation "Close an application according to the ICCCM protocol."))
 
 (defgeneric focus-widget (widget timestamp)
-    (:method (widget timestamp) nil))
+  (:method (widget timestamp) nil))
 
 (defgeneric focused-p (widget)
   (:documentation "Return T if the given widget has the focus."))
