@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: themer.lisp,v 1.8 2004/03/01 14:53:57 ihatchondo Exp $
+;;; $Id: themer.lisp,v 1.9 2004/03/09 19:26:27 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -230,17 +230,18 @@
      :reader theme-transient-style)
    ))
 
+(defmethod initialize-instance :after ((theme theme) &rest options)
+  (declare (ignorable options))
+  (setf (gethash (theme-name theme) *themes*) theme))
+
 ;;;; build-in no decoration theme.
 
 (defpackage "NO-DECORATION-ECLIPSE-THEME" (:size 0))
 
-(setf (gethash "no-decoration" *themes*)
-      (make-instance 
-          'theme :name "no-decoration"
-	  :default-style (make-instance
-			     'default-style
-			     :theme-name "no-decoration"
-			     :title-bar-position :none)))
+(make-instance 'theme :name "no-decoration"
+  :default-style (make-instance 'default-style
+		   :theme-name "no-decoration"
+		   :title-bar-position :none))
 
 ;;;; misc functions.
 
@@ -291,7 +292,7 @@
 
 (defun free-theme (name)
   "Release all X resources that are associated with the named theme."
-  (with-slots (default-style transient-style) (gethash name *themes*)
+  (with-slots (default-style transient-style) (lookup-theme name)
     (and default-style (free-frame-style default-style))
     (and transient-style (free-frame-style transient-style)))
   (remhash name *themes*)
@@ -299,13 +300,13 @@
 
 (defun load-theme (root-window name)
   "loads and returns theme named by parameter name. Themes are cached."
-  (unless (gethash name *themes*)
+  (unless (lookup-theme name)
     (fmakunbound 'initialize-frame)
     (setf name (ensure-theme-directory-exists name))
     (load (concatenate 'string name "theme.o"))
     (setf name (theme-name (initialize-frame name root-window))))
   (use-package (format nil "~:@(~A~)-ECLIPSE-THEME" name))
-  (gethash name *themes*))
+  (lookup-theme name))
 
 (defun make-keyword (string)
   (intern (with-standard-io-syntax (string-upcase string)) :keyword))
@@ -415,9 +416,7 @@
 	   ,(unless items2 `(declare (ignorable fs2)))
 	   ,(when items1 (define-style `fs1 items1 `dir `window))
 	   ,(when items2 (define-style `fs2 items2 `dir `window `fs1))
-	   (setf (gethash ,theme-name eclipse::*themes*)
-		 (make-instance 'eclipse::theme 
-				:name ,theme-name 
-				,@(and style1 `(,style1 fs1))
-				,@(and style2 `(,style2 fs2)))))))))
+	   (make-instance 'eclipse::theme :name ,theme-name 
+	     ,@(and style1 `(,style1 fs1))
+	     ,@(and style2 `(,style2 fs2))))))))
 
