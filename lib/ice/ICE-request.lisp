@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id:$
+;;; $Id: ICE-request.lisp,v 1.1 2004/01/12 11:10:51 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -375,7 +375,7 @@
   (with-slots (class severity offending-minor-opcode major-opcode)
       (ice-error-request-error condition)			 
     (format stream
-	    "an error of class ~a with severity ~a,~%~
+	    "an ICE error of class ~a with severity ~a,~%~
              with offending minor opcode: ~a occured.~%"
 	    (decode-error class) severity
 	    (decode-ice-minor-opcode offending-minor-opcode major-opcode))))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id:$
+;;; $Id: ICE-lib.lisp,v 1.1 2004/01/12 11:10:51 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -231,7 +231,7 @@
     (declare (type (or null string) chosen-network-id))
     (declare (type (or null stream) stream))
     (when (or (null chosen-network-id) (null stream))
-      (error "Failed to connect to any destination."))
+      (error "ICE: Failed to connect to any destination."))
     (unless connection (setf connection (make-instance 'ice-connection)))
     (setf (connection-stream connection) stream)
     (setf (ice-connection-string connection) chosen-network-id)
@@ -268,7 +268,7 @@
 		  (ice-release connection) release-name)
 	    ;; Finally returns the ice-connection instance.
 	    connection))
-	(t (error "bad state during connection: ~a." request))))))
+	(t (error "ICE: bad state during connection: ~a." request))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;                                                                       ;;;;
@@ -288,9 +288,9 @@
   If none of those format is founded an error will be signaled."  
   (let* ((slash (or (position #\/ network-id :test #'char=) 0))
 	 (colon (or (position #\: network-id :test #'char= :start slash) 0)))
-    (cond ((zerop slash) (error "Badly formed network-id: no type present."))
-	  ((zerop colon) (error "Badly formed network-id: no colon delim."))
-	  ((= slash (1- colon)) (error "No host present in the network-id.")))
+    (cond ((= 0 slash) (error "ICE: Badly formed network-id: no type present."))
+	  ((= 0 colon) (error "ICE: Badly formed network-id: no colon delim."))
+	  ((= slash (1- colon)) (error "ICE: Missing host in the network-id.")))
     (let ((type (subseq network-id 0 slash))    
 	  (host-name (subseq network-id (1+ slash) colon))
 	  (obj (subseq network-id (1+ colon))))
@@ -302,8 +302,8 @@
 	     ;; a second colon should be present.
 	     (if (= 0 (position #\: obj :test #'char=))
 		 (setf obj (subseq obj 1))
-	         (error "Invalid decnet network-id with one colon.")))
-	    (t (error "type is not (or \"local\" \"tcp\" \"decnet\")")))
+	         (error "ICE: Invalid decnet network-id with one colon.")))
+	    (t (error "ICE: type is not (or \"local\" \"tcp\" \"decnet\").")))
       (values type host-name obj))))
 
 (defun connect-to-peer (network-ids)

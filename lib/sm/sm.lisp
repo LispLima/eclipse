@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: SM-LIB; -*-
-;;; $Id: sm.lisp,v 1.1 2004/01/12 11:10:52 ihatchondo Exp $
+;;; $Id: sm.lisp,v 1.2 2004/01/15 13:43:15 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -335,7 +335,7 @@
      :reader session-manager-unavailable-reason))
   (:report (lambda (condition stream)
 	     (format stream 
-		     "Unable to connect to session manager: ~a~%"
+		     "SM-lib: Unable to connect to session manager: ~a~%"
 		     (session-manager-unavailable-reason condition)))))
 
 (defmacro signal-sm-error (string &rest args)
