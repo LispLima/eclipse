@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.3 2002/11/07 14:54:26 hatchond Exp $
+;;; $Id: global.lisp,v 1.4 2003/03/16 00:59:14 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -34,8 +34,11 @@
     :_win_workspace_names))
 (defconstant +netwm-protocol+
   '(:_net_client_list :_net_client_list_stacking :_net_number_of_desktops
-    :_net_current_desktop :_net_active_window :_net_close_window
-    :_net_wm_desktop :_net_wm_window_type :_net_wm_state :_net_desktop_names))
+    :_net_current_desktop :_net_active_window :_net_close_window :_net_wm_state
+    :_net_wm_desktop :_net_wm_window_type :_net_desktop_names
+    :_net_wm_state_maximized_horz :_net_wm_state_maximized_vert
+    :_net_wm_state_skip_taskbar :_net_wm_state_skip_pager
+    :_net_wm_state_sticky :_net_wm_state_fullscreen :_net_wm_state_hidden))
 
 (defconstant +pointer-event-mask+
   '(:button-press :button-release :button-motion :enter-window :leave-window))
