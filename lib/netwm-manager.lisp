@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.5 2003/11/13 00:10:04 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.6 2003/11/13 00:39:14 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -372,10 +372,16 @@ In order to use it, you should first call intern-atoms to be sure all
 ;; _NET_WM_STRUT
 
 (defun net-wm-strut (window)
-  (get-geometry-hint window :_NET_WM_STRUT))
+  "return the strut property as a multiple value (left right top bottom)."
+  (let ((v (get-property window :_NET_WM_STRUT :result-type 'vector)))
+    (declare (type (or null (simple-array integer (4)) v)))
+    (when v (values (aref v 1) (aref v 2) (aref v 3) (aref v 4)))))
 
 (defsetf net-wm-strut (window) (strut)
-  `(set-geometry-hint ,window ,strut :_NET_WM_STRUT))
+  "set the strut property. The given strut is expected to be a list or a
+   vector of length 4. The order of the element inside the strut is:
+   left, right, top, bottom."
+  `(change-property ,window :_NET_WM_STRUT ,strut :CARDINAL 32))
 
 ;; _NET_WM_STRUT_PARTIAL
 
@@ -385,10 +391,11 @@ In order to use it, you should first call intern-atoms to be sure all
     left_start_y, left_end_y, right_start_y, right_end_y,
     top_start_x, top_end_x, bottom_start_x, bottom_end_x"
   (let ((v (get-property window :_NET_WM_STRUT_PARTIAL :result-type 'vector)))
-    (declare (type (simple-array integer (12)) v))
-    (values (aref v 1) (aref v 2) (aref v 3) (aref v 4)
-	    (aref v 5) (aref v 6) (aref v 7) (aref v 8)
-	    (aref v 9) (aref v 10) (aref v 11) (aref v 12))))
+    (declare (type (or null (simple-array integer (12)) v)))
+    (when v
+      (values (aref v 1) (aref v 2) (aref v 3) (aref v 4)
+	      (aref v 5) (aref v 6) (aref v 7) (aref v 8)
+	      (aref v 9) (aref v 10) (aref v 11) (aref v 12)))))
 
 (defsetf net-wm-strut-partial (window) (strut)
   "set the strut partial property. The given strut is expected to be a 
