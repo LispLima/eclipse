@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.21 2003/11/28 10:13:47 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.22 2003/12/03 14:34:34 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -49,6 +49,9 @@
   (:documentation "Close an application according to the ICCCM protocol."))
 
 (defgeneric focus-widget (widget timestamp))
+
+(defgeneric focused-p (widget)
+  (:documentation "Return T if the given widget has the focus."))
 
 (defgeneric put-on-top (widget)
   (:documentation "sets the widget stacking order on top of the others."))
