@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.6 2003/10/06 17:57:26 ihatchondo Exp $
+;;; $Id: move-resize.lisp,v 1.7 2003/10/09 11:36:18 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -93,19 +93,26 @@
 
 (defun activate-move-resize (master root status mode verbose-p)
   "Sets some internal values for the future move or resize animations."
-  (with-slots ((master-window window) gcontext active-p) master
-    (with-slots (resize-status move-status current-active-decoration window) root
+  (with-slots (resize-status move-status current-active-decoration window) root
+    (with-slots ((master-window window) gcontext active-p) master
       (when (and active-p (not (or resize-status move-status)))
 	(or *clone* (initialize-clone))
 	(update-clone master)
 	(grab-root-pointer)
 	(setf (slot-value root status) t
 	      current-active-decoration master)
+	(when verbose-p
+	  (initialize-geometry-info-box)
+	  (multiple-value-bind (x y w h) (window-geometry master-window)
+	    (if (eq status 'resize-status)
+		(multiple-value-bind (a b c d iw ih bw bh)
+		    (decoration-wm-hints master)
+		  (declare (ignore a b c d))
+		  (display-geometry (/ (- w bw) iw) (/ (- h bh) ih)))
+		(display-coordinates x y))))
 	(when (eq mode :box)
 	  (xlib:grab-server *display*)
-	  (draw-window-grid master-window gcontext window))
-	(when verbose-p
-	  (initialize-geometry-info-box))))))
+	  (draw-window-grid master-window gcontext window))))))
 
 ;;;; Resize.
 
@@ -266,7 +273,6 @@
 ;; and when root-resize-status is not nil.
 (defun finish-resize (master &optional verbose-p mode)
   "Terminate the resize work. (undraw grid, geometry infos, ...)"
-  (when verbose-p (undraw-geometry-info-box))
   (with-slots (window gcontext) master
     (when (and (decoration-active-p master) (eql mode :box))
       (draw-window-grid (widget-window *clone*) gcontext *root-window*)
@@ -275,6 +281,7 @@
 	(setf (window-position window) (values x y)
 	      (drawable-sizes window) (values w h))
 	(resize-from master))))
+  (when verbose-p (undraw-geometry-info-box))
   (setf *card-point* nil))
 
 ;;;; Move.
