@@ -1,5 +1,5 @@
 # -*- Mode: Makefile -*-
-# $Id: Makefile.in,v 1.7 2003/10/06 17:57:25 ihatchondo Exp $
+# $Id: Makefile.in,v 1.8 2003/11/05 09:12:43 ihatchondo Exp $
 #
 # Makefile for Eclipse window manager.
 
@@ -62,15 +62,13 @@ core:
 .PHONY: themes
 
 themes:
-	@for theme in ${themes};					\
-	do								\
-	 $(LISP) $(INITCORE)						\
-		 ${load_switch} system.lisp				\
-	         ${eval_form} "(progn					\
-				 (compile-theme \"themes/$$theme/\")	\
-				 #+:cmu(ext:quit)			\
-			         #+:allegro(excl:exit))";		\
-	done
+	@for theme in ${themes}; do tmp=$$tmp\"themes/$$theme/\"; done;	\
+	$(LISP) $(INITCORE) ${load_switch} system.lisp			\
+		${eval_form} "(progn 					\
+				(compile-themes $$tmp)			\
+				#+:cmu(ext:quit)			\
+				#+:allegro(excl:exit))"
+
 
 clean: clean-fasl clean-core clean-themes
 

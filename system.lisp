@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: system.lisp,v 1.8 2003/11/24 16:57:46 ihatchondo Exp $
+;;; $Id: system.lisp,v 1.9 2004/01/12 11:22:05 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -26,7 +26,7 @@
 #+cmu
 (progn
   #-CLX (require :cmucl-clx)		;works under Debian Linux
-  #-MK-DEFSYSTEM (load "library:subsystems/defsystem"))
+  #-(or mk-defsystem asdf) (load "library:subsystems/defsystem"))
 
 #+:excl(require :clx)
 #+:excl(require :loop)
@@ -37,14 +37,24 @@
 (load "lib/sm/system.lisp")
 
 (defmacro eclipse-defsystem ((module &key depends-on) &rest components)
-  `(defsystem ,module #-mk-defsystem ()
-       #+mk-defsystem :source-pathname *eclipse-src-directory*
-       #+mk-defsystem :source-extension "lisp"
-       #+mk-defsystem ,@(and depends-on `(:depends-on ,depends-on))
-        :components
-	(:serial
-	 #-mk-defsystem ,@depends-on
-	 ,@components)))
+  `(progn
+    #+mk-defsystem
+    (mk:defsystem ,module
+	:source-pathname *eclipse-src-directory*
+	,@(and depends-on `(:depends-on ,depends-on))
+	:components (:serial ,@components))
+    #+asdf
+    (asdf:defsystem ,module
+	,@(and depends-on `(:depends-on ,depends-on))
+	:serial t
+	:components 
+	(,@(loop for c in components
+		 for p = (merge-pathnames
+			     (parse-namestring c)
+			     (make-pathname 
+			         :type "lisp"
+				 :defaults *eclipse-src-directory*))
+		 collect `(:file ,(pathname-name p) :pathname ,p))))))
 
 (eclipse-defsystem (:clx-ext)
   "lib/clx-ext/clx-patch.lisp"
@@ -82,6 +92,15 @@
    "move-resize"
    "eclipse"
    )
+
+(defun compile-themes (&rest directory-theme-names)
+  (operate-on-system :eclipse :load)
+  (loop for directory-name in directory-theme-names
+        for i-filespec = (merge-pathnames "theme.lisp" directory-name)
+	for directory-truename = (directory-namestring (truename i-filespec))
+	for o-filespec = (merge-pathnames "theme.o" directory-truename)
+	do (load i-filespec)
+	   (compile-file i-filespec :output-file o-filespec)))
 
 (defun compile-theme (directory-name)
   (let* ((i-filespec (merge-pathnames "theme.lisp" directory-name))
