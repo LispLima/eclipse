@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.15 2004/02/12 23:30:22 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.16 2004/02/17 12:48:39 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -371,6 +371,6 @@
   (:use clx-extensions eclipse-internals common-lisp)
   (:size 50)
   (:documentation
-   "This is the package definition for in which Eclipse extensions should be
-   definied. If you want to write an extension for eclipse export in this
+   "This is the package definition in which Eclipse extensions should be
+   defined. If you want to write an extension for eclipse export in this
    package all the external symbols that your extension provides."))
