@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id$
+;;; $Id: wm.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -78,6 +78,8 @@
       (:left-click #'(lambda (event) (perform-click 1 event)))
       (:middle-click #'(lambda (event) (perform-click 2 event)))
       (:right-click #'(lambda (event) (perform-click 3 event)))
+      (:scroll-up #'(lambda (event) (perform-click 4 event)))
+      (:scroll-down #'(lambda (event) (perform-click 5 event)))
       )))
 
 (defmacro realize-keystroke (key mask action-keyword &optional lambda)
@@ -289,7 +291,7 @@
 
 (defconstant +unfocusable-mask+
   '(:property-change :enter-window :leave-window :visibility-change))
-(defconstant +focusable-mask+ (cons :focus-change +unfocusable-mask+))
+(defconstant +focusable-mask+ '(:focus-change . #.+unfocusable-mask+))
 
 (defclass application (object)
   ((master :initarg :master :reader application-master)
@@ -369,7 +371,7 @@
   ((armed :initform nil :accessor button-armed)
    (active-p :initform nil :accessor button-active-p)))
 
-(defconstant +push-button-mask+ (cons :exposure +pointer-event-mask+))
+(defconstant +push-button-mask+ '(:exposure . #.+pointer-event-mask+))
 
 (defmethod event-process ((event enter-notify) (b push-button))
   (when (button-armed b)

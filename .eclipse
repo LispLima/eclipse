@@ -49,6 +49,12 @@
 (define-key-combo :right-click
   :keys '(:C)
   :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+(define-key-combo :scroll-up
+  :keys '(:q)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+(define-key-combo :scroll-down
+  :keys '(:a)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Custom variables.

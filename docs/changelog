@@ -1,5 +1,5 @@
 -*- Mode: ChangeLog -*-
-$Id$
+$Id: changelog,v 1.2 2002/06/24 07:33:44 james Exp $
 0.01 => 0.02
 
      Eclipse should now compile on every ANSI-compliant Common Lisp
@@ -44,3 +44,6 @@ $Id$
 	generic implementation of the virtual-screen, and wm.lisp 
 	now contain a specialisation of this class, named:
 	eclipse-screens.
+     - added two more predifined keystrokes for simulating the mouse buttons
+        four and five (the wheel).
+     - added some #. reader for avoiding some consing in some defconstant.

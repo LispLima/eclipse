@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id$
+;;; $Id: gnome-manager.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -358,7 +358,7 @@ exist in the server. - draft 1.2 10-17-2001"))
   (get-property window :_WIN_AREA_COUNT))
 
 (defsetf win-area-count (window) (nb-screens)
-  `(change-property ,window :_WIN_AREA ,nb-screens :CARDINAL 32))
+  `(change-property ,window :_WIN_AREA_COUNT ,nb-screens :CARDINAL 32))
 
 ;; _WIN_PROTOCOLS
 
