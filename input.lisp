@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.2 2003/03/16 01:15:49 hatchond Exp $
+;;; $Id: input.lisp,v 1.3 2003/03/19 09:53:26 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -289,7 +289,7 @@
 	       (recompute-wm-normal-hints window hmargin vmargin)
 	     (setf (slot-value master 'wm-size-hints) wm-sizes
 		   (decoration-application-gravity master) gravity)))))
-      (:WM_NAME
+      ((or :WM_NAME :_NET_WM_NAME)
        (when master
 	 (with-slots (window item-to-draw) (get-child master :title-bar)
 	   (setf item-to-draw (wm-name (widget-window app)))
@@ -337,10 +337,10 @@
 	   (when (or (eq prop1 :_net_wm_state_hidden)
 		     (eq prop2 :_net_wm_state_hidden))
 	     (if (= action 0) (uniconify application) (iconify application)))
+	   (when (or (eql prop1 :_net_wm_state_fullscreen)
+		     (eql prop2 :_net_wm_state_fullscreen))
+	     (setf (full-screen-mode application) (if (= action 0) :off :on)))
 	   (when master
-	     (when (or (eql prop1 :_net_wm_state_fullscreen)
-		       (eql prop2 :_net_wm_state_fullscreen))
-	       (setf (full-screen-mode master) (if (= action 0) :off :on)))
 	     (when (or (eql prop1 :_net_wm_state_maximized_vert)
 		       (eql prop2 :_net_wm_state_maximized_vert))
 	       (maximize-window master 2))

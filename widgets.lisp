@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.3 2003/03/16 00:57:02 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.4 2003/03/19 09:52:38 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -237,6 +237,7 @@
    (icon :initform nil :initarg :icon :reader application-icon)
    (iconic-p :initform nil :accessor application-iconic-p)
    (wants-focus-p :initform nil :accessor application-wants-focus-p)
+   (initial-geometry :initform (make-geometry))
    (unobscured-p :initform nil :accessor application-unobscured-p)))
 
 (defmethod close-widget ((application application))
@@ -249,11 +250,31 @@
   (with-slots (window input-model) application
     (set-focus input-model window timestamp)))
 
+(defmethod focused-p ((application application))
+  (xlib:window-equal (widget-window application) (xlib:input-focus *display*)))
+
+(defsetf full-screen-mode (application) (mode)
+  `(with-slots (window initial-geometry master) ,application
+    (if (eq ,mode :on)
+	(multiple-value-bind (x y w h) (window-geometry window)
+	  (when master
+	    (multiple-value-setq (x y) (window-position (widget-window master)))
+	    (setf (decoration-application-gravity master) :static))
+	  (setf (geometry initial-geometry) (values x y w h))
+	  (xlib:with-state (window)
+	    (setf (window-position window) (values 0 0)
+		  (drawable-sizes window)  
+		  (values (screen-width) (screen-height)))))
+	(setf (drawable-sizes window) (geometry-sizes initial-geometry)
+	      (window-position (if master (widget-window master) window))
+	      (geometry-coordinates initial-geometry)))))
+
 (defun undecore-application (application &key state)
   (with-slots (window master icon) application
     (if master
-	(with-slots (window frame-style) master
-	  (multiple-value-bind (x y) (window-position window)
+	(let ((master-win (widget-window master))
+	      (frame-style (decoration-frame-style master)))
+	  (multiple-value-bind (x y) (window-position master-win)
 	    (incf x (style-left-margin frame-style)) 
 	    (incf y (style-top-margin frame-style))
 	    (xlib:reparent-window window *root-window* x y)))
@@ -283,9 +304,6 @@
 
 (defun kill-client-window (window)
   (xlib:kill-client (xlib:drawable-display window) (xlib:window-id window)))
-
-(defmethod focused-p ((application application))
-  (xlib:window-equal (widget-window application) (xlib:input-focus *display*)))
 
 (defun application-p (widget)
   (typep widget 'application))
@@ -388,6 +406,9 @@
 
 (defconstant +push-button-mask+ '(:exposure . #.+pointer-event-mask+))
 
+(defmethod focus-widget ((button push-button) timestamp)
+  (focus-widget (button-master button) timestamp))
+
 (defmethod event-process ((event enter-notify) (b push-button))
   (when (button-armed b)
     (setf (button-active-p b) t)))
@@ -480,18 +501,20 @@
 		    :parent *root-window* :master master
 		    :x 750 :y 50 :width width :height height
 		    :gcontext gcontext
-		    :item (unless background (wm-name window))
+		    :item (unless background (wm-icon-name window))
 		    :background (or background bg-color))
 	    (slot-value icon 'application) application)
       icon)))
 
 (defmethod iconify ((application application))
-  (setf (application-iconic-p application) t
-	(application-wants-focus-p application) *focus-new-mapped-window*)
-  (xlib:unmap-window (widget-window application))
-  (xlib:map-window (widget-window (application-icon application)))
-  (when (eq *focus-type* :on-click)
-    (give-focus-to-next-widget-in-desktop *root*)))
+  (with-slots (window iconic-p wants-focus-p icon) application
+    (setf iconic-p t wants-focus-p t)
+    (xlib:unmap-window window)
+    (when (stringp (slot-value icon 'item-to-draw))
+      (setf (slot-value icon 'item-to-draw) (wm-icon-name window)))
+    (xlib:map-window (widget-window icon))
+    (when (eq *focus-type* :on-click)
+      (give-focus-to-next-widget-in-desktop *root*))))
 
 (defmethod uniconify ((icon icon))
   (with-slots (application desiconify-p) icon

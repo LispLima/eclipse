@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.8 2003/03/17 11:13:17 hatchond Exp $
+;;; $Id: wm.lisp,v 1.9 2003/03/19 10:15:23 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -35,7 +35,7 @@
    (active-p :initform nil :accessor decoration-active-p)
    (maximized :initform nil :accessor decoration-maximized)
    (time :initform 0 :accessor decoration-precedent-time :allocation :class)
-   (initial-geometry :initform (make-array 4))
+   (initial-geometry :initform (make-geometry))
    (wm-size-hints :initarg :wm-size-hints :reader decoration-wm-size-hints)
    (frame-style :initarg :frame-style :accessor decoration-frame-style)
    (application-gravity 
@@ -50,23 +50,6 @@
 (defmethod get-child ((master decoration) label &key window)
   (let ((widget (getf (decoration-children master) label)))
     (if (and widget window) (widget-window widget) widget)))
-
-
-(defsetf initial-geometry (master) (x y width height)
-  `(with-slots (initial-geometry) ,master
-     (setf (aref initial-geometry 0) ,x
-	   (aref initial-geometry 1) ,y
-	   (aref initial-geometry 2) ,width
-	   (aref initial-geometry 3) ,height)))
-
-(defmethod initial-x ((master decoration))
-  (aref (slot-value master 'initial-geometry) 0))
-(defmethod initial-y ((master decoration))
-  (aref (slot-value master 'initial-geometry) 1))
-(defmethod initial-width ((master decoration))
-  (aref (slot-value master 'initial-geometry) 2))
-(defmethod initial-height ((master decoration))
-  (aref (slot-value master 'initial-geometry) 3))
 
 (defmethod decoration-min-width ((master decoration))
   (with-slots (hmargin) (decoration-frame-style master)
@@ -404,37 +387,44 @@
 
 (defun maximize-window (master button-code)
   (with-slots (maximized window initial-geometry wm-size-hints) master
-    (let* ((app-window (get-child master :application :window t))
+    (let* ((app (get-child master :application))
+	   (app-window (widget-window app))
 	   (prop (ignore-errors (netwm:net-wm-state app-window)))
+	   (full-screen-p (member :_net_wm_state_fullscreen prop))
 	   (max-w (aref wm-size-hints 2))
 	   (max-h (aref wm-size-hints 3))
 	   new-sizes)
       (multiple-value-bind (x y) (window-position window)
 	(multiple-value-bind (w h) (drawable-sizes app-window)
-	  (unless maximized (setf (initial-geometry master) (values x y w h)))
+	  (unless maximized 
+	    (if full-screen-p
+		(setf initial-geometry (slot-value app 'initial-geometry))
+		(setf (geometry initial-geometry) (values x y w h))))
 	  (case button-code
 	    ;; Unmaximize or Maximize in both directions
 	    (1 (if maximized
 		   (setf new-sizes initial-geometry
 			 maximized nil)
-		   (setf maximized (list :vertical t :horizontal t)
-			 new-sizes (vector 0 0 max-w max-h))))
+		   (setf maximized (list :vertical t :horizontal t) 
+			 new-sizes (make-geometry :w max-w :h max-h))))
 	    ;; Unmaximize or Maximize Vertically
 	    (2 (if (remf maximized :vertical)
-		   (setf new-sizes (vector x (initial-y master)
-					   w (initial-height master)))
+		   (setf new-sizes 
+			 (make-geometry :x x :y (geometry-y initial-geometry)
+					:w w :h (geometry-h initial-geometry)))
 		   (setf (getf maximized :vertical) t
-			 new-sizes (vector x 0 w max-h))))
+			 new-sizes (make-geometry :x x :w w :h max-h))))
 	    ;; Unmaximize or Maximize Horizontally
 	    (3 (if (remf maximized :horizontal)
-		   (setf new-sizes (vector (initial-x master) y
-					   (initial-width master) h))
+		   (setf new-sizes 
+			 (make-geometry :x (geometry-x initial-geometry) :y y
+					:w (geometry-w initial-geometry) :h h))
 		   (setf (getf maximized :horizontal) t
-			 new-sizes (vector 0 y max-w h)))))))
-      (setf (window-position window)
-	    (values (aref new-sizes 0) (aref new-sizes 1)))
-      (setf (drawable-sizes app-window)
-	    (values (aref new-sizes 2) (aref new-sizes 3)))
+			 new-sizes (make-geometry :y y :w max-w :h h)))))))
+      (if full-screen-p
+	  (setf (slot-value app 'initial-geometry) new-sizes)
+	  (setf (window-position window) (geometry-coordinates new-sizes)
+		(drawable-sizes app-window) (geometry-sizes new-sizes)))
       (if (getf maximized :vertical)
 	  (pushnew :_net_wm_state_maximized_vert prop)
 	  (setf prop (delete :_net_wm_state_maximized_vert prop)))
@@ -442,23 +432,6 @@
 	  (pushnew :_net_wm_state_maximized_horz prop)
 	  (setf prop (delete :_net_wm_state_maximized_horz prop)))
       (setf (netwm:net-wm-state app-window) prop))))
-
-(defsetf full-screen-mode (master) (mode)
-  `(with-slots (window application-gravity) ,master
-     (let ((app-window (get-child ,master :application :window t)))       
-       (if (eq ,mode :on)
-	   (multiple-value-bind (x y) (window-position window)
-	     (multiple-value-bind (w h) (drawable-sizes app-window)
-	       (setf (initial-geometry ,master) (values x y w h)))
-	     (setf application-gravity :static)
-	     (xlib:with-state (app-window)
-	       (setf (window-position app-window) (values 0 0))
-	       (setf (drawable-sizes app-window) 
-		     (values (screen-width) (screen-height)))))
-	   (setf (drawable-sizes app-window)
-		 (values (initial-width ,master) (initial-height ,master))
-		 (window-position window)
-		 (values (initial-x ,master) (initial-y ,master)))))))
 
 ;;;; Focus management. According to ICCCM
 

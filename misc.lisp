@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.1 2002/11/07 15:06:03 hatchond Exp $
+;;; $Id: misc.lisp,v 1.2 2003/03/16 01:00:22 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -96,6 +96,11 @@
       (ignore-errors (xlib:wm-name window))
       (format nil "incognito")))
 
+(defun wm-icon-name (window)
+  (or (ignore-errors (netwm:net-wm-icon-name window))
+      (ignore-errors (xlib:wm-icon-name window))
+      "incognito"))
+
 (defun gnome-desktop-num (window)
   (or (netwm:net-wm-desktop window) (gnome:win-workspace window)))
 
@@ -140,3 +145,19 @@
 (defun delete-root-properties ()
   (mapc #'(lambda (prop) (xlib:delete-property *root-window* prop))
 	(concatenate 'list +gnome-protocols+ +netwm-protocol+)))
+
+(defstruct geometry
+  (x 0 :type (unsigned-byte 16))
+  (y 0 :type (unsigned-byte 16))
+  (w 0 :type (signed-byte 16))
+  (h 0 :type (signed-byte 16)))
+
+(defun geometry-coordinates (geometry) 
+  (values (geometry-x geometry) (geometry-y geometry)))
+
+(defun geometry-sizes (geometry)
+  (values (geometry-w geometry) (geometry-h geometry)))
+
+(defsetf geometry (geometry) (x y w h)
+  `(setf (geometry-x ,geometry) ,x   (geometry-y ,geometry) ,y
+         (geometry-w ,geometry) ,w   (geometry-h ,geometry) ,h))
