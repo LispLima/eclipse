@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.25 2003/11/28 10:13:47 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.26 2003/12/02 14:30:41 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -402,7 +402,7 @@
 	      (setf (getf (decoration-children master) :icon) icon
 		    (slot-value icon 'master) master
 		    (slot-value application 'master) master
-		    (xlib:drawable-border-width window) 0))
+		    (xlib:drawable-border-width application-window) 0))
 	    master))))))
 
 (defun decore-application (window application &key (map t))
