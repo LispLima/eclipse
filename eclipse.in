@@ -1,8 +1,18 @@
 @interp@ @SHELL@
-# $Id: eclipse.in,v 1.2 2002/06/24 07:33:44 james Exp $
+# $Id: eclipse.in,v 1.3 2002/11/07 14:54:26 hatchond Exp $
 #
 # @configure_input@
-# This file start the eclipse window manager
+# This file starts the eclipse window manager
 
 display_spec=`if [ -n "$1" ]; then echo \"$1\"; fi`
-@LISP@ @ARGS@
+
+if [ -d @SRC@ ] ; then
+    cd @SRC@
+fi
+
+lisp=`basename @LISP@`
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+
+@bindir@/$lisp @ARGS@

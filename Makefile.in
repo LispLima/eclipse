@@ -1,14 +1,16 @@
 # -*- Mode: Makefile -*-
-# $Id: Makefile.in,v 1.4 2002/11/07 15:14:24 hatchond Exp $
+# $Id: Makefile.in,v 1.5 2002/11/07 15:54:34 hatchond Exp $
 #
 # Makefile for Eclipse window manager.
 
-LISP = @LISP@
-CORE = @CORE@
-core_dest = @core_dest@
+LISP = @LISP@ $(LISPFLAGS)
+usecore = @usecore@
+INITCORE = @INITCORE@
+CORENAME = @CORENAME@
+COREDIR = @COREDIR@
 PRG = eclipse
 
-# lisp argument name for evaluting forms :
+# lisp argument name for evaluating forms :
 eval_form = @eval_form@
 # lisp argument name for loading file :
 load_switch = @load_switch@
@@ -22,58 +24,101 @@ prefix = @prefix@
 exec_prefix = @exec_prefix@
 bindir = @bindir@
 datadir = @datadir@
+libdir = @libdir@
 mandir = @mandir@
 install = @INSTALL@
 gnome_entry_dir = @gnome_entry_dir@
+eclipsedir = @eclipsedir@
+initfile = @initfile@
+
+themedir = ${eclipsedir}/themes
 themes = microGUI Step brushed-metal CoolClean
+
+# In order to communicate configuration options to the lisp system the
+# corresponding variable should be given a definition above, an entry
+# in `setconfig' below and a `defvar' in "config.lisp.in". Always use an
+# explicit prefix of "cl-user::" to prevent any package problems.
+
+setconfig = cl-user::*eclipse-eclipsedir* "$(eclipsedir)/" \
+	    cl-user::*eclipse-initfile* "$(initfile)"
+
 
 all:	compile themes core
 
 compile:
-	@$(LISP) $(CORE) ${load_switch} compile.lisp
+	$(LISP) $(INITCORE) ${load_switch} compile.lisp
 
 core:	
-	@if test ! ${core_dest} = no;\
-        then $(LISP) $(CORE) ${load_switch} system.lisp ${eval_form}\
-	"(progn\
-	   (operate-on-system :eclipse :load)\
-	   (${save_lisp} \"${core_dest}\"))";\
+	if test ! ${usecore} = no;					 \
+        then $(LISP) $(INITCORE)					 \
+                     ${load_switch} system.lisp				 \
+                     ${eval_form} '(setq $(setconfig))'			 \
+                     ${eval_form}  "(progn				 \
+			              (operate-on-system :eclipse :load) \
+			              (${save_lisp} \"${CORENAME}\"))";	 \
 	fi
 
 
 .PHONY: themes
 
 themes:
-	@for theme in ${themes}; \
-	do \
-	 $(LISP) $(CORE) \
-		 ${load_switch} system.lisp \
-	         ${eval_form} "(progn\
-				 (compile-theme \"themes/$$theme\")\
-				 #+:cmu(ext:quit)\
-			         #+:allegro(excl:exit))";\
+	@for theme in ${themes};					\
+	do								\
+	 $(LISP) $(INITCORE)						\
+		 ${load_switch} system.lisp				\
+	         ${eval_form} "(progn					\
+				 (compile-theme \"themes/$$theme/\")	\
+				 #+:cmu(ext:quit)			\
+			         #+:allegro(excl:exit))";		\
 	done
 
-clean:
-	/bin/rm -f load-eclipse.lisp
-	/bin/rm -f eclipse
-	/bin/rm -f *.err lib/*.err lib/clx-ext/*.err
-	@$(LISP) $(CORE) ${load_switch} system.lisp ${eval_form}\
-	 "(progn\
-	    (operate-on-system :eclipse :clean)\
-	    #+:cmu(ext:quit)\
+clean: clean-fasl clean-core clean-themes
+
+clean-fasl:
+	$(LISP) $(INITCORE) ${load_switch} system.lisp ${eval_form}	\
+	 "(progn							\
+	    (operate-on-system :eclipse :clean)				\
+	    #+:cmu(ext:quit)						\
 	    #+:allegro(excl:exit))"
-	@if test ! ${core_dest} = no; then /bin/rm -f ${core_dest}; fi
-	@for theme in themes/*; do /bin/rm -f $$theme/theme.o; done
+	/bin/rm -f *.err
+
+clean-core:
+	if test ! ${usecore} = no; then /bin/rm -f ${CORENAME}; fi
+
+clean-themes:
+	for theme in themes/*; do /bin/rm -f $$theme/theme.o; done
+
+realclean: clean
+	/bin/rm -f Makefile
+	/bin/rm -f eclipse
+	/bin/rm -f load-eclipse.lisp config.lisp
+	/bin/rm -f config.cache config.log config.status
 
 install:
+	if test ! ${usecore} = no ; then			\
+	    $(install) -d ${COREDIR} ;				\
+	    $(install) ${CORENAME} ${COREDIR}/${CORENAME} ;	\
+	    for theme in ${themes} ; do				\
+	      test -f "themes/$$theme/theme.o" &&		\
+	      $(install) -d ${themedir}/$$theme &&		\
+	      for file in themes/$$theme/* ; do			\
+		$(install) $$file ${themedir}/$$theme/. ;	\
+	      done ;						\
+	    done ;						\
+	fi
+	$(install) -d ${eclipsedir}
+	$(install) eclipserc ${eclipsedir}
 	$(install) -d ${bindir}
 	$(install) -m 755 ${PRG} ${bindir}/${PRG}
+	if test ! -x ${bindir}/`basename ${LISP}` ; then	\
+	    $(install) ${LISP} ${bindir} ;			\
+	fi
 	$(install) -d ${mandir}/man1
 	$(install) -m 644 docs/eclipse.1 ${mandir}/man1/eclipse.1
-	if test ! ${gnome_entry_dir} = no;\
+	$(install) -d ${themedir}
+	-if test ! ${gnome} = no;\
 	then\
-	  if ! test -d ${gnome_entry_dir};\
+	  if test ! -d ${gnome_entry_dir};\
 	  then $(install) -d ${gnome_entry_dir};\
 	  fi;\
 	  $(install) -m 644 Eclipse.desktop ${gnome_entry_dir}/Eclipse.desktop;\
@@ -81,6 +126,7 @@ install:
 
 uninstall: 
 	/bin/rm -f ${bindir}/${PRG}
+	/bin/rm -f ${COREDIR}/${CORENAME}
 	/bin/rm -f ${mandir}/man1/eclipse.1
 	if test ! ${gnome_entry_dir} = no;\
 	then /bin/rm -f ${gnome_entry_dir}/Eclipse.desktop; fi

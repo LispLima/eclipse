@@ -1,11 +1,16 @@
-# $Id: configure.in,v 1.2 2002/06/24 07:33:44 james Exp $
+# $Id: configure.in,v 1.3 2002/11/07 14:54:26 hatchond Exp $
 AC_INIT()
+
+eclipsedir=${libdir}/eclipse
 
 SRC=`pwd`
 LISP=""
-CORE=""
+INITCORE=""
+CORENAME="eclipse.core"
+COREDIR=${eclipsedir}
 ARGS=""
-core_dest=""
+initfile=".eclipse"
+usecore="no"
 gnome_entry_dir=""
 interp=""
 
@@ -19,34 +24,47 @@ save_lisp="save-lisp"
 AC_SYS_INTERPRETER
 AC_PROG_INSTALL
 
-# assume that we can give argument to configure :
-# --with-lisp
-# --with-core
-# --with-gnome-entry-dir
-# --enable-compile-into-core
+AC_ARG_WITH(initfile,
+[  --with-initfile=FILE    where to find your eclipse startup file],
+initfile="$withval")
 
 AC_ARG_WITH(lisp,
 [  --with-lisp=DIR or FILE where to find your lisp system],
-LISP=$withval,
+LISP="$withval",
 [AC_PATH_PROG(LISP,lisp)])
 
-AC_ARG_WITH(core,
-[  --with-core=FILE        what is the core image to use],
-if test -n $withval -a -r $withval
-then CORE="${with_image} $withval"
+AC_ARG_WITH(initcore,
+[  --with-initcore=FILE    the name of the core to use when compiling],
+if test -n "$withval" -a -r "$withval"
+then INITCORE="${with_image} $withval"
+fi)
+
+AC_ARG_WITH(corename,
+[  --with-corename=FILE    what is the name of the core image to dump],
+if test -n "$withval" -a -r "$withval"
+then CORENAME="$withval"
+fi)
+
+AC_ARG_WITH(coredest,
+[  --with-coredest=DIR     what is the destination of the dumped core image],
+if test -n "$withval" -a -r "$withval"
+then COREDIR="$withval"
 fi)
 
 AC_ARG_WITH(gnome_entry_dir,
 [  --with-gnome-entry-dir=[PATH]  path to the gnome WM entries directory.],
-gnome_entry_dir=$withval
+gnome_entry_dir="$withval"
 if test -z "${gnome_entry_dir}"
 then gnome_entry_dir=yes
 fi,
 gnome_entry_dir=yes)
 
 AC_ARG_ENABLE(compile-into-core,
-[  --enable-compile-into-core=[NAME] core file-name for compile destination],
-core_dest=$enableval)
+[  --enable-compile-into-core=[yes|no]  compile to core],
+if test ! "$enableval" = no 
+then usecore=yes
+else usecore=no
+fi)
 
 #
 # user gave a directory for the lisp system
@@ -77,28 +95,13 @@ done
 clwm_cv_gnome_entry_dir=${gnome_entry_dir})
 gnome_entry_dir=${clwm_cv_gnome_entry_dir}
 
-#
-# fix core image name destination if necessary.
-case "${core_dest}" in
-  yes) core_dest=eclipse-lisp.core ;;
-  no) ;;
-  "" | $) core_dest="no" ;;
-   *) ;;
-esac
-# and prepare the lisp arguments for the wm loader.
-if test ! ${core_dest} = no
+# prepare the lisp arguments for the wm loader.
+if test ! ${usecore} = no
 then
- # put the absolute pathname of the core destination file.
- if test `dirname ${core_dest}` = .
- then core_dest=${SRC}/${core_dest}
- fi
- if test -d ${core_dest}
- then core_dest=`dirname ${core_dest}`/`basename ${core_dest}`/eclipse-lisp.core
- fi
- ARGS="${with_image} ${core_dest}\
+ ARGS="${with_image} ${COREDIR}/${CORENAME}\
        ${eval_form} \"(eclipse:eclipse \${display_spec})\""
 else
- ARGS="${CORE} ${load_switch} ${SRC}/load-eclipse.lisp ${eval_form}\
+ ARGS="${INITCORE} ${load_switch} ${SRC}/load-eclipse.lisp ${eval_form}\
  \"(start \${display_spec})\""
 fi
 
@@ -113,7 +116,9 @@ fi
 AC_SUBST(interp)   
 AC_SUBST(SHELL)
 AC_SUBST(LISP)
-AC_SUBST(CORE)
+AC_SUBST(INITCORE)
+AC_SUBST(CORENAME)
+AC_SUBST(COREDIR)
 AC_SUBST(SRC)
 AC_SUBST(ARGS)
 AC_SUBST(INSTALL)
@@ -121,10 +126,12 @@ AC_SUBST(eval_form)
 AC_SUBST(with_image)
 AC_SUBST(load_switch)
 AC_SUBST(save_lisp)
-AC_SUBST(core_dest)
+AC_SUBST(usecore)
+AC_SUBST(initfile)
+AC_SUBST(eclipsedir)
 AC_SUBST(gnome_entry_dir)
 
-AC_OUTPUT([Makefile eclipse load-eclipse.lisp])
+AC_OUTPUT([Makefile eclipse load-eclipse.lisp config.lisp])
 
 if test ! ${gnome_entry_dir} = no
 then 
@@ -146,13 +153,15 @@ fi
 #
 # Configuration report
 printf "\n\nConfiguration report\n"
-printf " - install prefix      : ${prefix}.\n"
-printf " - exec prefix         : ${exec_prefix}/bin.\n"
-printf " - lisp system found   : ${LISP}.\n"
-if test -n "${CORE}"
-then printf " - use specific image  : ${CORE}.\n"
-else printf " - use specific image  : no.\n"
+printf " - install prefix            : ${prefix}.\n"
+printf " - exec prefix               : ${exec_prefix}/bin.\n"
+printf " - eclipse dir               : ${eclipsedir}.\n"
+printf " - eclipse startup file      : ${initfile}.\n"
+printf " - lisp system found         : ${LISP}.\n"
+printf " - use core when compiling   : ${INITCORE}.\n"
+printf " - compile and dump image    : ${usecore}.\n"
+if test "${usecore}" = yes ; then 
+printf " - image path                : ${COREDIR}/${CORENAME}.\n"
 fi
-printf " - compile in an image : ${core_dest}.\n"
-printf " - create gnome entry  : ${gnome_entry_dir}.\n"
-printf " - installer           : ${INSTALL}.\n"
+printf " - create gnome entry        : ${gnome_entry_dir}.\n"
+printf " - installer                 : ${INSTALL}.\n"

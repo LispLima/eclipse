@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: system.lisp,v 1.3 2002/11/07 14:54:27 hatchond Exp $
+;;; $Id: system.lisp,v 1.4 2003/02/03 08:06:32 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -21,11 +21,11 @@
 
 (common-lisp:in-package :common-lisp-user)
 
-(defparameter *eclipse-directory* (directory-namestring *load-truename*))
+(defparameter *eclipse-src-directory* (directory-namestring *load-truename*))
 
 #+cmu
 (progn
-  #-CLX (require :clx)
+  #-CLX (require :cmucl-clx)		;works under Debian Linux
   #-MK-DEFSYSTEM (load "library:subsystems/defsystem"))
 
 #+:excl(require :clx)
@@ -34,7 +34,7 @@
 
 (defmacro eclipse-defsystem ((module &key depends-on) &rest components)
   `(defsystem ,module #-mk-defsystem ()
-       #+mk-defsystem :source-pathname *eclipse-directory*
+       #+mk-defsystem :source-pathname *eclipse-src-directory*
        #+mk-defsystem :source-extension "lisp"
        #+mk-defsystem ,@(and depends-on `(:depends-on ,depends-on))
         :components
@@ -61,6 +61,7 @@
    )
 
 (eclipse-defsystem (:eclipse :depends-on (:eclipse-lib :clx-ext))
+   "config.lisp"
    "programmed-tasks"
    "virtual-screen"
    "package"
@@ -77,9 +78,9 @@
    )
 
 (defun compile-theme (directory-name)
-  (let ((i-filespec (concatenate 'string directory-name "/theme.lisp"))
-	(o-filespec #+cmu "theme.o"
-		    #-cmu (concatenate 'string directory-name "/theme.o")))
+  (let ((i-filespec (merge-pathnames "theme.lisp" directory-name))
+	(o-filespec (merge-pathnames "theme.o")))
     (operate-on-system :eclipse :load)
     (load i-filespec)
     (compile-file i-filespec :output-file o-filespec)))
+

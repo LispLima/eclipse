@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.4 2003/03/16 00:59:14 hatchond Exp $
+;;; $Id: global.lisp,v 1.5 2003/03/19 10:54:33 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -25,10 +25,12 @@
 (defparameter *eclipse-directory* (directory-namestring *load-truename*))
 
 (defun eclipse-path (&rest names)
-  (apply #'concatenate 'string *eclipse-directory* names))
+  (apply #'concatenate 'string
+	 (or cl-user::*eclipse-eclipsedir* *eclipse-directory*)
+	 names))
 
-;; This constant represant all the gnome protocol and extended, that we are
-;; actually dealling with.
+;; This constant represents all the gnome protocols and extensions,
+;; that we are actually dealling with.
 (defconstant +gnome-protocols+
   '(:_win_workspace :_win_workspace_count :_win_client_list
     :_win_workspace_names))
@@ -109,7 +111,7 @@
 (defun %quit% (&optional code)
   #+allegro (excl:exit code)
   #+clisp (#+lisp=cl ext:quit #-lisp=cl lisp:quit code)
-  #+cmu (ext:quit code)
+  #+cmu (unix:unix-exit (or code 0))
   #+cormanlisp (win32:exitprocess code)
   #+gcl (lisp:bye code)
   #+lispworks (lw:quit :status code)

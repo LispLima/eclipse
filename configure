@@ -12,13 +12,19 @@ ac_help=
 ac_default_prefix=/usr/local
 # Any additions from configure.in:
 ac_help="$ac_help
+  --with-initfile=FILE    where to find your eclipse startup file"
+ac_help="$ac_help
   --with-lisp=DIR or FILE where to find your lisp system"
 ac_help="$ac_help
-  --with-core=FILE        what is the core image to use"
+  --with-initcore=FILE    the name of the core to use when compiling"
+ac_help="$ac_help
+  --with-corename=FILE    what is the name of the core image to dump"
+ac_help="$ac_help
+  --with-coredest=DIR     what is the destination of the dumped core image"
 ac_help="$ac_help
   --with-gnome-entry-dir=[PATH]  path to the gnome WM entries directory."
 ac_help="$ac_help
-  --enable-compile-into-core=[NAME] core file-name for compile destination"
+  --enable-compile-into-core=[yes|no]  compile to core"
 
 # Initialize some variables set by options.
 # The variables have the same names as the options, with
@@ -530,11 +536,16 @@ fi
 
 
 
+eclipsedir=${libdir}/eclipse
+
 SRC=`pwd`
 LISP=""
-CORE=""
+INITCORE=""
+CORENAME="eclipse.core"
+COREDIR=${eclipsedir}
 ARGS=""
-core_dest=""
+initfile=".eclipse"
+usecore="no"
 gnome_entry_dir=""
 interp=""
 
@@ -548,7 +559,7 @@ save_lisp="save-lisp"
 # Pull the hash mark out of the macro call to avoid m4 problems.
 ac_msg="whether #! works in shell scripts"
 echo $ac_n "checking $ac_msg""... $ac_c" 1>&6
-echo "configure:552: checking $ac_msg" >&5
+echo "configure:563: checking $ac_msg" >&5
 if eval "test \"`echo '$''{'ac_cv_sys_interpreter'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -599,7 +610,7 @@ ac_configure=$ac_aux_dir/configure # This should be Cygnus configure.
 # SVR4 /usr/ucb/install, which tries to use the nonexistent group "staff"
 # ./install, which can be erroneously created by make from ./install.sh.
 echo $ac_n "checking for a BSD compatible install""... $ac_c" 1>&6
-echo "configure:603: checking for a BSD compatible install" >&5
+echo "configure:614: checking for a BSD compatible install" >&5
 if test -z "$INSTALL"; then
 if eval "test \"`echo '$''{'ac_cv_path_install'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -652,21 +663,22 @@ test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL_PROGRAM}'
 test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
 
-# assume that we can give argument to configure :
-# --with-lisp
-# --with-core
-# --with-gnome-entry-dir
-# --enable-compile-into-core
+# Check whether --with-initfile or --without-initfile was given.
+if test "${with_initfile+set}" = set; then
+  withval="$with_initfile"
+  initfile="$withval"
+fi
+
 
 # Check whether --with-lisp or --without-lisp was given.
 if test "${with_lisp+set}" = set; then
   withval="$with_lisp"
-  LISP=$withval
+  LISP="$withval"
 else
   # Extract the first word of "lisp", so it can be a program name with args.
 set dummy lisp; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:670: checking for $ac_word" >&5
+echo "configure:682: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_LISP'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -701,11 +713,29 @@ fi
 fi
 
 
-# Check whether --with-core or --without-core was given.
-if test "${with_core+set}" = set; then
-  withval="$with_core"
-  if test -n $withval -a -r $withval
-then CORE="${with_image} $withval"
+# Check whether --with-initcore or --without-initcore was given.
+if test "${with_initcore+set}" = set; then
+  withval="$with_initcore"
+  if test -n "$withval" -a -r "$withval"
+then INITCORE="${with_image} $withval"
+fi
+fi
+
+
+# Check whether --with-corename or --without-corename was given.
+if test "${with_corename+set}" = set; then
+  withval="$with_corename"
+  if test -n "$withval" -a -r "$withval"
+then CORENAME="$withval"
+fi
+fi
+
+
+# Check whether --with-coredest or --without-coredest was given.
+if test "${with_coredest+set}" = set; then
+  withval="$with_coredest"
+  if test -n "$withval" -a -r "$withval"
+then COREDIR="$withval"
 fi
 fi
 
@@ -713,7 +743,7 @@ fi
 # Check whether --with-gnome_entry_dir or --without-gnome_entry_dir was given.
 if test "${with_gnome_entry_dir+set}" = set; then
   withval="$with_gnome_entry_dir"
-  gnome_entry_dir=$withval
+  gnome_entry_dir="$withval"
 if test -z "${gnome_entry_dir}"
 then gnome_entry_dir=yes
 fi
@@ -725,7 +755,10 @@ fi
 # Check whether --enable-compile-into-core or --disable-compile-into-core was given.
 if test "${enable_compile_into_core+set}" = set; then
   enableval="$enable_compile_into_core"
-  core_dest=$enableval
+  if test ! "$enableval" = no 
+then usecore=yes
+else usecore=no
+fi
 fi
 
 
@@ -745,7 +778,7 @@ fi
 #
 # extra check for gnome wm-properties directory.
 echo $ac_n "checking checking for gnome wm-properties directory""... $ac_c" 1>&6
-echo "configure:749: checking checking for gnome wm-properties directory" >&5
+echo "configure:782: checking checking for gnome wm-properties directory" >&5
 if eval "test \"`echo '$''{'clwm_cv_gnome_entry_dir'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -764,28 +797,13 @@ fi
 echo "$ac_t""$clwm_cv_gnome_entry_dir" 1>&6
 gnome_entry_dir=${clwm_cv_gnome_entry_dir}
 
-#
-# fix core image name destination if necessary.
-case "${core_dest}" in
-  yes) core_dest=eclipse-lisp.core ;;
-  no) ;;
-  "" | $) core_dest="no" ;;
-   *) ;;
-esac
-# and prepare the lisp arguments for the wm loader.
-if test ! ${core_dest} = no
+# prepare the lisp arguments for the wm loader.
+if test ! ${usecore} = no
 then
- # put the absolute pathname of the core destination file.
- if test `dirname ${core_dest}` = .
- then core_dest=${SRC}/${core_dest}
- fi
- if test -d ${core_dest}
- then core_dest=`dirname ${core_dest}`/`basename ${core_dest}`/eclipse-lisp.core
- fi
- ARGS="${with_image} ${core_dest}\
+ ARGS="${with_image} ${COREDIR}/${CORENAME}\
        ${eval_form} \"(eclipse:eclipse \${display_spec})\""
 else
- ARGS="${CORE} ${load_switch} ${SRC}/load-eclipse.lisp ${eval_form}\
+ ARGS="${INITCORE} ${load_switch} ${SRC}/load-eclipse.lisp ${eval_form}\
  \"(start \${display_spec})\""
 fi
 
@@ -798,6 +816,10 @@ fi
 #
 # Final substitutions
    
+
+
+
+
 
 
 
@@ -924,7 +946,7 @@ done
 ac_given_srcdir=$srcdir
 ac_given_INSTALL="$INSTALL"
 
-trap 'rm -fr `echo "Makefile eclipse load-eclipse.lisp" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "Makefile eclipse load-eclipse.lisp config.lisp" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -961,7 +983,9 @@ s%@INSTALL_SCRIPT@%$INSTALL_SCRIPT%g
 s%@INSTALL_DATA@%$INSTALL_DATA%g
 s%@LISP@%$LISP%g
 s%@interp@%$interp%g
-s%@CORE@%$CORE%g
+s%@INITCORE@%$INITCORE%g
+s%@CORENAME@%$CORENAME%g
+s%@COREDIR@%$COREDIR%g
 s%@SRC@%$SRC%g
 s%@ARGS@%$ARGS%g
 s%@INSTALL@%$INSTALL%g
@@ -969,7 +993,9 @@ s%@eval_form@%$eval_form%g
 s%@with_image@%$with_image%g
 s%@load_switch@%$load_switch%g
 s%@save_lisp@%$save_lisp%g
-s%@core_dest@%$core_dest%g
+s%@usecore@%$usecore%g
+s%@initfile@%$initfile%g
+s%@eclipsedir@%$eclipsedir%g
 s%@gnome_entry_dir@%$gnome_entry_dir%g
 
 CEOF
@@ -1012,7 +1038,7 @@ EOF
 
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"Makefile eclipse load-eclipse.lisp"}
+CONFIG_FILES=\${CONFIG_FILES-"Makefile eclipse load-eclipse.lisp config.lisp"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
@@ -1104,13 +1130,15 @@ fi
 #
 # Configuration report
 printf "\n\nConfiguration report\n"
-printf " - install prefix      : ${prefix}.\n"
-printf " - exec prefix         : ${exec_prefix}/bin.\n"
-printf " - lisp system found   : ${LISP}.\n"
-if test -n "${CORE}"
-then printf " - use specific image  : ${CORE}.\n"
-else printf " - use specific image  : no.\n"
+printf " - install prefix            : ${prefix}.\n"
+printf " - exec prefix               : ${exec_prefix}/bin.\n"
+printf " - eclipse dir               : ${eclipsedir}.\n"
+printf " - eclipse startup file      : ${initfile}.\n"
+printf " - lisp system found         : ${LISP}.\n"
+printf " - use core when compiling   : ${INITCORE}.\n"
+printf " - compile and dump image    : ${usecore}.\n"
+if test "${usecore}" = yes ; then 
+printf " - image path                : ${COREDIR}/${CORENAME}.\n"
 fi
-printf " - compile in an image : ${core_dest}.\n"
-printf " - create gnome entry  : ${gnome_entry_dir}.\n"
-printf " - installer           : ${INSTALL}.\n"
+printf " - create gnome entry        : ${gnome_entry_dir}.\n"
+printf " - installer                 : ${INSTALL}.\n"

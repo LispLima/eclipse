@@ -1,0 +1,6 @@
+# $Id: Exp $
+# CMUCL stuff
+*.x86f
+*.err
+*.core
+

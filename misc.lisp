@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.2 2003/03/16 01:00:22 hatchond Exp $
+;;; $Id: misc.lisp,v 1.3 2003/03/21 09:54:47 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -147,10 +147,10 @@
 	(concatenate 'list +gnome-protocols+ +netwm-protocol+)))
 
 (defstruct geometry
-  (x 0 :type (unsigned-byte 16))
-  (y 0 :type (unsigned-byte 16))
-  (w 0 :type (signed-byte 16))
-  (h 0 :type (signed-byte 16)))
+  (x 0 :type (signed-byte 16))
+  (y 0 :type (signed-byte 16))
+  (w 0 :type (unsigned-byte 16))
+  (h 0 :type (unsigned-byte 16)))
 
 (defun geometry-coordinates (geometry) 
   (values (geometry-x geometry) (geometry-y geometry)))

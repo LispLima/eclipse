@@ -26,10 +26,12 @@ _$*
 *.ln
 core
 # CVS default ignores end
-# $Id$
+# $Id: .cvsignore,v 1.1 2002/06/24 07:48:52 james Exp $
 # Generated files
+config.lisp
 eclipse
 load-eclipse.lisp
+Eclipse.desktop
 # CMUCL stuff
 *.x86f
 *.err

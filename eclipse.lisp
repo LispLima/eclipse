@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.2 2002/11/12 17:01:58 hatchond Exp $
+;;; $Id: eclipse.lisp,v 1.3 2002/11/12 17:13:01 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -59,8 +59,8 @@
       (keyboard:init-keyboard display)
       (ppm:initialize colormap)
       ;; load personal configuration file, or the default one.
-      (or (load-config-file (home-subdirectory ".eclipse"))
-	  (load-config-file (eclipse-path ".eclipse"))
+      (or (load-config-file (home-subdirectory cl-user::*eclipse-initfile*))
+	  (load-config-file (eclipse-path "eclipserc"))
 	  (format *error-output* "Unable to read a configuration file.~%")
 	  (%quit%))
       ;; Eclipse globals vars.

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.3 2003/03/19 09:53:26 hatchond Exp $
+;;; $Id: input.lisp,v 1.4 2003/03/21 09:54:47 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -127,7 +127,9 @@
 (defmethod event-process ((event keyboard-event) (root root))
   (with-slots (code state) event
     (let ((callback (lookup-keystroke code state)))
-      (when callback (funcall callback event)))))
+      (when callback
+	(xlib:allow-events *display* :async-keyboard)
+	(funcall callback event)))))
 
 (defmethod event-process ((event button-press) (root root))
   (with-slots (menu1 menu2 menu3 vscreens resize-status move-status) root
@@ -389,6 +391,7 @@
 (defmethod event-process ((event button-press) (button menu-button))
   (with-slots (window-menu) *root*
     (with-slots (master window armed active-p) button
+      (when (eq *focus-type* :on-click) (focus-widget button 0))
       (and window-menu (destroy-substructure window-menu))
       (setf window-menu (make-menu-button-menu master))
       (realize-pop-up window-menu (event-root-x event) (event-root-y event))
@@ -397,7 +400,8 @@
 ;; Maximization
 (defmethod event-process ((event button-release) (max-b maximize-button))
   (when (< (event-code event) 4)
-    (maximize-window (button-master max-b) (event-code event))))
+    (maximize-window (button-master max-b) (event-code event))
+    (when (eq *focus-type* :on-click) (focus-widget max-b 0))))
 
 ;; Initialize the resize process.
 (defmethod event-process ((event button-press) (edge edge))
