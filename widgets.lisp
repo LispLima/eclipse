@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.30 2004/01/20 16:10:00 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.31 2004/01/22 22:02:54 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -193,11 +193,9 @@
    (type :initarg :type :accessor application-type)))
 
 (defmethod remove-widget :after ((app application))
-  (with-slots (window type) app
-    (let ((root (lookup-widget (xlib:drawable-root window))))
-      (case type
-	(:_net_wm_window_type_desktop (remove-desktop-application root app))
-	(:_net_wm_window_type_dock (update-workarea-property root))))))
+  (case (application-type app)
+    (:_net_wm_window_type_desktop (remove-desktop-application *root* app))
+    (:_net_wm_window_type_dock (update-workarea-property *root*))))
 
 (defmethod close-widget ((application application))
   (with-slots (window) application
