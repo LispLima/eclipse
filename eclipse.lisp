@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.4 2003/04/07 13:35:32 hatchond Exp $
+;;; $Id: eclipse.lisp,v 1.5 2003/05/14 08:56:16 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -86,18 +86,28 @@
 				 (xlib:window-id manager)))
     manager))
 
-(defun initialize-root (display root-window)
-  (flet ((handle-redirect-error (condition)
-	   (declare (ignorable condition))
-	   (format *error-output* "Redirect error - another WM is running~%")
-	   (xlib:close-display display)
-	   (%quit%)))
-    (handler-bind ((error #'handle-redirect-error)) ; xlib:access-error
-      (setf (xlib:window-event-mask root-window)
-	    '(:substructure-redirect :button-press :button-release :focus-change
-	      :key-release :substructure-notify :owner-grab-button :key-press
-	      :enter-window :leave-window))
-      (xlib:display-finish-output display))))
+(defun init-gnome-compliance (display window manager)
+  (gnome:intern-gnome-atom display)
+  (netwm:intern-atoms display)
+  (let ((first-desknum (current-vscreen window))
+	(nb-vs (number-of-virtual-screens window)))
+    (delete-root-properties)
+    (unless (< -1 first-desknum nb-vs) (setf first-desknum 0))
+    (setf (gnome:win-protocols window) +gnome-protocols+
+	  (gnome:win-supporting-wm-check manager) manager
+	  (gnome:win-supporting-wm-check window) manager
+	  (gnome:win-workspace-count window) nb-vs
+	  (gnome:win-workspace window) first-desknum
+
+	  (netwm:net-supported window) +netwm-protocol+
+	  (netwm:net-supporting-wm-check window) manager
+	  (netwm:net-supporting-wm-check manager) manager
+	  (netwm:net-number-of-desktops window) nb-vs
+	  (netwm:net-current-desktop window) first-desknum
+	  (netwm:net-desktop-viewport window) (make-viewport-property nb-vs)
+	  (netwm:net-desktop-geometry window)
+	  (list (screen-width) (screen-height))
+	  )))
 
 (defun initialize (display-specification)
   (multiple-value-bind (display screen)
@@ -106,7 +116,6 @@
 	   (root-window (xlib:screen-root screen))
 	   (manager (initialize-manager display root-window))
 	   (menu-font (xlib:open-font display "fixed")))
-      (initialize-root display root-window)
       (setf *display* display)
       ;; Specific for X display
       (setf (xlib:display-error-handler display) #'default-handler
@@ -115,7 +124,7 @@
 	    *root-window* root-window
 	    (root-default-cursor *root*) (get-x-cursor *display* :xc_left_ptr))
       ;; init all gnome properties on root.
-      (init-gnome-compliance display)
+      (init-gnome-compliance display root-window manager)
       (keyboard:init-keyboard display)
       (ppm:initialize colormap)
       ;; load personal configuration file, or the default one.
@@ -146,33 +155,6 @@
       (init-edges-cursors)
       (initialize-clone))))
 
-(defun init-gnome-compliance (display)
-  (gnome:intern-gnome-atom display)
-  (netwm:intern-atoms display)
-  (let ((win (xlib:create-window :parent *root-window*
-				 :override-redirect :on
-				 :width 1 :height 1 :x -5 :y -5))
-	(first-desknum (or (netwm:net-current-desktop *root-window*)
-			   (gnome:win-workspace *root-window*) 0)))
-    (delete-root-properties)
-    (unless (< -1 first-desknum *nb-vscreen*) (setf first-desknum 0))
-    (setf (vs:current-screen (root-vscreens *root*)) first-desknum
-	  (gnome:win-protocols *root-window*) +gnome-protocols+
-	  (gnome:win-supporting-wm-check win) win
-	  (gnome:win-supporting-wm-check *root-window*) win
-	  (gnome:win-workspace-count *root-window*) *nb-vscreen*
-	  (gnome:win-workspace *root-window*) first-desknum
-
-	  (netwm:net-supported *root-window*) +netwm-protocol+
-	  (netwm:net-supporting-wm-check *root-window*) win
-	  (netwm:net-supporting-wm-check win) win
-	  (netwm:net-number-of-desktops *root-window*) *nb-vscreen*
-	  (netwm:net-current-desktop *root-window*) first-desknum
-	  (netwm:net-desktop-viewport *root-window*) (make-view-port-property)
-	  (netwm:net-desktop-geometry *root-window*)
-	  (list (screen-width) (screen-height))
-	  )))
-
 (defun eclipse (&optional display-specification)
   (initialize display-specification)
   ;(init-log-file)
@@ -184,16 +166,11 @@
 	  (mp::start-lisp-connection-listener :port 6789 :password "clara"))
 
   (unwind-protect
-    (catch 'end
-      (handler-bind ((end-of-file #'handle-end-of-file-condition))
-	(eclipse-internal-loop)
-	(xlib:close-display *display*)))
-    (format t "Eclipse exited. Bye.~%")
-    (%QUIT%)
-    ))
-#|
-;; should be part of the handler-bind form ; use it for "halting" the WM.
-    (loop for val being each hash-value in *widget-table*
-	  when (application-p val) do
-	  (kill-client-window (widget-window val)))
-|#
+      (catch 'end
+	(handler-bind ((end-of-file #'handle-end-of-file-condition))
+	  (eclipse-internal-loop)
+	  (ignore-errors (xlib:close-display *display*))))
+    (progn
+      (format t "Eclipse exited. Bye.~%")
+      (%QUIT%)
+      )))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.2 2003/03/16 01:20:33 hatchond Exp $
+;;; $Id: package.lisp,v 1.3 2003/06/11 18:29:23 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -75,9 +75,9 @@
    "COPY-GEOMETRY"			  ;function
    "CREATE-APPLICATION"			  ;function
    "CREATE-BUTTON"			  ;function
-   "CREATE-ECLIPSE-VIRTUAL-SCREENS"	  ;function
    "CREATE-ICON"			  ;function
    "CREATE-MESSAGE-BOX"			  ;function
+   "CURRENT-VSCREEN"                      ;function
    "DECORATION-P"			  ;function
    "DECORATION-THEME"			  ;setf function
    "DECORE-APPLICATION"			  ;function
@@ -106,7 +106,7 @@
    "FONT-NAME"				  ;setf function
    "FREE-THEME"				  ;function
    "FULLSCREENABLE-P"			  ;function
-   "FULL-SCREEN-MODE"			  ;setf function
+   "FULLSCREEN-MODE"			  ;setf function
    "GEOMETRY-COORDINATES"		  ;function
    "GEOMETRY-H"				  ;function
    "GEOMETRY-P"				  ;function
@@ -115,6 +115,7 @@
    "GEOMETRY-X"				  ;function
    "GEOMETRY-Y"				  ;function
    "GET-MAX-ITEM-WIDTH"			  ;function
+   "GET-SCREEN-CONTENT"                   ;function
    "GET-VISIBLE-WINDOWS"		  ;function
    "GIVE-FOCUS-TO-NEXT-WIDGET-IN-DESKTOP" ;function
    "GNOME-DESKTOP-NUM"			  ;function
@@ -132,8 +133,8 @@
    "INITIALIZE"				  ;function
    "INITIALIZE-GEOMETRY-INFO-BOX"	  ;function
    "INITIALIZE-MANAGER"			  ;function
-   "INITIALIZE-ROOT"			  ;function
    "INIT-LOG-FILE"			  ;function
+   "INPUT-FOCUS"                          ;function
    "KEYCODE-REGISTERED-P"		  ;function
    "KEYSTROKE-P"			  ;function
    "KILL-CLIENT-WINDOW"			  ;function
@@ -162,7 +163,7 @@
    "MAKE-SUB-MENU"			  ;function
    "MAKE-SUBSTRUCTURE"			  ;function
    "MAKE-TITLE-BAR"			  ;function
-   "MAKE-VIEW-PORT-PROPERTY"		  ;function
+   "MAKE-VIEWPORT-PROPERTY"		  ;function
    "MAXIMIZE-WINDOW"			  ;function
    "MOTIF-WM-DECORATION"		  ;function
    "MOUSE-STROKE-FOR-MOVE-AND-RESIZE"	  ;function
@@ -172,12 +173,11 @@
    "MOVE-CURSOR-RIGHT"			  ;function
    "MOVE-CURSOR-UP"			  ;function
    "MOVE-WIDGET"			  ;function
-   "NUMBER-OF-VIRTUAL-SCREENS"		  ;setf function
+   "NUMBER-OF-VIRTUAL-SCREENS"		  ;function, setf
    "PERFORM-CLICK"			  ;function
    "PIXMAP-HEIGHT"			  ;function
    "PIXMAP-WIDTH"			  ;function
    "PROCEDE-DECORATION"			  ;function
-   "PUT-ON-TOP"				  ;function
    "QUERY-APPLICATION-TREE"		  ;function
    "%QUIT%"				  ;function
    "RAISE-WINDOW"			  ;function
@@ -202,20 +202,19 @@
    "UPDATE-TITLE-BAR-SIZES"		  ;function
    "WHERE-IS-POINTER"			  ;function
    "WINDOW-DESKTOP-NUM"			  ;setf function
+   "WINDOW-NOT-DECORABLE-P"               ;function
+   "WINDOW-PRIORITY"                      ;setf function
    "WINDOW-TRANSIENT-P"			  ;function
    "WM-ICON-NAME"			  ;function
    "WM-NAME"				  ;function
    "WM-STATE"				  ;function
-   "WORKSPACE-NAMES"			  ;setf function
+   "WORKSPACE-NAMES"			  ;function, setf
 
    "ADD-DESKTOP-APPLICATION"		  ;generic function
-   "ADD-TO-VSCREEN"			  ;generic function
-   "APPLICATION-DESKTOP-NUMBER"		  ;generic function
    "APPLICATION-ICON"			  ;generic function
    "APPLICATION-ICONIC-P"		  ;generic function
    "APPLICATION-INPUT-MODEL"		  ;generic function
    "APPLICATION-MASTER"			  ;generic function
-   "APPLICATION-UNOBSCURED-P"		  ;generic function
    "APPLICATION-WANTS-FOCUS-P"		  ;generic function
    "ARM-BRANCH"				  ;generic function
    "ARM"				  ;generic function
@@ -238,7 +237,6 @@
    "DECORATION-FRAME-STYLE"		  ;generic function
    "DECORATION-INC-SIZES"		  ;generic function
    "DECORATION-MAX-HEIGHT"		  ;generic function
-   "DECORATION-MAXIMIZED"		  ;generic function
    "DECORATION-MAX-WIDTH"		  ;generic function
    "DECORATION-MIN-HEIGHT"		  ;generic function
    "DECORATION-MIN-WIDTH"		  ;generic function
@@ -270,15 +268,15 @@
    "ICONIFY"				  ;generic function
    "INITIALIZE-MOVE"			  ;generic function
    "KEYSTROKE-KEYSYMS"			  ;generic function
-   "MAP-OR-UNMAP-SCREEN"		  ;generic function
    "MENU-3-PROCESS"			  ;generic function
    "MENU-LEAF-CALLBACK"			  ;generic function
    "MENU-ROOT-APPLICATION-WINDOW"	  ;generic function
    "MENU-ROOT"				  ;generic function
    "MOUSE-STROKE-BUTTON"		  ;generic function
+   "PUT-ON-TOP"                           ;generic function
+   "PUT-ON-BOTTOM"                        ;generic function
    "REPAINT"				  ;generic function
    "REMOVE-DESKTOP-APPLICATION"		  ;generic function
-   "REMOVE-FROM-VSCREEN"		  ;generic function
    "REMOVE-WIDGET"			  ;generic function
    "RESIZE-FROM"			  ;generic function
    "RESIZE"				  ;generic function
@@ -288,8 +286,9 @@
    "ROOT-MANAGER"			  ;generic function
    "ROOT-MOVE-STATUS"			  ;generic function
    "ROOT-RESIZE-STATUS"			  ;generic function
-   "ROOT-VSCREENS"			  ;generic function
    "SET-FOCUS"				  ;generic function
+   "SHADE"                                ;generic function
+   "SHADED-P"                             ;generic function
    "STROKE-ACTION"			  ;generic function
    "STROKE-EQUAL"			  ;generic function
    "STROKE-KEYS"			  ;generic function
@@ -350,8 +349,9 @@
    ;; user custom.
    "*CHANGE-DESKTOP-MESSAGE-ACTIVE-P*"	  ;variable
    "*CLOSE-DISPLAY-P*"			  ;variable
-   "*FOCUS-NEW-MAPPED-WINDOW*"		  ;variable
+   "*DOUBLE-CLICK-SPEED*"                 ;variable
    "*FOCUS-TYPE*"			  ;variable
+   "*FOCUS-NEW-MAPPED-WINDOW*"		  ;variable
    "*FOCUS-WHEN-WINDOW-CYCLE*"		  ;variable
    "*ICON-BOX-SORT-FUNCTION*"		  ;variable
    "*ICON-HINTS*"			  ;variable
@@ -360,5 +360,5 @@
    "*RESIZE-MODE*"			  ;variable
    "*VERBOSE-MOVE*"			  ;variable
    "*VERBOSE-RESIZE*"			  ;variable
-   "*WRAP-POINTER-WHEN-CYCLE*"		  ;variable
+   "*WARP-POINTER-WHEN-CYCLE*"		  ;variable
    ))

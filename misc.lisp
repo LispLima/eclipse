@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.5 2003/05/13 14:54:01 hatchond Exp $
+;;; $Id: misc.lisp,v 1.6 2003/05/14 08:56:17 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -38,8 +38,9 @@
 
 (defmacro with-root-cursor ((new-cursor) &body body)
   `(unwind-protect
-     (setf (xlib:window-cursor *root-window*) ,new-cursor)
-     ,@body
+       (progn
+	 (setf (xlib:window-cursor *root-window*) ,new-cursor)
+	 ,@body)
      (setf (xlib:window-cursor *root-window*) (root-default-cursor *root*))))
 
 (defmacro make-error-handler ((type &key throw return (verbose t)) &body body)
@@ -50,11 +51,12 @@
      ,@(when verbose
 	`((format *stderr* "error - ~A - : ~A~%" ',type condition)
 	  (finish-output *stderr*)))
-     ,(if return `nil `(throw ',(or throw type) ,@body))))
+     ,(unless return `(throw ',(or throw type) ,@(or body '(nil))))))
 
-(make-error-handler (general-error) nil)
-(make-error-handler (invalid-wm-property) nil)
-(make-error-handler (end-of-file :throw end) nil)
+(make-error-handler (already-handled-xerror :verbose nil :throw general-error))
+(make-error-handler (general-error))
+(make-error-handler (invalid-wm-property))
+(make-error-handler (end-of-file :throw end))
 (make-error-handler (wrong-name :verbose nil)
   (timed-message-box *root-window* "Wrong application name"))
 
@@ -64,8 +66,8 @@
       (handler-bind ((error #'handle-wrong-name-condition))
 	(%run-program% program arguments)))))
 
-(defun make-view-port-property ()
-  (make-list (* 2 *nb-vscreen*) :initial-element 0))
+(defun make-viewport-property (n)
+  (make-list (* 2 n) :initial-element 0))
 
 (defun window-transient-p (app-window)
   (or (xlib:transient-for app-window)
@@ -110,8 +112,7 @@
 
 (defsetf window-desktop-num (window) (n)
   `(setf (gnome:win-workspace ,window) ,n
-	 (netwm:net-wm-desktop ,window) ,n
-	 (application-desktop-number (lookup-widget ,window)) ,n))
+	 (netwm:net-wm-desktop ,window) ,n))
 
 (defun motif-wm-decoration (window)
   (let ((prop (xlib:get-property window :_MOTIF_WM_HINTS)))
@@ -130,6 +131,11 @@
 		   :format 32
 		   :data (cons (atom-name->id atom) data)))
 
+(defsetf window-priority (window &optional sibling) (priority)
+  `(progn
+     (setf (xlib:window-priority ,window ,sibling) ,priority)
+     (update-client-list-stacking *root*)))
+      
 (defun grab-root-pointer (&key cursor owner-p confine-to)
   (xlib:grab-pointer
       *root-window*
@@ -138,13 +144,13 @@
       :cursor (or cursor (root-default-cursor *root*))
       :owner-p owner-p))
 
-(defun query-application-tree ()
-  (loop for window in (xlib:query-tree *root-window*)
+(defun query-application-tree (root-window)
+  (loop for window in (xlib:query-tree root-window)
 	for obj = (lookup-widget window)
-	for app = (typecase obj
-		    (application window)
-		    (decoration (get-child obj :application :window t)))
-	when app collect app))
+	for appw = (typecase obj
+		     (application window)
+		     (decoration (get-child obj :application :window t)))
+	when appw collect appw))
 
 (defun delete-root-properties ()
   (mapc #'(lambda (prop) (xlib:delete-property *root-window* prop))

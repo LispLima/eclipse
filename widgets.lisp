@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.7 2003/05/14 08:56:17 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.8 2003/06/11 18:29:23 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -30,122 +30,8 @@
 ;;;; master object. (defined in the file wm.lisp)
 
 ;;;; To represent the virtual-screens we use the term VSCREEN...
-;;;; It will consist in an array of list call vscreens in which each list
-;;;; (a vscreen) will represent the virtual screen contents.
 ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;; Eclipse Virtual screens
-
-;;; The size of the array is the number of virtual desktop the user ask for.
-;;; Each cell of the array will be a list that contain the windows of each
-;;; virtual desktop. It will, only, contain application client window.
-
-(defclass eclipse-screens (virtual-screen:virtual-screens) ())
-
-(defun create-eclipse-virtual-screens ()
-  (make-instance 'eclipse-screens :number-of-virtual-screen 4))
-
-(defmacro current-desk () `(vs:current-screen (root-vscreens *root*)))
-
-(defsetf number-of-virtual-screens () (n)
-  `(with-slots (vscreens) *root*
-     (unless (or (zerop ,n) (= ,n (vs:number-of-virtual-screen vscreens)))
-       (flet ((adjust-desk-num (window)
-		(setf (window-desktop-num window) (1- ,n))))
-	 (vs:adjust-vscreens vscreens ,n :map-when-reduce #'adjust-desk-num))
-       (when (> (vs:current-screen vscreens) (1- ,n))
-	 (change-vscreen vscreens nil (1- ,n)))
-       (setf *nb-vscreen* ,n
-	     (gnome:win-workspace-count *root-window*) ,n
-	     (netwm:net-number-of-desktops *root-window*) ,n
-	     (netwm:net-desktop-viewport *root-window*)
-	     (make-view-port-property)))))
-
-(defmethod add-to-vscreen ((vscreens eclipse-screens) window
-			  &key (n (vs:current-screen vscreens)))
-  (unless (member :WIN_HINTS_SKIP_TASKBAR (gnome:win-hints window))
-    (if (= n +any-desktop+)
-	(vs:add-to-all vscreens window)
-        (vs:add-to-vscreen vscreens window :n n))))
-
-(defmethod remove-from-vscreen ((vscreens eclipse-screens) window
-				&key (n (vs:current-screen vscreens)))
-  (if (= n +any-desktop+)
-      (vs:remove-from-all vscreens window)
-      (vs:remove-from-vscreen vscreens window :n n)))
-  
-(defmethod map-or-unmap-screen ((vscreens eclipse-screens)
-				&key (fun #'xlib:unmap-window)
-				     (n (vs:current-screen vscreens)))
-  (loop for window across (vs:nth-vscreen vscreens n)
-	for widget = (lookup-widget window)
-	for i from 0
-	when (and widget (application-master widget)) do
-	  (setf widget (application-master widget))
-	when (and widget (= 1 (first (ignore-errors (wm-state window))))) do
-	  (funcall fun (ignore-errors (widget-window widget)))
-	unless widget do (setf (aref (vs:nth-vscreen vscreens n) i) nil)
-	finally (delete nil (vs:nth-vscreen vscreens n))))
-
-(defmethod change-vscreen ((vscreens eclipse-screens) direction &optional n)
-  (let* ((current-screen (vs:current-screen vscreens))
-	 (new-screen
-	  (or n (mod (funcall direction current-screen 1) *nb-vscreen*))))
-    (unless (= new-screen +any-desktop+)
-      (with-event-mask (*root-window*)
-        ;; Revert the focus to the root-window.
-	(xlib:set-input-focus *display* :pointer-root :pointer-root)
-	(map-or-unmap-screen vscreens)
-	(map-or-unmap-screen vscreens :fun #'xlib:map-window :n new-screen))
-      (setf (vs:current-screen vscreens) new-screen
-	    (gnome:win-workspace *root-window*) new-screen
-	    (netwm:net-current-desktop *root-window*) new-screen)
-      (when (eq *focus-type* :on-click)
-	(ignore-errors (give-focus-to-next-widget-in-desktop *root*)))
-      (when *change-desktop-message-active-p*
-	(timed-message-box *root-window*
-			   (or (nth new-screen (workspace-names *root-window*))
-			       (format nil "WORKSPACE ~a" new-screen)))))))
-
-(defun get-visible-windows (vscreens)
-  (loop for window across (vs:nth-vscreen vscreens)
-	when (= 1 (or (car (wm-state window)) 0))
-	collect (with-slots (master) (lookup-widget window)
-		  (if master (widget-window master) window))))
-
-(defmethod circulate-window ((vscreens eclipse-screens) &key direction)
-  (loop	initially (unless (> (length (vs:nth-vscreen vscreens)) 1)
-		    (setf direction :above))
-	with windows = (xlib:query-tree *root-window*)
-	with screen-windows = (get-visible-windows vscreens)
-	with dest-win = nil
-	with sibling = (and (eql direction :below) (get-root-desktop *root* t))
-	for window in (if (eq direction :above) windows (reverse windows))
-	when (member window screen-windows :test #'xlib:window-equal)
-	do (if (or (eq direction :above) dest-win)
-	       (loop-finish)
-	       (setf dest-win window))
-	finally
-	  (when screen-windows
-	    (when (and sibling (eql direction :below)) (setf direction :above))
-	    (setf (xlib:window-priority (or dest-win window) sibling) direction)
-	    (when *wrap-pointer-when-cycle* (xlib:warp-pointer window 8 5))
-	    (and (eq *focus-type* :on-click) *focus-when-window-cycle*
-		 (focus-widget (lookup-widget window) 0)))))
-
-(defun give-focus-to-next-widget-in-desktop (root-widget)
-  (loop with foo = nil
-	for window across (vs:nth-vscreen (root-vscreens root-widget))
-	for widget = (lookup-widget window)
-	when (and widget (eq :viewable (xlib:window-map-state window)))
-	do (with-slots (input-model) widget
-	     (unless (eq input-model :no-input)
-	       (set-focus input-model window 0)
-	       (setf foo t)
-	       (loop-finish)))
-	finally 
-	 (or foo (xlib:set-input-focus *display* :pointer-root :pointer-root))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -156,15 +42,31 @@
   ((window :initarg :window :reader widget-window)
    (gcontext :initarg :gcontext :reader widget-gcontext :allocation :class)))
 
+(defgeneric remove-widget (widget))
+
+(defgeneric close-widget (widget))
+
+(defgeneric focus-widget (widget timestamp))
+
+(defgeneric put-on-top (widget)
+  (:documentation "sets the widget stacking order on top of the others."))
+
+(defgeneric put-on-bottom (widget)
+  (:documentation "sets the widget stacking order on bottom of the others 
+\(except if any widget with :_net_wm_type_desktop is present and widget is or 
+an application or a decoration\)."))
+
+(defgeneric repaint (widget theme-name focus))
+
+(defgeneric root-manager (widget))
+
+(defgeneric shaded-p (widget)
+  (:documentation "Return true if the widget is shaded in the sens of 
+the extended window manager specification."))
+
 (defmethod initialize-instance :after ((widget base-widget) &rest rest)
   (declare (ignore rest))
   (setf (gethash (widget-window widget) *widget-table*) widget))
-
-(defgeneric remove-widget (widget))
-(defgeneric close-widget (widget))
-(defgeneric focus-widget (widget timestamp))
-(defgeneric repaint (widget theme-name focus))
-(defgeneric root-manager (widget))
 
 (macrolet ((define-null-method (name &rest args)
 	     (let ((%name% (with-standard-io-syntax (format nil "~A" name))))
@@ -175,13 +77,20 @@
   (define-null-method close-widget widget)
   (define-null-method focus-widget widget timestamp)
   (define-null-method repaint widget theme-name focus)
-  (define-null-method root-manager widget))
+  (define-null-method root-manager widget)
+  (define-null-method shaded-p widget))
 
 (defmethod remove-widget ((widget base-widget))
   (remhash (widget-window widget) *widget-table*))
 
 (defmethod root-manager ((widget base-widget))
   (root-manager (lookup-widget (xlib:drawable-root (widget-window widget)))))
+
+(defmethod put-on-top ((widget base-widget))
+  (setf (xlib:window-priority (widget-window widget)) :above))
+
+(defmethod put-on-bottom ((widget base-widget))
+  (setf (xlib:window-priority (widget-window widget)) :above))
 
 (defun base-widget-p (widget)
   (typep widget 'base-widget))
@@ -206,8 +115,7 @@
    (menu3 :initform nil)
    (window-menu :initform nil)
    (client-list :initform (make-hash-table))
-   (desktop :initform nil :accessor root-desktop)
-   (vscreens :initform (create-eclipse-virtual-screens) :reader root-vscreens)))
+   (desktop :initform nil :accessor root-desktop)))
 
 (defmethod root-manager ((root root))
   (slot-value root 'properties-manager-window))
@@ -239,13 +147,12 @@
 
 (defclass application (base-widget)
   ((master :initarg :master :reader application-master)
-   (desktop-number :initform 0 :accessor application-desktop-number)
    (input-model :initform nil :initarg :input :reader application-input-model)
    (icon :initform nil :initarg :icon :reader application-icon)
    (iconic-p :initform nil :accessor application-iconic-p)
    (wants-focus-p :initform nil :accessor application-wants-focus-p)
    (initial-geometry :initform (make-geometry))
-   (unobscured-p :initform nil :accessor application-unobscured-p)))
+   (full-geometry :initform (make-geometry))))
 
 (defmethod close-widget ((application application))
   (with-slots (window) application
@@ -266,27 +173,79 @@
 	     (setq foc parent))
 	finally (return (xlib:window-equal window foc))))
 
-(defsetf full-screen-mode (application) (mode)
-  `(with-slots (window initial-geometry master) ,application
-    (if (eq ,mode :on)
-	(multiple-value-bind (x y w h) (window-geometry window)
-	  (when master
-	    (multiple-value-setq (x y) (window-position (widget-window master)))
-	    (setf (decoration-application-gravity master) :static))
-	  (setf (geometry initial-geometry) (values x y w h))
-	  (xlib:with-state (window)
-	    (setf (window-position window) (values 0 0)
-		  (drawable-sizes window)  
-		  (values (screen-width) (screen-height)))))
-	(setf (drawable-sizes window) (geometry-sizes initial-geometry)
-	      (window-position (if master (widget-window master) window))
-	      (geometry-coordinates initial-geometry)))))
+(defmethod shaded-p ((widget application))
+  (with-slots (window) widget
+    (member :_net_wm_state_shaded (netwm:net-wm-state window))))
+
+(defmethod shade ((application application))
+  (with-slots (master) application
+    (and master (shade master))))
+
+(defmethod put-on-top ((widget application))
+  (with-slots (master window input-model) widget
+    (unless (or (eq *focus-type* :none) (focused-p widget))
+      (set-focus input-model window nil))
+    (setf (window-priority (if master (widget-window master) window)) :above)))
+
+(defmethod put-on-bottom ((widget application))
+  (with-slots (master window) widget
+    (let ((desk-w (get-root-desktop *root* t)))
+      (setf (window-priority (if master (widget-window master) window) desk-w)
+	    (if desk-w :above :below)))))
+
+(defun fullscreenable-p (application) 
+  (with-slots (window) application
+    (let ((hint (ignore-errors (xlib:wm-normal-hints window))))
+      (symbol-macrolet ((max-w (xlib:wm-size-hints-max-width hint))
+			(max-h (xlib:wm-size-hints-max-height hint)))
+	  (and (if max-w (= max-w (screen-width)) t)
+	       (if max-h (= max-h (screen-height)) t))))))
+
+(defsetf fullscreen-mode (application) (mode)
+  `(with-slots (window (fgeometry full-geometry) master icon) ,application
+     (if (eq ,mode :on)
+	 (with-event-mask (*root-window*)
+	   (multiple-value-bind (x y w h) (window-geometry window)
+	     (when master
+	       (with-slots (children (master-win window)) master
+		 (multiple-value-setq (x y)
+		   (xlib:translate-coordinates master-win x y *root-window*))
+		 (with-event-mask (master-win)
+		   (xlib:reparent-window window *root-window* 0 0))
+		 (xlib:destroy-window master-win)
+		 (loop for (key widget) on children by #'cddr
+		       unless (or (eql key :application) (eql key :icon))
+		       do (remove-widget widget))
+		 (remove-widget master))
+	       (setf master nil
+		     (slot-value icon 'master) *root*))
+	     (setf (geometry fgeometry) (values x y w h))
+	     (if (xlib:query-extension *display* "XFree86-VidModeExtension")
+		 (let* ((scr (first (xlib:display-roots *display*)))
+			(ml (xlib:xfree86-vidmode-get-mode-line *display* scr)))
+		   (multiple-value-setq (x y) 
+		     (xlib:xfree86-vidmode-get-viewport *display* scr))
+		   (setf w (xlib:mode-info-hdisplay ml)
+			 h (xlib:mode-info-vdisplay ml)))
+	         (setf x 0 y 0 w (screen-width) h (screen-height)))
+	     (xlib:with-state (window)
+	       (setf (window-position window) (values x y)
+		     (drawable-sizes window) (values w h)))))
+	 (with-event-mask (*root-window*)
+	   (setf (window-position window) (geometry-coordinates fgeometry)
+		 (drawable-sizes window) (geometry-sizes fgeometry))
+	   (unless (window-not-decorable-p window)
+	     (decore-application window application))))
+     (let ((prop (netwm:net-wm-state window)))
+       (if (eq ,mode :on)
+	   (pushnew :_net_wm_state_fullscreen prop)
+	   (setf prop (delete :_net_wm_state_fullscreen prop)))
+       (setf (netwm:net-wm-state window) prop))))
 
 (defun undecore-application (application &key state)
   (with-slots (window master icon) application
     (if master
-	(let ((master-win (widget-window master))
-	      (frame-style (decoration-frame-style master)))
+	(with-slots (frame-style (master-win window)) master
 	  (multiple-value-bind (x y) (window-position master-win)
 	    (incf x (style-left-margin frame-style)) 
 	    (incf y (style-top-margin frame-style))
@@ -321,10 +280,12 @@
 	    (push :_net_wm_state_skip_taskbar netwm-state)
 	    (when desktop-p
 	      (add-desktop-application *root* app)
-	      (setf (xlib:window-priority window prec-desk) stack-mode))
+	      (setf (window-priority window prec-desk) stack-mode))
 	    (setf (netwm:net-wm-state window) netwm-state
 		  (window-desktop-num window) +any-desktop+))
 	  (grab-button window :any '(:button-press) :sync-pointer-p t))
+      (with-slots (initial-geometry) app
+	(setf (geometry initial-geometry) (window-geometry window)))
       (setf (xlib:window-event-mask window) 
 	    (if (eq input :no-input) +unfocusable-mask+ +focusable-mask+)))
     app))
@@ -358,6 +319,10 @@
 (defmethod repaint ((widget button) theme-name (focus null))
   (declare (ignorable theme-name focus))
   (xlib:clear-area (widget-window widget)))
+
+(defmethod shaded-p ((widget button))
+  (with-slots (window) (get-child (button-master widget) :application)
+    (member :_net_wm_state_shaded (netwm:net-wm-state window))))
 
 (defun button-p (widget)
   (typep widget 'button))
@@ -404,11 +369,11 @@
     message-box))
 
 (defmethod (setf button-item-to-draw) (message (box box-button))
-  (multiple-value-bind (width height)
-      (xlib:text-extents (xlib:gcontext-font *gcontext*) message)
-    (incf width 40) 
-    (incf height 20)
-    (with-slots (window) box
+  (with-slots (window gcontext) box
+    (multiple-value-bind (width height)
+	(xlib:text-extents (xlib:gcontext-font gcontext) message)
+      (incf width 40) 
+      (incf height 20)
       (multiple-value-bind (children parent) (xlib:query-tree window)
 	(declare (ignore children))
 	(let ((x (ash (- (xlib:drawable-width parent) width) -1))
@@ -469,10 +434,11 @@
 ;;;; Standard decoration buttons
 
 (defclass title-bar (push-button) 
-  ((vmargin :initform 0)
+  ((timestamp :initform 0)
+   (vmargin :initform 0)
    (hmargin :initform 0)
    (parent :initform nil)))
-  
+
 (defclass close-button (push-button) ())
 (defclass iconify-button (push-button) ())
 (defclass maximize-button (push-button) ())
@@ -490,22 +456,19 @@
 (defclass bottom-right (edge) ())
 (defclass bottom-left (edge) ())
 
-(defvar +corner-cursor+ nil)
-(defvar +side-cursor+ nil)
+(defvar +corner-cursors+ 
+  '(:xc_top_left_corner :xc_top_right_corner 
+    :xc_bottom_left_corner :xc_bottom_right_corner))
+(defvar +side-cursors+ 
+  '(:xc_right_side :xc_left_side :xc_top_side :xc_bottom_side))
 (defconstant +edge-event-mask+ 
   '(:button-press :button-release :button-motion :owner-grab-button))
 
 (defun init-edges-cursors ()
-  (setf +corner-cursor+
-	(list (get-x-cursor *display* :xc_top_left_corner)
-	      (get-x-cursor *display* :xc_top_right_corner)
-	      (get-x-cursor *display* :xc_bottom_left_corner)
-	      (get-x-cursor *display* :xc_bottom_right_corner))
-	+side-cursor+
-	(list (get-x-cursor *display* :xc_right_side)
-	      (get-x-cursor *display* :xc_left_side)
-	      (get-x-cursor *display* :xc_top_side)
-	      (get-x-cursor *display* :xc_bottom_side))))
+  (setf +corner-cursors+ 
+	(loop for c in +corner-cursors+ collect (get-x-cursor *display* c)))
+  (setf +side-cursors+ 
+	(loop for c in +side-cursors+ collect (get-x-cursor *display* c))))
 
 ;;;; Icon
 
@@ -605,8 +568,7 @@
 		  (< 0 basey box-tly) (> basey box-bly)))
 	     (t
 	      (xlib:with-state (icon-window)
-		(setf (xlib:drawable-x icon-window) basex
-		      (xlib:drawable-y icon-window) basey))))
+		(setf (window-position icon-window) (values basex basey)))))
 	    (setq prev-icon-window icon-window)))))))
 
 (defmethod repaint ((widget icon) theme-name focus)
@@ -617,21 +579,26 @@
 
 (defmethod iconify ((application application))
   (icon-box-update)
-  (with-slots (window iconic-p wants-focus-p icon) application
+  (with-slots (window iconic-p wants-focus-p icon master) application
+    (when (shaded-p application)
+      (shade application))
     (setf iconic-p t wants-focus-p t)
     (xlib:unmap-window window)
+    (xlib:unmap-window (widget-window master))
     (when (stringp (slot-value icon 'item-to-draw))
       (setf (slot-value icon 'item-to-draw) (wm-icon-name window)))
     (xlib:map-window (widget-window icon))
     (when (eq *focus-type* :on-click)
-      (give-focus-to-next-widget-in-desktop *root*))))
+      (give-focus-to-next-widget-in-desktop))))
 
 (defmethod uniconify ((icon icon))
   (with-slots (application desiconify-p) icon
+    (when (shaded-p application)
+      (shade application))
     (setf desiconify-p nil)
-    (with-slots (window desktop-number) application
-      (unless (= desktop-number (current-desk))
-	(remove-from-vscreen (root-vscreens *root*) window :n desktop-number)))
+    (with-slots (window) application
+      (setf (window-desktop-num window)
+	    (if (stick-p window) +any-desktop+ (current-desk))))
     (unmap-icon-window icon)
     (xlib:map-window (widget-window application))))
 
@@ -641,6 +608,4 @@
     (setf (application-iconic-p application) nil)
     (unless (decoration-p master)
       (with-slots (window) application
-        (setf (window-desktop-num window)
-	      (if (stick-p window) +any-desktop+ (current-desk))
-	      (wm-state window) 1)))))
+	(setf (wm-state window) 1)))))

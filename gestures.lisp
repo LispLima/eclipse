@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.3 2003/03/17 11:13:17 hatchond Exp $
+;;; $Id: gestures.lisp,v 1.4 2003/06/11 18:29:23 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -154,30 +154,31 @@
        (key-release ,@(cdr f2)))))
 
 (defun action-key->lambda (action-keyword)
-  (with-slots (vscreens) *root*
-    (case action-keyword
-      (:switch-win-up
-       (action () (:press (circulate-window vscreens :direction :above))))
-      (:switch-win-down
-       (action () (:press (circulate-window vscreens :direction :below))))
-      (:switch-screen-left (action (:press (change-vscreen vscreens #'-)) ()))
-      (:switch-screen-right (action (:press (change-vscreen vscreens #'+)) ()))
-      (:move-right (action (:press (move-cursor-right)) ()))
-      (:move-left (action (:press (move-cursor-left)) ()))
-      (:move-up (action (:press (move-cursor-up)) ()))
-      (:move-down (action (:press (move-cursor-down)) ()))
-      (:left-click #'(lambda (event) (perform-click 1 event)))
-      (:middle-click #'(lambda (event) (perform-click 2 event)))
-      (:right-click #'(lambda (event) (perform-click 3 event)))
-      (:scroll-up #'(lambda (event) (perform-click 4 event)))
-      (:scroll-down #'(lambda (event) (perform-click 5 event)))
-      (:move-window 
-       #'(lambda (event)
-	   (mouse-stroke-for-move-and-resize event :action :move)))
-      (:resize-window 
-       #'(lambda (event)
-	   (mouse-stroke-for-move-and-resize event :action :resize)))
-      )))
+  (case action-keyword
+    (:switch-win-up
+     (action () (:press (circulate-window *root* :direction :above))))
+    (:switch-win-down
+     (action () (:press (circulate-window *root* :direction :below))))
+    (:switch-screen-left
+     (action (:press (change-vscreen *root* :direction #'-)) ()))
+    (:switch-screen-right
+     (action (:press (change-vscreen *root* :direction #'+)) ()))
+    (:move-right (action (:press (move-cursor-right)) ()))
+    (:move-left (action (:press (move-cursor-left)) ()))
+    (:move-up (action (:press (move-cursor-up)) ()))
+    (:move-down (action (:press (move-cursor-down)) ()))
+    (:left-click #'(lambda (event) (perform-click 1 event)))
+    (:middle-click #'(lambda (event) (perform-click 2 event)))
+    (:right-click #'(lambda (event) (perform-click 3 event)))
+    (:scroll-up #'(lambda (event) (perform-click 4 event)))
+    (:scroll-down #'(lambda (event) (perform-click 5 event)))
+    (:move-window 
+     #'(lambda (event)
+	 (mouse-stroke-for-move-and-resize event :action :move)))
+    (:resize-window 
+     #'(lambda (event)
+	 (mouse-stroke-for-move-and-resize event :action :resize)))
+    ))
 
 (defmacro unrealize ((window &key mouse-p) code mask)
   `(progn
@@ -245,10 +246,10 @@
 			          (default-modifiers-p t)
 				  (modifiers :any)
 				  fun)
-;;; modifiers can be:
-;;;  - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
-;;;  - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
-;;;  - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)
+" modifiers can be:
+  - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
+  - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
+  - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)"
   (catch 'keystroke-definition
     (handler-bind
         ((error #'(lambda (condition)
@@ -266,10 +267,10 @@
 				     (default-modifiers-p t)
 				     (modifiers :any)
 				     fun)
-;;; modifiers can be:
-;;;  - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
-;;;  - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
-;;;  - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)
+" modifiers can be:
+  - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
+  - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
+  - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)"
   (catch 'mouse-stroke-definition
     (handler-bind
         ((error #'(lambda (condition)

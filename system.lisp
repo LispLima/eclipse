@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: system.lisp,v 1.4 2003/02/03 08:06:32 hatchond Exp $
+;;; $Id: system.lisp,v 1.5 2003/04/07 13:35:32 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -43,6 +43,8 @@
 	 ,@components)))
 
 (eclipse-defsystem (:clx-ext)
+  "lib/clx-ext/clx-patch.lisp"
+  "lib/clx-ext/xvidmode.lisp"
   "lib/clx-ext/package.lisp"
   "lib/clx-ext/clx-extensions"
   "lib/clx-ext/cursor"
@@ -50,7 +52,6 @@
   "lib/clx-ext/keysyms"
   "lib/clx-ext/keysymdef"
   "lib/clx-ext/event"
-  "lib/clx-ext/clx-patch.lisp"
   )
 
 (eclipse-defsystem (:eclipse-lib)
@@ -60,10 +61,9 @@
    "lib/gnome-manager"
    )
 
-(eclipse-defsystem (:eclipse :depends-on (:eclipse-lib :clx-ext))
+(eclipse-defsystem (:eclipse :depends-on (:clx-ext :eclipse-lib))
    "config.lisp"
    "programmed-tasks"
-   "virtual-screen"
    "package"
    "global"
    "misc"
@@ -71,6 +71,7 @@
    "menu"
    "gestures"
    "widgets"
+   "virtual-screen"
    "wm"
    "input"
    "move-resize"

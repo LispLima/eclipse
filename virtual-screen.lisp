@@ -1,5 +1,5 @@
-;;; -*- Mode: Lisp; Package: VIRTUAL-SCREEN -*-
-;;; $Id: virtual-screen.lisp,v 1.3 2002/11/07 14:54:27 hatchond Exp $
+;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
+;;; $Id: virtual-screen.lisp,v 1.4 2003/03/16 00:44:36 hatchond Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -19,111 +19,132 @@
 
 ;;;; Virtual screen
 
-(common-lisp:in-package :common-lisp-user)
+(in-package :ECLIPSE-INTERNALS)
 
-(defpackage virtual-screen
-  (:nicknames vs)
-  (:use common-lisp)
-  (:size 50)
-  (:export virtual-screens
-	   vscreens
-	   current-screen
-	   number-of-virtual-screen
-	   nth-vscreen
-	   set-vscreen-content
-	   add-to-vscreen
-	   remove-from-vscreen
-	   add-to-all
-	   remove-from-all
-	   adjust-vscreens
-	   restack-window
-	   create-virtual-screens))
+;;;; Private
 
-(in-package :virtual-screen)
+(defun window-belongs-to-vscreen-p (window scr-num iconify-p)
+  (let ((n (or (gnome-desktop-num window) -1))
+	(wm-state (car (wm-state window)))
+	(netwm-type (netwm:net-wm-window-type window)))
+    (and (or (= n scr-num) (= n +any-desktop+))
+	 (or (eq wm-state 1) (and iconify-p (eq wm-state 3)))
+	 (not (member :win_hints_skip_taskbar (gnome:win-hints window)))
+	 (not (member :_net_wm_state_skip_taskbar (netwm:net-wm-state window)))
+	 (not (member :_net_wm_window_type_desktop netwm-type))
+	 (not (member :_net_wm_window_type_dock netwm-type)))))
 
-(defclass virtual-screens ()
- ((virtual-sceen-array :accessor vscreens)
-  (current-virtual-screen :initform 0 :accessor current-screen)
-  (number-of-virtual-screen :initarg :number-of-virtual-screen
-			    :initform 0 
-			    :accessor number-of-virtual-screen)))
+(defun map-or-unmap-vscreen (fun scr-num)
+  (loop for widget being each hash-value in *widget-table*
+	when (application-p widget) do
+	  (with-slots (window master) widget
+	    (when (and (eq (gnome-desktop-num window) scr-num)
+		       (eq (car (wm-state window)) 1))
+	      (funcall fun (if master (widget-window master) window))))))
 
-(defmethod initialize-instance :after ((vscreens virtual-screens) &rest rest)
-  (declare (ignorable rest))
-  (with-slots (number-of-virtual-screen virtual-sceen-array) vscreens
-    (setf virtual-sceen-array 
-	  (make-array number-of-virtual-screen
-	      :element-type 'vector
-	      :adjustable t
-	      :initial-contents 
-	      (loop for i from 0 below number-of-virtual-screen
-		    collect (make-empty-screen))))))
+;;;; Public
 
-(defun make-empty-screen ()
-  (make-array 0 :fill-pointer t :initial-element nil))
-    
+(defmacro current-desk () `(current-vscreen *root-window*))
 
-(defmacro with-index-in-screens ((index vscreens) &body body)
-  `(when (< -1 ,index (number-of-virtual-screen ,vscreens))
-     ,@body))
+(defun current-vscreen (win)
+  "Get the current virtual screen index. The window parameter must be
+   the window that owns the win_workspace or _net_current_desktop property."
+  (or (netwm:net-current-desktop win) (gnome:win-workspace win) 0))
 
-(defmethod nth-vscreen ((vscreens virtual-screens) &optional n)
-  (aref (vscreens vscreens) (or n (current-screen vscreens))))
+(defun number-of-virtual-screens (win)
+  "Get the number of virtual screens. The window parameter must be the window
+   that owns the win_workspace_count or _net_number_of_desktops property."
+  (or (gnome:win-workspace-count win) (netwm:net-number-of-desktops win) 1))
 
-(defmethod set-vscreen-content ((vscreens virtual-screens) elements
-			       &key (n (current-screen vscreens)))
-  (with-index-in-screens (n vscreens)
-    (setf (aref (vscreens vscreens) n) elements)))
+(defsetf number-of-virtual-screens () (n)
+  `(with-slots (window) *root*
+     (let ((nb-vscreens (number-of-virtual-screens window))
+	   (cur (current-vscreen window)))
+       (unless (or (zerop ,n) (= ,n nb-vscreens))
+	 (when (< ,n nb-vscreens)
+	   (loop for widget being each hash-value in *widget-table*
+		 when (application-p widget) do
+	           (with-slots ((win window)) widget
+		     (let ((i (or (ignore-errors (gnome-desktop-num win)) -1)))
+		       (when (and (>= i ,n) (/= i +any-desktop+))
+			 (setf (window-desktop-num win) (1- ,n)))))))
+	 (cond ((> cur (1- ,n))	(change-vscreen *root* :n (1- ,n)))
+	       ((= cur (1- ,n))	(map-or-unmap-vscreen #'xlib:map-window cur)))
+	 (setf (netwm:net-desktop-viewport window) (make-viewport-property ,n)
+	       (gnome:win-workspace-count window) ,n
+	       (netwm:net-number-of-desktops window) ,n)))))
 
-(defmethod add-to-vscreen ((vscreens virtual-screens) element
-			  &key (n (current-screen vscreens))
-			       (test #'xlib:window-equal))
-  (with-index-in-screens (n vscreens)
-    (unless (position element (aref (vscreens vscreens) n) :test test)
-      (vector-push-extend element (aref (vscreens vscreens) n) 20))))
+(defun input-focus (display)
+  "Find the application that is currently focused if anyone is."
+  (loop with w = (xlib:input-focus display)
+	until (or (not (xlib:window-p w)) (application-p (lookup-widget w)))
+	do (multiple-value-bind (children parent) (xlib:query-tree w)
+	     (declare (ignore children))
+	     (setf w parent))
+	finally (return w)))
 
-(defmethod remove-from-vscreen ((vscreens virtual-screens) element
-				&key (n (current-screen vscreens))
-				     (test #'xlib:window-equal))
-  (with-index-in-screens (n vscreens)
-    (delete element (aref (vscreens vscreens) n) :test test)))
+(defmethod change-vscreen ((root root) &key direction n)
+  (with-slots (window) root
+    (let* ((nb-vscreens (number-of-virtual-screens window))
+	   (cur (netwm:net-current-desktop window))
+	   (new (if direction (mod (funcall direction cur 1) nb-vscreens) n)))
+      (unless (integerp new)
+	(error "No destination given to change-vscreen~%"))
+      (when (< -1 new nb-vscreens)
+	(with-event-mask (window)
+	  ;; If focus policy is on click: save the latest focused application.
+	  (when (eq *focus-type* :on-click)
+	    (let ((widget (lookup-widget (input-focus *display*))))
+	      (when (application-p widget)
+		(setf (application-wants-focus-p widget) t))))
+	  ;; Revert the focus to the root-window.
+	  (xlib:set-input-focus *display* :pointer-root :pointer-root)
+	  (map-or-unmap-vscreen #'xlib:map-window new)
+	  (map-or-unmap-vscreen #'xlib:unmap-window cur))
+	(setf (gnome:win-workspace window) new
+	      (netwm:net-current-desktop window) new)
+	(when *change-desktop-message-active-p*
+	  (timed-message-box window
+			     (or (nth new (workspace-names window))
+				 (format nil "WORKSPACE ~D" new))))))))
 
-(defmethod add-to-all ((vscreens virtual-screens) element 
-		       &key (test #'xlib:window-equal))
-  (loop for i from 0 below (number-of-virtual-screen vscreens) 
-	unless (position element (aref (vscreens vscreens) i) :test test)
-	do (vector-push-extend element (aref (vscreens vscreens) i) 20)))
+(defun get-screen-content (scr-num &key iconify-p)
+  "Returns the list of application's windows that represent the contents
+   of the given virtual screen. Use :iconify-p t to includes iconfied windows"
+  (loop for win in (query-application-tree *root-window*)
+	when (window-belongs-to-vscreen-p win scr-num iconify-p) collect win))
 
-(defmethod remove-from-all ((vscreens virtual-screens) element 
-			    &key except (test #'xlib:window-equal))
-  (loop for i from 0 below (number-of-virtual-screen vscreens)
-	unless (and except (= i except)) do
-	 (delete element (aref (vscreens vscreens) i) :test test)))
-  
-(defmethod adjust-vscreens ((vscreens virtual-screens) n 
-			    &key map-when-reduce
-			         (test #'xlib:window-equal))
-  (let ((dimension (number-of-virtual-screen vscreens))
-	(new-size (1- n))
-	(vscreen (vscreens vscreens)))
-    (when (> dimension n)
-      (loop for i from (1+ new-size) below dimension
-	    do (loop for w across (aref vscreen i)
-		     do (vector-push-extend w (aref vscreen new-size) 20)))
-      (delete-duplicates (aref vscreen new-size) :test test)
-      (and map-when-reduce (map nil map-when-reduce (aref vscreen new-size))))
-    (setf (number-of-virtual-screen vscreens) n)
-    (adjust-array vscreen n :initial-element nil)
-    (when (> n dimension)
-      (loop for i from dimension below n
-	    do (setf (aref vscreen i) (make-empty-screen))))))
+(defun give-focus-to-next-widget-in-desktop ()
+  "Gives the focus to the window that is on top of the stacking order."
+  (loop	with given-p = nil
+	for window in (reverse (get-screen-content (current-desk)))
+	when (eq :viewable (xlib:window-map-state window))
+	do (with-slots (input-model) (lookup-widget window)
+	     (unless (eq input-model :no-input)
+	       (set-focus input-model window 0)
+	       (setf given-p t)
+	       (loop-finish)))
+	finally 
+	  (unless given-p
+	    (xlib:set-input-focus *display* :pointer-root :pointer-root))))
 
-(defun restack-window (window screen &key (position 0))
-  (when (and (> (length screen) 1) (< position (length screen)) window)
-    (let ((init-pos (position window screen :test #'xlib:window-equal)))
-      (when (and init-pos (not (= init-pos position)))
-	(rotatef (aref screen position) (aref screen init-pos))))))
-
-(defun create-virtual-screens (n)
-  (make-instance 'virtual-screens :number-of-virtual-screen n))
-
+(defmethod circulate-window ((root root) &key direction)
+  (let ((screen-wins (get-screen-content (current-desk))))
+    (or screen-wins (return-from circulate-window nil))
+    (when (= 1 (length screen-wins)) (setf direction :above))
+    (let* ((above-p (eq direction :above))
+	   (wins (if above-p screen-wins (reverse screen-wins)))
+	   (desktop (and (eql direction :below) (get-root-desktop root t)))
+	   (one (lookup-widget (first wins)))
+	   (two (if above-p one (lookup-widget (second wins)))))
+      (with-slots (master) one (when master (setf one master)))
+      (with-slots (master) two (when master (setf two master)))
+      (when (and (eq direction :below) desktop)
+	(setf direction :above above-p t))
+      (with-slots (window) two
+	(and (not above-p) *warp-pointer-when-cycle* 
+	     (xlib:warp-pointer window 8 5))
+        (setf (window-priority (widget-window one) desktop) direction)
+	(and above-p *warp-pointer-when-cycle* (xlib:warp-pointer window 8 5))
+	(and (eq *focus-type* :on-click) *focus-when-window-cycle*
+	     (focus-widget two 0))))))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.7 2003/05/13 14:54:01 hatchond Exp $
+;;; $Id: global.lisp,v 1.8 2003/05/14 08:56:17 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -20,8 +20,6 @@
 
 (in-package :ECLIPSE-INTERNALS)
 
-(use-package :clx-extensions)
-
 (defparameter *eclipse-directory* (directory-namestring *load-truename*))
 
 (defun eclipse-path (&rest names)
@@ -29,8 +27,8 @@
 	 (or cl-user::*eclipse-eclipsedir* *eclipse-directory*)
 	 names))
 
-;; This constant represents all the gnome protocols and extensions,
-;; that we are actually dealling with.
+;; The two following constants represent all the gnome protocols 
+;; and Extended Window Manager Hints actions we want to be responsible for.
 (defconstant +gnome-protocols+
   '(:_win_workspace :_win_workspace_count :_win_client_list
     :_win_workspace_names))
@@ -39,18 +37,14 @@
     :_net_current_desktop :_net_active_window :_net_close_window :_net_wm_state
     :_net_wm_desktop :_net_wm_window_type :_net_desktop_names
     :_net_wm_state_maximized_horz :_net_wm_state_maximized_vert
-    :_net_wm_state_skip_taskbar :_net_wm_state_skip_pager
-    :_net_wm_state_sticky :_net_wm_state_fullscreen :_net_wm_state_hidden))
+    :_net_wm_state_skip_taskbar :_net_wm_state_skip_pager :_net_wm_state_shaded
+    :_net_wm_state_sticky :_net_wm_state_fullscreen :_net_wm_state_hidden
+    :_net_wm_state_above :_net_wm_state_below))
 
 (defconstant +pointer-event-mask+
   '(:button-press :button-release :button-motion :enter-window :leave-window))
 
 (defconstant +any-desktop+ #xFFFFFFFF)
-
-(defmacro deftypedparameter (type symbol value &optional documentation)
-  `(progn
-     (defparameter ,symbol ,value ,documentation)
-     (declaim (type ,type ,symbol))))
 
 (defvar *cursor-2* nil)
 (defvar *display* nil)
@@ -63,13 +57,13 @@
 ;; Default value of all the "customisable" environment variables
 (defparameter *close-display-p* t)
 (defparameter *menu-1-items* nil)
-(defparameter *nb-vscreen* 4)
 (defparameter *change-desktop-message-active-p* t)
 (defparameter *verbose-move* t)
 (defparameter *verbose-resize* t)
-(defparameter *wrap-pointer-when-cycle* t)
+(defparameter *warp-pointer-when-cycle* t)
 (defparameter *focus-new-mapped-window* t)
 (defparameter *focus-when-window-cycle* t)
+(defparameter *double-click-speed* 200 "the speed of the double click")
 (defparameter *move-mode* :opaque "values are: :box :opaque")
 (defparameter *resize-mode* :opaque "values are: :box :opaque")
 (defparameter *focus-type* :none "values are: :none :on-click")
@@ -103,6 +97,13 @@ NIL corresponds to the default which is to sort on order of creation
 			(find-decoration-frame-style theme window)))
 	       finally (and ,free-old-theme-p (free-theme old-name))))
        (setf decoration-theme theme))))
+
+(defmacro deftypedparameter (type symbol value &optional documentation)
+  "define a parameter with the same syntax and behavior as defparameter 
+except that its type must be given first."
+  `(progn
+     (defparameter ,symbol ,value ,documentation)
+     (declaim (type ,type ,symbol))))
 
 ;;;; debug purpose.
 (defparameter *stderr* t)
@@ -150,6 +151,9 @@ NIL corresponds to the default which is to sort on order of creation
 ;; For debug purpose: it use *stderr* as output stream. 
 ;; The default value for *stderr* is t (standard output) but can be set,
 ;; through init-log-file, to a file. (named eclipse-year-month-day.log)
+
+(define-condition already-handled-xerror (error) ())
+
 (defun default-handler (dpy err
 			&rest keys 
 			&key resource-id asynchronous 
@@ -165,4 +169,4 @@ NIL corresponds to the default which is to sort on order of creation
 		       (or (application-master widget) *root*))
 	(format *stderr* "Dead window removed from table~%"))))
   (finish-output *stderr*)
-  (throw 'general-error nil))
+  (error 'already-handled-xerror))

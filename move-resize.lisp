@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.2 2003/03/16 01:18:13 hatchond Exp $
+;;; $Id: move-resize.lisp,v 1.3 2003/03/19 09:42:04 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -53,11 +53,11 @@
 (defun display-coordinates (x y)
   (declare (optimize (speed 3) (safety 0)))
   (declare (type (signed-byte 16) x y))
-  (display-infos (format nil "~:[+~;~]~A ~:[+~;~]~A" (< x 0) x (< y 0) y)))
+  (display-infos (format nil "~:[+~;~]~D ~:[+~;~]~D" (< x 0) x (< y 0) y)))
 
 (defun display-geometry (width height)
   (declare (optimize (speed 3) ))  
-  (display-infos (format nil "~A x ~A" width height)))
+  (display-infos (format nil "~D x ~D" width height)))
 
 ;;;; A master "clone" for resize and move.
 
@@ -164,20 +164,22 @@
        (setf (drawable-sizes (widget-window master))
 	     (values (+ w hmargin) (+ h vmargin)))))))
 
-(defmethod resize ((master decoration) (event motion-notify))
-  (declare (optimize (speed 3) (safety 0)))
+(defmethod resize ((master decoration) (ev motion-notify) &optional verbose-p)
+  (declare (optimize (speed 3) (safety 0))
+	   (inline update-edges-geometry %resize%))
   (if (eq *resize-mode* :opaque)
       (with-event-mask ((slot-value master 'window))
-	(%resize% master event)
+	(%resize% master ev verbose-p)
 	(update-edges-geometry master)
 	(resize-from master))
-      (with-slots (window) *clone*
-	(draw-window-grid window *gcontext* *root-window*)
-	(%resize% *clone* event)
-	(draw-window-grid window *gcontext* *root-window*))))	
+      (with-slots (window gcontext) *clone*
+	(draw-window-grid window gcontext *root-window*)
+	(%resize% *clone* ev verbose-p)
+	(draw-window-grid window gcontext *root-window*))))	
 
-(defun %resize% (master motion-notify-event)
-  (declare (optimize (speed 3) (safety 0)))
+(defun %resize% (master motion-notify-event verbose-p)
+  (declare (optimize (speed 3) (safety 0))
+	   (inline check-size))
   (let* ((master-win (widget-window master))
 	 (root-x (event-root-x motion-notify-event))
 	 (root-y (event-root-y motion-notify-event)))
@@ -206,7 +208,7 @@
 	  (let ((new-width (check-size tmp-width basew incw minw maxw))
 		(new-height (check-size tmp-height baseh inch minh maxh)))
 	    (declare (type xlib:card16 new-width new-height))
-	    (when *verbose-resize*
+	    (when verbose-p
 	      (display-geometry (/ (- new-width basew) incw)
 				(/ (- new-height baseh) inch)))
 	    (case *card-point*
@@ -214,15 +216,16 @@
 	      ((or :west :sw) (incf new-x (- tmp-width new-width)))
 	      (:nw (incf new-y (- tmp-height new-height))
 		   (incf new-x (- tmp-width new-width))))
-	    (setf (window-position master-win) (values new-x new-y))
-	    (setf (drawable-sizes master-win)
-		  (values new-width new-height))))))))
+	    (xlib:with-state (master-win)
+	      (setf (window-position master-win) (values new-x new-y))
+	      (setf (drawable-sizes master-win)
+		    (values new-width new-height)))))))))
 
 ;; Finish the resize process :
 ;; call when button-release on root
 ;; and when root-resize-status is not nil.
-(defun finish-resize (master)
-  (when *verbose-resize* (undraw-geometry-info-box))
+(defun finish-resize (master &optional verbose-p)
+  (when verbose-p (undraw-geometry-info-box))
   (with-slots (window gcontext) master
     (when (and (decoration-active-p master) (eq *resize-mode* :box))
       (draw-window-grid (widget-window *clone*) gcontext *root-window*)
@@ -243,17 +246,17 @@
 
 (defmethod initialize-move :after ((master decoration) (event button-press))
   (let ((app-window (get-child master :application :window t)))
-    (when (or (member :WIN_STATE_FIXED_POSITION (gnome:win-state app-window))
-	      (member :_NET_WM_STATE_STICKY (netwm:net-wm-state app-window)))
+    (when (or (member :win_state_fixed_position (gnome:win-state app-window))
+	      (member :_net_wm_state_sticky (netwm:net-wm-state app-window)))
       (setf (decoration-active-p master) nil))))
 
-(defun move-widget (widget event &optional display-info-p)
+(defun move-widget (widget event &optional verbose-p)
   (declare (optimize (speed 3) (safety 0)))
   (with-slots (window active-p gcontext) widget
     (when active-p
       (let ((new-x (- (the (signed-byte 16) (event-root-x event)) *delta-x*))
 	    (new-y (- (the (signed-byte 16) (event-root-y event)) *delta-y*)))
-	(when display-info-p (display-coordinates new-x new-y))
+	(when verbose-p (display-coordinates new-x new-y))
 	(if (and (decoration-p widget) (eql *move-mode* :box))
 	    (with-slots (window) *clone*	    
 	      (draw-window-grid window gcontext *root-window*)
@@ -261,13 +264,13 @@
 	      (draw-window-grid window gcontext *root-window*))
 	    (setf (window-position window) (values new-x new-y)))))))
 
-(defun finalize-move (master)
+(defun finalize-move (master &optional verbose-p)
   (when (eql *move-mode* :box)
     (with-slots (window gcontext) *clone*
       (draw-window-grid window gcontext *root-window*)
       (setf (window-position (widget-window master)) (window-position window))))
   (setf (decoration-active-p master) nil)
-  (when *verbose-move* (undraw-geometry-info-box))
+  (when verbose-p (undraw-geometry-info-box))
   (with-slots (armed active-p) (get-child master :title-bar)
     (setf armed nil active-p nil))
   (send-configuration-notify (get-child master :application :window t)))
