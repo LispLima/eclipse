@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.21 2004/03/04 14:51:48 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.22 2004/03/09 19:26:27 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -204,12 +204,15 @@
   (format *stderr* 
 	  "X error ~A ~:[~;with id~]~%=> ~{~A ~}~%" 
 	  err resource-id keys)
-  (when (and resource-id (not asynchronous))
+  (when resource-id
     (let* ((resource (xlib::lookup-window dpy resource-id))
 	   (widget (lookup-widget resource)))
-      (when (and widget (application-p widget))
-	(event-process (make-event :destroy-notify :window resource)
-		       (or (application-master widget) *root*))
-	(format *stderr* "Dead window removed from table~%"))))
+      (if widget
+	  (when (and (not asynchronous) (application-p widget))
+	    (event-process (make-event :destroy-notify :window resource)
+			   (or (application-master widget) *root*))
+	    (format *stderr* "Dead window removed from table~%"))
+	  (when (member resource-id (netwm:net-client-list *root-window*))
+	    (remove-window-from-client-lists resource *root*)))))
   (finish-output *stderr*)
   (error 'already-handled-xerror))

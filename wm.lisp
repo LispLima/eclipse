@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.42 2004/03/09 19:26:27 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.43 2004/03/10 15:58:17 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -673,25 +673,26 @@
 	  (cons "Destroy" (lambda () (kill-client-window appw)))
 	  (cons "Iconify" (lambda () (iconify app)))))))
 
-(defun update-lists (app state root)
-  "Update root properties win_client_list, net_client_list(_stacking), 
-  by adjoining or removing the given application depending of state."
-  (with-slots ((appw window) iconic-p) app
-    (with-slots ((rw window) client-list) root
-      (case (if (and (= state 3) (not iconic-p)) 0 state)
-	(0 (remhash appw client-list)
-	   (setf (netwm:net-client-list-stacking rw :mode :remove) appw
-		 (gnome:win-client-list rw :mode :remove) appw
-		 (netwm:net-client-list rw :mode :remove) appw))
-	(1 (let ((up2date (gethash appw client-list)))
-	     (setf (gethash appw client-list) appw)
-	     (update-client-list-stacking root)
-	     (unless up2date
-	       (setf (netwm:net-client-list rw :mode :append) appw))
-	     (if (member :win_hints_skip_winlist (gnome:win-hints appw))
-		 (setf (gnome:win-client-list rw :mode :remove) appw)
-	         (unless up2date
-		   (setf (gnome:win-client-list rw :mode :append) appw)))))))))
+(defun remove-window-from-client-lists (window root)
+  "Removes a window from the client lists root properties."
+  (with-slots ((rw window) client-list) root
+    (remhash window client-list)
+    (setf (netwm:net-client-list-stacking rw :mode :remove) window
+	  (gnome:win-client-list rw :mode :remove) window
+	  (netwm:net-client-list rw :mode :remove) window)))
+
+(defun add-window-in-client-lists (window root)
+  "Add a window in the client lists root properties."
+  (with-slots ((rw window) client-list) root
+    (let ((up2date (gethash window client-list)))
+      (setf (gethash window client-list) window)
+      (update-client-list-stacking root)
+      (unless up2date
+	(setf (netwm:net-client-list rw :mode :append) window))
+      (if (member :win_hints_skip_winlist (gnome:win-hints window))
+	  (setf (gnome:win-client-list rw :mode :remove) window)
+	  (unless up2date
+	    (setf (gnome:win-client-list rw :mode :append) window))))))
 
 (defun update-client-list-stacking (root)
   "Recompute ans set the root property net_client_list_stacking."
@@ -699,6 +700,15 @@
     (loop for win in (query-application-tree window)
 	  when (gethash win client-list) collect win into wins
 	  finally (setf (netwm:net-client-list-stacking window) wins))))
+
+(defun update-lists (app state root)
+  "Update root properties win_client_list, net_client_list(_stacking), 
+  by adjoining or removing the given application depending of state."
+  (with-slots ((appw window) iconic-p) app
+    (with-slots ((rw window) client-list) root
+      (case (if (and (= state 3) (not iconic-p)) 0 state)
+	(0 (remove-window-from-client-lists appw root))
+	(1 (add-window-in-client-lists appw root))))))
 
 (defun window-not-decorable-p (window &optional type)
   "Return T if a window `should' not be decorated. Typically, a splash screen,
