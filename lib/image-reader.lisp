@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PPM -*-
-;;; $Id: image-reader.lisp,v 1.10 2004/03/09 19:26:28 ihatchondo Exp $
+;;; $Id: image-reader.lisp,v 1.11 2004/07/12 21:24:39 ihatchondo Exp $
 ;;;
 ;;; This a ppm image reader for CLX
 ;;; This file is part of Eclipse
@@ -196,7 +196,7 @@
 	with cache-size of-type card-32 = (the card-32 (min size 21000))
 	with aux = (make-array (* 3 cache-size) :element-type 'card-8)
 	for start of-type card-32 from 0 by cache-size below size
-	for end of-type fixnum = (min (+ start cache-size) size)
+	for end of-type card-32 = (min (+ start cache-size) size)
 	with data = (make-array (list height width) :element-type 'card-24)
 	with vec = (make-array size :element-type 'card-24 :displaced-to data)
 	do (loop with offset of-type card-32 = 0

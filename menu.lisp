@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: menu.lisp,v 1.6 2004/03/08 23:40:34 ihatchondo Exp $
+;;; $Id: menu.lisp,v 1.7 2004/03/09 19:26:27 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO, Robert STRANDH
@@ -25,11 +25,17 @@
 (defvar *gctxt*)
 (defvar *black*)
 (defvar *white*)
-(defvar *background1* (xlib:make-color :red 0.8 :blue 0.8 :green 0.8))
-(defvar *background2* (xlib:make-color :red 0.85 :blue 0.85 :green 0.85))
+(defvar *background1*) 
+(defvar *background2*)
 (defvar *menu-item-margin* 2)
 (defvar *default-menu-height* 20)
 (defvar *max-char-width* 7)
+(defvar *menu-color*
+  (xlib:make-color :red 0.8 :blue 0.8 :green 0.8)
+  "The menu background color")
+(defvar *menu-hilighted-color*
+  (xlib:make-color :red 0.85 :blue 0.85 :green 0.85)
+  "The menu entry color hilighted (e.g: when the mouse passes over it)")
 
 (defgeneric menu-root (item))
 (defgeneric menu-root-application-window (item))

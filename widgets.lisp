@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.40 2004/03/09 19:26:27 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.41 2004/06/18 22:01:53 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -43,12 +43,15 @@
    (gcontext :initarg :gcontext :reader widget-gcontext :allocation :class)))
 
 (defgeneric remove-widget (widget)
+  (:method (widget) nil)
   (:documentation "Remove widget from internal cache."))
 
 (defgeneric close-widget (widget)
+    (:method (widget) nil)
   (:documentation "Close an application according to the ICCCM protocol."))
 
-(defgeneric focus-widget (widget timestamp))
+(defgeneric focus-widget (widget timestamp)
+    (:method (widget timestamp) nil))
 
 (defgeneric focused-p (widget)
   (:documentation "Return T if the given widget has the focus."))
@@ -66,15 +69,18 @@
   (:documentation "shade/un-shade an application that is decorated."))
 
 (defgeneric shaded-p (widget)
+  (:method (widget) nil)
   (:documentation
    "Returns true if the widget is shaded in the sens of the extended window
     manager specification."))
 
 (defgeneric widget-position-fix-p (widget)
+  (:method (widget) nil)
   (:documentation "Returns T if one of the state :win_state_fixed_position
    :_net_wm_state_sticky is set for the widget."))
 
 (defgeneric repaint (widget theme-name focus)
+  (:method (widget theme-name focus) nil)
   (:documentation
    "This method is dedicated to widget repaint such as every buttons, icons,
    edges ...
@@ -89,18 +95,6 @@
 (defmethod initialize-instance :after ((widget base-widget) &rest rest)
   (declare (ignore rest))
   (setf (gethash (widget-window widget) *widget-table*) widget))
-
-(macrolet ((define-null-method (name &rest args)
-	     (let ((%name% (with-standard-io-syntax (format nil "~A" name))))
-	       `(defmethod ,(intern %name%) ,args
-		  (declare (ignorable ,@args))
-		  (values)))))
-  (define-null-method remove-widget widget)
-  (define-null-method close-widget widget)
-  (define-null-method focus-widget widget timestamp)
-  (define-null-method repaint widget theme-name focus)
-  (define-null-method shaded-p widget)
-  (define-null-method widget-position-fix-p widget))
 
 (defmethod remove-widget ((widget base-widget))
   (remhash (widget-window widget) *widget-table*))
@@ -167,7 +161,7 @@
   (with-slots (sm-conn) root
     (sm-lib:close-sm-connection sm-conn)
     (setf sm-conn nil)
-    (when exit-p (error 'exit-eclipse))))
+    (when exit-p (error 'exit-eclipse :close-application-p t))))
 
 ;;;; Application
 

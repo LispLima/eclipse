@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.37 2004/03/09 19:26:27 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.38 2004/03/31 10:02:59 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -26,10 +26,6 @@
   `(simple-array (or xlib:card8 xlib:card16 xlib:card32) (*)))
 
 ;; Most generals methods.
-
-(defmethod event-process (event widget)
-  (declare (ignorable event widget))
-  (values))
 
 (defmethod event-process ((event mapping-notify) null-widget)
   (declare (ignorable null-widget))

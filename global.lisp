@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.24 2004/04/08 21:22:32 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.25 2004/05/21 11:38:53 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -153,7 +153,8 @@
 
 ;;;; Input protocol.
 
-(defgeneric event-process (event widget))
+(defgeneric event-process (event widget)
+  (:method (event widget) nil))
 
 ;;;; System dependent functions.
 

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.19 2004/03/16 16:56:53 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.20 2004/06/18 22:01:53 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -21,9 +21,7 @@
 (in-package :ECLIPSE-INTERNALS)
 
 (defun load-config-file (pathname)
-  (multiple-value-bind (loaded-p error)
-      (ignore-errors (load pathname :verbose t))
-    (or loaded-p (format *error-output* "~A~%" error))))
+  (load pathname))
 
 ;;; Initializations and Main.
 
@@ -70,9 +68,9 @@
 	(sm-lib:save-yourself ()
           (ice-lib:post-request :save-yourself-done sm-conn :success-p t)
 	  t)
-	(sm-lib:die () (close-sm-connection root-widget) t)
+	(sm-lib:die () (close-sm-connection root-widget :exit-p t) nil)
 	(t t))
-    (exit-eclipse () (error 'exit-eclipse))
+    (exit-eclipse (condition) (signal condition))
     (error (condition) (format *error-output* "~&~A~&" condition))))
 
 ;; ICCCM section 2.8
@@ -171,8 +169,8 @@
       ;; Eclipse globals vars.
       (setf *black* (xlib:screen-black-pixel screen)
 	    *white* (xlib:screen-white-pixel screen)
-	    *background1* (xlib:alloc-color colormap *background1*)
-	    *background2* (xlib:alloc-color colormap *background2*)	    
+	    *background1* (xlib:alloc-color colormap *menu-color*)
+	    *background2* (xlib:alloc-color colormap *menu-hilighted-color*)
 	    *cursor-2* (get-x-cursor *display* :xc_fleur)
 	    *gctxt* (xlib:create-gcontext :drawable root-window :font menu-font)
 	    *max-char-width* (xlib:max-char-width menu-font)
@@ -182,9 +180,10 @@
 			  :fill-style :solid  :line-style :solid
 			  :line-width 1 :exposures :OFF))
       ;; load personal configuration file, or the default one.
-      (or (load-config-file (home-subdirectory cl-user::*eclipse-initfile*))
-	  (load-config-file (eclipse-path "eclipserc"))
-	  (error "Unable to read a configuration file.~%"))
+      (labels ((load-if (f) (and (probe-file f) (load-config-file f))))
+	(or (load-if (home-subdirectory cl-user::*eclipse-initfile*))
+	    (load-if (eclipse-path "eclipserc"))
+	    (error "Unable to read a configuration file.~%")))
       (setf (xlib:window-cursor root-window) (root-default-cursor *root*))
       (setf (slot-value *root* 'gcontext) *gcontext*)
       (unless (xlib:gcontext-font *gcontext*)
@@ -192,13 +191,31 @@
       (unless (root-decoration-theme *root*)
 	(setf (decoration-theme) "microGUI")))))
 
-(defun eclipse (&key display sm-client-id)
+(defun eclipse (&key display sm-client-id die-on-init-error)
+  "Starts the Eclipse window manager.
+    - :display (or null string): if given it is expected it respects the 
+      standard X DISPLAY specification: hostname:displaynumber.screennumber
+      (for more about the display string format see the X manual page).
+      If NIL then the DISPLAY environment variable will be used.
+    - :sm-client-id (or null string): if Eclipse is restarted from a previous
+      session, should contain the previous client-id of that previous session.
+      If :sm-client-id is specified, but is determined to be invalid by the
+      session manager, we will re-register the client with a sm-client-id set
+      to NIL. If the client is first joining the session :sm-client-id can be
+      NIL (default) or the empty string.
+    - :die-on-init-error (boolean): indicates if Eclipse should prevent
+      from debugger or not during initialisation phase.
+  If neither the DISPLAY environment variable is defined nor the :display
+  argument is defined then Eclipse will not be able to starts."
   (declare (type (or null string) display sm-client-id))
-  (handler-case (initialize display sm-client-id)
-    (error (condition)
-      (format t "~a~%" condition)
-      (when *display* (xlib:close-display *display*))
-      (%quit%)))
+  (declare (type boolean die-on-init-error))
+  (when *display* 
+    (xlib:close-display *display*)
+    (setf *display* nil))
+  (if die-on-init-error
+      (handler-case (initialize display sm-client-id)
+	(error () (%quit%)))
+      (initialize display sm-client-id))
   ;(init-log-file)
 
   ;; This is for releasing any previous pointer grab.

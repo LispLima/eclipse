@@ -1,5 +1,5 @@
 @interp@ @SHELL@
-# $Id: eclipse.in,v 1.7 2004/01/12 11:22:05 ihatchondo Exp $
+# $Id: eclipse.in,v 1.8 2004/01/13 00:09:41 ihatchondo Exp $
 #
 # @configure_input@
 # This file starts the eclipse window manager
@@ -35,7 +35,7 @@ while [ $# -gt 0 ] ; do
   esac
 done
 
-options="$display_spec $sm_client_id"
+options="$display_spec $sm_client_id :die-on-init-error t"
 
 ## 
 
