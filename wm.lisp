@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.13 2003/06/11 18:29:23 hatchond Exp $
+;;; $Id: wm.lisp,v 1.14 2003/08/28 14:50:35 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -146,7 +146,11 @@
 	  (make-title-bar master (wm-name app-win))
 	  (update-edges-geometry master)
 	  (xlib:map-subwindows window)
-	  (cond ((shaded-p application) (shade master))
+	  (cond ((shaded-p application)
+		 (if (title-bar-horizontal-p master)
+		     (setf (xlib:drawable-height window) vmargin)
+		     (setf (xlib:drawable-width window) hmargin))
+		 (xlib:unmap-window app-win))
 		((application-iconic-p application)
 		 (xlib:unmap-window app-win))))))))
 
