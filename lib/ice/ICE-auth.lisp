@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-auth.lisp,v 1.2 2004/03/08 17:50:23 ihatchondo Exp $
+;;; $Id: ICE-auth.lisp,v 1.3 2004/07/12 21:22:56 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -30,7 +30,7 @@
    (auth-data :initarg :auth-data)))
 
 (defun parse-ICEauthority-file (file-pathname &key filter)
-  "returns the list of entries contained in an ICEauthority file."
+  "Returns the list of entries contained in an ICEauthority file."
   (declare (type (or null function) filter))
   (let ((index 0) buff)
     (with-open-file (fs file-pathname :element-type '(unsigned-byte 8))
@@ -56,7 +56,7 @@
 	    else collect entry))))
 
 (defun read-ice-auth-file (&key filter)
-  "returns the list of entries contained in the default authorization file.
+  "Returns the list of entries contained in the default authorization file.
   If the ICEAUTHORITY environment variable is set this file will be used,
   otherwise the default authorization file will be: <HOME>/.ICEauthority."
   (let ((file-name 

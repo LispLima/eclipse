@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-lib.lisp,v 1.9 2005/01/05 00:24:00 ihatchondo Exp $
+;;; $Id: ICE-lib.lisp,v 1.10 2005/01/08 00:02:51 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -63,11 +63,11 @@
 (deftype handlers () '(simple-array (simple-array (or null function) (*)) (*)))
 
 (defgeneric ice-flush (ice-connection)
-  (:documentation "attempts to ensure that any buffered output sent
+  (:documentation "Attempts to ensure that any buffered output sent
    has reached its destination, and then returns."))
 
 (defgeneric ice-connection-wait (ice-connection timeout)
-  (:documentation "attemps to wait timeout second(s) or less if any 
+  (:documentation "Attemps to wait timeout second(s) or less if any 
    datas are available for reading on the input of an ice-connection 
    and returns T. Otherwise returns NIL."))
 
@@ -304,7 +304,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun parse-network-id (network-id)
-  "returns as a multiple values: 
+  "Returns as a multiple values: 
     connection-type  keyword (or :local :tcp :decnet)
     host name        string
     connection obj   (or string fixnum t). 
@@ -335,7 +335,7 @@
       (values type host-name obj))))
 
 (defun connect-to-peer (network-ids)
-  "returns as a multiple values the chosen network-id and a two way stream
+  "Returns as a multiple values the chosen network-id and a two way stream
   connected to the first peer that accept us."
   (loop with stream = nil
 	for network-id in network-ids do
@@ -359,7 +359,7 @@
     versions))
 
 (defun available-authentication-protocols (proto-name network-id protocols)
-  "returns an array of string containing the names of the available 
+  "Returns an array of string containing the names of the available 
   authentication protocols, according to .ICEauthority file."
   (declare (type string proto-name network-id))
   (declare (type list protocols))
