@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: COMMON-LISP; -*-
-;;; $Id: package.lisp,v 1.5 2004/04/08 21:19:12 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.6 2004/12/14 17:58:18 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -88,7 +88,7 @@
     )
   (:shadow
     #:get-properties
-    #:string-length #:strings-length
+    #:string-length #:strings-length #:strings
     #:buffer-read-string #:buffer-write-string
     #:buffer-read-strings #:buffer-write-strings)
   (:size 90)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: COMMON-LISP; -*-
-;;; $Id: package.lisp,v 1.4 2004/03/08 17:50:23 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.5 2004/03/17 13:38:12 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -125,7 +125,7 @@
    #:ice-flush 
    #:last-received-message 
    #:last-sended-message 
-   #:make-ice-request 
+   #:make-request 
    #:post-request 
    #:read-request 
    #:request-error-handler

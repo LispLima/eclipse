@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: SM-LIB; -*-
-;;; $Id: sm.lisp,v 1.8 2004/07/12 21:22:55 ihatchondo Exp $
+;;; $Id: sm.lisp,v 1.9 2004/12/14 17:58:18 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -52,22 +52,22 @@
   (values nil :type array8s))
 
 (defun string->array8 (string)
-  "transform a string into an sm-lib:array8."
+  "Transforms a string into an sm-lib:array8."
   (declare (type simple-string string))
   (map 'array8 #'char-code string))
 
 (defun array8->string (array)
-  "transform an sm-lib:array8 into a string."
+  "Transforms an sm-lib:array8 into a string."
   (declare (type array8 array))
   (map 'string #'code-char array))
 
 (defun strings->array8s (&rest strings)
-  "transform the given strings into a list of sm-lib:array8."
+  "Transforms the given strings into a list of sm-lib:array8."
   (declare (type list strings))
   (mapcar #'string->array8 strings))
 
 (defun array8s->strings (&rest array8s)
-  "transform the given sm-lib:array8's into a list of simple-string"
+  "Transforms the given sm-lib:array8's into a list of simple-string"
   (declare (type array8s array8s))
   (mapcar #'array8->string array8s))
 
@@ -124,8 +124,8 @@
 
 (defun make-array8 (len &rest args &key (initial-element 0) &allow-other-keys)
   "Creates and returns an array constructed of the most specialized type that
-  can accommodate elements of type (unsigned-byte 8). For the rest of the 
-  options see common-lisp:make-array."
+   can accommodate elements of type (unsigned-byte 8). For the rest of the 
+   options see common-lisp:make-array."
   (declare (type fixnum len))
   (if (getf args :initial-contents)
       (remf args :initial-element)
@@ -235,6 +235,7 @@
 (declare-request register-client (request)
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0)
    (previous-id :type client-id))
   (:documentation "The client must send this message to the SM to register the
   client's existence. If a client is being restarted from a previous session,
@@ -248,6 +249,7 @@
 (declare-request register-client-reply (request)
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0)
    (client-id :type client-id))
   (:documentation "The client-id specifies a unique identification string for
   this client. If the client had specified an id in the previous-ID field of
@@ -264,6 +266,7 @@
 (declare-request save-yourself (request)
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0)
    (type :type save-type)
    (shutdown-p :type boolean)
    (interact-style :type interact-style)
@@ -314,6 +317,7 @@
 (declare-request save-yourself-request (request)
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0)
    (type :type save-type)
    (shutdown-p :type boolean)
    (interact-style :type interact-style)
@@ -330,7 +334,8 @@
 (declare-request interact-request (request)
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8)
-   (dialog-type :type dialog-type :pad-size 5))
+   (dialog-type :type dialog-type :pad-size 1)
+   (length :type card32 :initform 0))
   (:documentation "During a checkpoint or session-save operation, only one
   client at a time might be granted the privilege of interacting with the user.
   The interact-request message causes the SM to emit an Interact message at
@@ -341,7 +346,8 @@
 
 (declare-request interact (request)
   ((major-opcode :initform *xsmp* :type card8)
-   (minor-opcode :type card8 :pad-size 2))
+   (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0))
   (:documentation "This message grants the client the privilege of interacting
   with the user. When the client is done interacting with the user it must send
   an interact-done message to the SM unless a shutdown cancel is received."))
@@ -349,7 +355,8 @@
 (declare-request interact-done (request)
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8)
-   (cancel-shutdown-p :type boolean :pad-size 1))
+   (cancel-shutdown-p :type boolean :pad-size 1)
+   (length :type card32 :initform 0))
   (:documentation "This message is used by a client to notify the SM that it is
   done interacting. Setting the cancel-shutdown-p to True indicates that the
   user has requested that the entire shutdown be cancelled. cancel-shutdown-p
@@ -360,7 +367,8 @@
 (declare-request save-yourself-done (request)
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8)
-   (success-p :type boolean :pad-size 1))
+   (success-p :type boolean :pad-size 1)
+   (length :type card32 :initform 0))
   (:documentation "This message is sent by a client to indicate that all of the
   properties representing its state have been updated. After sending
   save-yourself-done the client must wait for a save-complete,
@@ -370,14 +378,16 @@
 
 (declare-request die (request)
   ((major-opcode :initform *xsmp* :type card8)
-   (minor-opcode :type card8 :pad-size 2))
+   (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0))
   (:documentation "When the SM wants a client to die it sends a Die message.
   Before the client dies it responds by sending a connection-closed message
   and may then close its connection to the SM at any time."))
 
 (declare-request shutdown-cancelled (request)
   ((major-opcode :initform *xsmp* :type card8)
-   (minor-opcode :type card8 :pad-size 2))
+   (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0))
   (:documentation "The shutdown currently in process has been aborted. The
   client can now continue as if the shutdown had never happened. If the client
   has not sent save-yourself-done yet, the client can either abort the save and
@@ -388,6 +398,7 @@
 (declare-request connection-closed (request)
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0)
    (reason :type strings))
   (:documentation "Specifies that the client has decided to terminate. It
   should be immediately followed by closing the connection. 
@@ -404,6 +415,7 @@
 (declare-request set-properties (request)
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0)
    (properties :type properties))
   (:documentation "Sets the specified properties to the specified values.
   Existing properties not specified in the SetProperties message are
@@ -418,32 +430,37 @@
 (declare-request delete-properties (request)
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0)
    (properties :type strings))
   (:documentation "Removes the named properties."))
 
 (declare-request get-properties (request)
   ((major-opcode :initform *xsmp* :type card8)
-   (minor-opcode :type card8 :pad-size 2))
+   (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0))
   (:documentation "Requests that the SM respond with the values of all the
   properties for this client."))
 
 (declare-request get-properties-reply (request)
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0)
    (properties :type properties))
   (:documentation "This message is sent in reply to a get-properties message
   and includes the values of all the properties."))
 
 (declare-request save-yourself-phase2-request (request)
   ((major-opcode :initform *xsmp* :type card8)
-   (minor-opcode :type card8 :pad-size 2))
+   (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0))
   (:documentation "This message is sent by a client to indicate that it needs
   to be informed when all the other clients are quiescent, so it can continue
   its state."))
 
 (declare-request save-yourself-phase2 (request)
   ((major-opcode :initform *xsmp* :type card8)
-   (minor-opcode :type card8 :pad-size 2))
+   (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0))
   (:documentation "The SM sends this message to a client that has previously
   sent a save-yourself-phase2-request message. This message informs the client
   that all other clients are in a fixed state and this client can save state
@@ -458,7 +475,8 @@
 
 (declare-request save-complete (request)
   ((major-opcode :initform *xsmp* :type card8)
-   (minor-opcode :type card8 :pad-size 2))
+   (minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0))
   (:documentation "When the SM is done with a checkpoint, it will send each
   of the clients a save-complete message. The client is then free to change
   its state."))
@@ -508,28 +526,28 @@
 
 (defun open-sm-connection (&key must-authenticate-p previous-id network-ids)
   "Returns an sm-connection object if it succeeds. Otherwise an error will be
-  signaled. (its type will depend on the reason of the failure)
+   signaled. (its type will depend on the reason of the failure)
   
-  - :network-ids : if given, must be a list of network-id for the session
-  manager. If not given, the value of the SESSION_MANAGER environment variable
-  will be used. An attempt will be made to use the first network-id. If this
-  fails an attempt will be made to use the second one, and so on. Each
-  network-id has the following format:
-    local/<HOST-NAME>:<PATH>
-    tcp/<HOST-NAME>:<PORT-NUMBER>
-    decnet/<HOST-NAME>::<OBJ>
+   - :network-ids : if given, must be a list of network-id for the session
+   manager. If not given, the value of the SESSION_MANAGER environment variable
+   will be used. An attempt will be made to use the first network-id. If this
+   fails an attempt will be made to use the second one, and so on. Each
+   network-id has the following format:
+     local/<HOST-NAME>:<PATH>
+     tcp/<HOST-NAME>:<PORT-NUMBER>
+     decnet/<HOST-NAME>::<OBJ>
 
-  - :previous-id : if the client is restarted from a previous session, should
-  contain the previous client-id of that previous session. If :previous-id is
-  specified, but is determined to be invalid by the session manager, we will 
-  re-register the client with a previous-id set to NIL. If the client is first
-  joining the session :previous-id can be NIL (default) or the empty string.
+   - :previous-id : if the client is restarted from a previous session, should
+   contain the previous client-id of that previous session. If :previous-id is
+   specified, but is determined to be invalid by the session manager, we will 
+   re-register the client with a previous-id set to NIL. If the client is first
+   joining the session :previous-id can be NIL (default) or the empty string.
 
-  Any authentication requirements are handled internally by the SM Library.
-  The method by which authentication data is obtained is implementation
-  dependent. We only use and know the default use of the ICEauthority file.
-  You will need to register your own methods for other authentication methods.
-  To do so see and use register-ice-authentication-protocol."
+   Any authentication requirements are handled internally by the SM Library.
+   The method by which authentication data is obtained is implementation
+   dependent. We only use and know the default use of the ICEauthority file.
+   You will need to register your own methods for other authentication methods.
+   To do so see and use register-ice-authentication-protocol."
   (declare (type (or null list) network-ids))
   (declare (type (or null client-id) previous-id))
   (declare (type boolean must-authenticate-p))
@@ -572,7 +590,8 @@
 	    (setf *xsmp* protocol-major-opcode)
 	    (register-xsmp-protocol protocol-major-opcode)
 	    ;; send the register-client request.
-	    (post-request :register-client sm-conn :previous-id previous-id)
+	    (post-request :register-client sm-conn
+	      :previous-id (or previous-id ""))
 	    ;; collect some connection infos.
 	    (with-slots (version-index) request
 	      (let ((version (aref versions version-index)))
@@ -599,7 +618,7 @@
       sm-conn)))
 
 (defun close-sm-connection (sm-conn &key reason)
-  "Close a connection with a session manager."
+  "Closes a connection with a session manager."
   (declare (type sm-connection sm-conn))
   (declare (type (or null string) reason))
   (ice-lib:post-request :want-to-close sm-conn)

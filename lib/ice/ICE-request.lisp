@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-request.lisp,v 1.8 2004/12/14 17:58:21 ihatchondo Exp $
+;;; $Id: ICE-request.lisp,v 1.9 2005/01/06 23:11:08 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -34,25 +34,25 @@
      :reader request-minor-opcode))
   (:documentation "Protocol class."))
   
-(defgeneric make-ice-request (key-name &rest request-slots)
-  (:documentation "returns a newly allocated instance of class designed 
+(defgeneric make-request (key-name &rest request-slots)
+  (:documentation "Returns a newly allocated instance of class designed 
    by the request-key-name."))
 
 (defgeneric decode-request (request-key ice-connection buffer)
-  (:documentation "returns a instance of request that represent the one
+  (:documentation "Returns a instance of request that represent the one
    in the input buffer."))
 
 (defgeneric post-request (request-key ice-connection &rest request-slots)
-  (:documentation "post a request specified by the request-key and
+  (:documentation "Post a request specified by the request-key and
   request-slots to the given destination ice-connection. The request-slots
   passed depend on the request type. The keyword symbols used for each request
   type are request slot names defined by the declare-request macro."))
 
 (defgeneric request-length (request)
-  (:documentation "compute and returns the size (in bytes) of a request."))
+  (:documentation "Computes and returns the size (in bytes) of a request."))
 
 (defun request-p (object)
-  "returns true if object is of type request; otherwise, returns nil."
+  "Returns true if object is of type request; otherwise, returns nil."
   (typep object 'request))
 
 ;; request declaration.
@@ -79,7 +79,8 @@
        :no-close)))
 
 (declare-request byte-order (request)
-  ((byte-order :type ice-byte-order :pad-size 1))
+  ((byte-order :type ice-byte-order :pad-size 1)
+   (length :type card32 :initform 0))  
   (:documentation "Both parties must send this message before sending any
   other, including errors. This message specifies the byte order that will be
   used on subsequent messages sent by this party. 
@@ -89,6 +90,7 @@
 (declare-request connection-setup (request)
   ((number-of-versions-offered :type card8)
    (number-of-authentication-protocol-names-offered :type card8)
+   (length :type card32 :initform 0)
    (must-authenticate-p :type boolean :pad-size 7)
    (vendor-name :type string)
    (release-name :type string)
@@ -118,6 +120,7 @@
 
 (declare-request authentication-required (request)
   ((authentication-protocol-index :type card8 :pad-size 1)
+   (length :type card32 :initform 0)
    (length-of-authentication-data :type card16 :pad-size 6)
    (data :type data :length length-of-authentication-data))
   (:documentation "This message is sent in response to a connection-setup or
@@ -129,6 +132,7 @@
 
 (declare-request authentication-reply (request)
   ((minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0)
    (length-of-authentication-data :type card16 :pad-size 6)
    (data :type data :length length-of-authentication-data))
   (:documentation "This message is sent in response to an 
@@ -145,6 +149,7 @@
 
 (declare-request authentication-next-phase (request)
   ((minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0)
    (length-of-authentication-data :type card16 :pad-size 6)
    (data :type data :length length-of-authentication-data))
   (:documentation "This message is sent in response to an AuthenticationReply
@@ -153,6 +158,7 @@
 
 (declare-request connection-reply (request)
   ((version-index :type card8 :pad-size 1)
+   (length :type card32 :initform 0)
    (vendor-name :type string)
    (release-name :type string))
   (:documentation "This message is sent in response to a connection-setup or
@@ -167,6 +173,7 @@
 (declare-request protocol-setup (request)
   ((protocol-major-opcode :type card8)
    (must-authenticate-p :type boolean)
+   (length :type card32 :initform 0)
    (number-of-versions-offered :type card8)
    (number-of-authentication-protocol-names-offered :type card8 :pad-size 6)
    (protocol-name :type string)
@@ -201,6 +208,7 @@
 (declare-request protocol-reply (request)
   ((version-index :type card8)
    (protocol-major-opcode :type card8)
+   (length :type card32 :initform 0)
    (vendor-name :type string)
    (release-name :type string))
   (:documentation "This message is sent in response to a protocol-setup or
@@ -215,17 +223,20 @@
   defined by the specific protocol being negotiated."))
 
 (declare-request ping (request)
-  ((minor-opcode :type card8 :pad-size 2))
+  ((minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0))
   (:documentation 
    "This message is used to test if the connection is still functioning."))
 
 (declare-request ping-reply (request)
-  ((minor-opcode :type card8 :pad-size 2))
+  ((minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0))
   (:documentation "This message is sent in response to a Ping message,
   indicating that the connection is still functioning."))
 
 (declare-request want-to-close (request)
-  ((minor-opcode :type card8 :pad-size 2))
+  ((minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0))
   (:documentation "This message is used to initiate a possible close of the
   connection. The sending party has noticed that, as a result of mechanisms
   specific to each protocol, there are no active protocols left. There are
@@ -244,7 +255,8 @@
   information."))
 
 (declare-request no-close (request)
-  ((minor-opcode :type card8 :pad-size 2))
+  ((minor-opcode :type card8 :pad-size 2)
+   (length :type card32 :initform 0))
   (:documentation "This message is sent in response to a want-to-close message
   to indicate that the responding party does not want the connection closed at
   this time. The receiving party should not close the connection. Either party

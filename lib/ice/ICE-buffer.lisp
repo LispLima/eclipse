@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-buffer.lisp,v 1.3 2004/03/08 17:50:23 ihatchondo Exp $
+;;; $Id: ICE-buffer.lisp,v 1.4 2004/12/14 17:58:20 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -55,13 +55,13 @@
 ;;;;
 
 (defun pad-length (message-byte-length &optional (modulo 8))
-  "returns the number of bytes that should be add to a message of length
+  "Returns the number of bytes that should be add to a message of length
   `message-byte-length' (in byte) modulo `modulo' (default is 8)."
   (mod (- modulo (mod message-byte-length modulo)) modulo))
 
 (defun vpos (elem vector)
   "Returns the position of an element in a vector. If element is not 
-  found then raise an error."
+   found then raise an error."
   (declare (type vector vector))
   (or (position elem vector) (error "~a is not a member of ~a~%" elem vector)))
 
@@ -71,8 +71,8 @@
 
 (defmacro define-accessor 
     (type ((&rest rargs) &body rbody) ((&rest wargs) &body wbody))
-  "Define macro accessor for a type. The first body form defines the reader 
-  macro the second body form defines the writer macro."
+  "Defines macro accessor for a type. The first body form defines the reader 
+   macro the second body form defines the writer macro."
   (let ((reader (sintern (format nil "BUFFER-READ-~a" type)))
 	(writer (sintern (format nil "BUFFER-WRITE-~a" type))))
     `(progn
