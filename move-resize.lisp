@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.1 2002/11/07 14:54:27 hatchond Exp $
+;;; $Id: move-resize.lisp,v 1.2 2003/03/16 01:18:13 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -28,7 +28,8 @@
 (deftypedparameter (signed-byte 16) *delta-y* 0)
 
 (defun undraw-geometry-info-box ()
-  (xlib:unmap-window (widget-window *geometry-info-box*)))
+  (when *geometry-info-box*
+    (xlib:unmap-window (widget-window *geometry-info-box*))))
 
 (defun initialize-geometry-info-box ()
   (unless *geometry-info-box*
