@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.2 2003/03/16 00:34:38 hatchond Exp $
+;;; $Id: package.lisp,v 1.3 2003/09/11 00:06:34 hatchond Exp $
 ;;;
 ;;; This is the CLX extensions package definition.
 ;;;
@@ -98,6 +98,7 @@
    drawable
    focus-p
    format
+   hint-p
    installed-p
    keymap
    kind
@@ -153,6 +154,7 @@
    event-drawable
    event-focus-p
    event-format
+   event-hint-p
    event-installed-p
    event-keymap
    event-kind
