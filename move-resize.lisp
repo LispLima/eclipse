@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.16 2004/04/27 17:43:40 ihatchondo Exp $
+;;; $Id: move-resize.lisp,v 1.17 2004/08/20 21:51:08 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -20,7 +20,7 @@
 
 (in-package :ECLIPSE-INTERNALS)
 
-;;;; Functions for displaying window sizes/positions in a box-button object.
+;;;; Functions for displaying window sizes/positions in a box-button window.
 
 (defparameter *geometry-info-box* nil)
 
@@ -115,7 +115,7 @@
 	  (draw-window-grid widget-window gcontext window))))))
 
 (defgeneric update-clone (widget)
-  (:documentation "Initilize a widget clone for move/resize animations."))
+  (:documentation "Re-initialize a widget clone for move/resize animations."))
 
 (defmethod update-clone ((application application))
   (multiple-value-bind (x y w h) (window-geometry (widget-window application))
@@ -135,7 +135,7 @@
   (:documentation "Resize a decoration or an application depending on widget"))
 
 (defun initialize-resize (master edge pointer-event)
-  "Initialize the internal settings for the resize process."
+  "Initialize the internal hooks for the resize process."
   (setf (window-priority (widget-window master)) :above)
   (if (base-widget-p edge)
       (where-is-pointer edge)
@@ -155,7 +155,8 @@
     (setf (decoration-active-p master) (if *card-point* t nil))))
 
 (defun where-is-pointer (widget)
-  "Initialize the resize process when activated from one the decoration edge." 
+  "Initialize internal anchor when resize is activated from one
+   of the edge of the decoration."
   (declare (optimize (speed 3) (safety 0)))
   (setf (values *delta-x* *delta-y*) (values 0 0)
 	*card-point* (typecase widget
@@ -170,8 +171,8 @@
 		       (t :se))))
 
 (defun find-corner (root-x root-y window)
-  "Initialize the resize process when activated from somewhere else 
-  than a decoration edge."
+  "Initialize internal anchor when resize is activated from one
+   of the edge of the decoration."
   (multiple-value-bind (x y width height) (window-geometry window)
     (let ((corners '#(#.'#(:nw :north :nw :west) #.'#(:north :ne :east :ne)
 		      #.'#(:se :east :se :south) #.'#(:west :sw :south :sw))))
@@ -194,8 +195,8 @@
 	      *delta-y* (- root-y y))))))
 
 (defun check-size (size base inc min-size max-size)
-  "If the given size respects all the given constraints, then return size. 
-  Otherwise returns the nearest satisfying size."
+  "If the given size respects all the given constraints, then returns size. 
+   Otherwise returns the nearest satisfying size."
   (declare (optimize (speed 3) (safety 0)))
   (declare (type xlib:card16 size base inc min-size max-size))
   (if (< min-size size max-size)
@@ -204,7 +205,7 @@
 	(if (= k 0) size (+ inc (- size k))))
       (max min-size (min size max-size))))
 
-(defun %resize% (master motion-notify-event verbose-p)
+(defun resize-internal (master motion-notify-event verbose-p)
   (declare (optimize (speed 3) (safety 0)))
   (declare (inline check-size))
   (let* ((master-win (widget-window master))
@@ -249,7 +250,7 @@
 		    (values new-width new-height)))))))))
 
 (defun finish-resize (master &optional verbose-p mode)
-  "Terminate the resize work. (undraw grid, geometry infos, ...)"
+  "Ends the resize work. (undraw grid, geometry infos, ...)"
   ;; Finish the resize process:
   ;; called when button-release on root and root-resize-status is not nil.
   (with-slots (window gcontext) master
@@ -285,18 +286,18 @@
        (setf (drawable-sizes (widget-window master))
 	     (values (+ w hmargin) (+ h vmargin)))))))
 
-(defmethod resize ((master decoration) (event motion-notify)
-		   &optional verbose-p mode)
+(defmethod resize
+    ((master decoration) (event motion-notify) &optional verbose-p mode)
   (declare (optimize (speed 3) (safety 0)))
-  (declare (inline update-edges-geometry %resize%))
+  (declare (inline update-edges-geometry resize-internal))
   (if (eql mode :opaque)
       (with-event-mask ((slot-value master 'window))
-	(%resize% master event verbose-p)
+	(resize-internal master event verbose-p)
 	(update-edges-geometry master)
 	(resize-from master))
       (with-slots (window gcontext) *clone*
 	(draw-window-grid window gcontext *root-window*)
-	(%resize% *clone* event verbose-p)
+	(resize-internal *clone* event verbose-p)
 	(draw-window-grid window gcontext *root-window*))))	
 
 ;;;; Move.
@@ -308,11 +309,11 @@
     movements."))
 
 (defgeneric finalize-move (widget)
-  (:documentation "finalize (send synthetic configure-notify ..."))
+  (:documentation "Finalize (send synthetic configure-notify ..."))
 
 (defun region-intersect-region-p (x y w h x2 y2 w2 h2)
   "Returns true if the rectangular regions, described by the two four-uple
-  `x y w h', have a not empty intersection."
+   `x y w h', have a not empty intersection."
   (declare (optimize (speed 3) (safety 0)))
   (declare (type (signed-byte 16) x y x2 y2))
   (declare (type (unsigned-byte 16) w h w2 h2))
@@ -320,8 +321,8 @@
 
 (defun region-intersect-window-in-screen (x y w h &rest windows-to-skip)
   "Returns a window list that has an intersection with the given region
-  (defines by the four-uple `x y w h'). The windows-to-skip argument is 
-  a list of window that should not be used."
+   (defines by the four-uple `x y w h'). The windows-to-skip argument is 
+   a list of window that should not be used."
   (declare (optimize (speed 3) (safety 0)))
   (declare (type (signed-byte 16) x y))
   (declare (type (unsigned-byte 16) w h))
@@ -340,8 +341,8 @@
 
 (defun perform-dock (window x y)
   "Returns the new coordinates of the window if it needs do be docked on
-  one or two window present on that desktop. Otherwise x and y will be 
-  returned. Arguments x, y represent the hypotheticals future coordinates."
+   one or two window present on that desktop. Otherwise x and y will be 
+   returned. Arguments x, y represent the hypotheticals future coordinates."
   (declare (optimize (speed 3) (safety 0)))
   (declare (type (signed-byte 16) x y))
   (multiple-value-bind (x1 y1 w1 h1) (window-geometry window)
@@ -367,8 +368,8 @@
 
 (defun perform-root-dock (window x y)
   "Returns the new coordinates of the window if it needs do be docked
-  on the root window. Otherwise x and y will be returned. 
-  Arguments x, y represent the hypotheticals future coordinates."
+   on the root window. Otherwise x and y will be returned. 
+   Arguments x, y represent the hypotheticals future coordinates."
   (declare (optimize (speed 3) (safety 0)))
   (declare (type (signed-byte 16) x y))
   (multiple-value-bind (x1 y1 w1 h1) (window-geometry window)
@@ -409,7 +410,7 @@
 	    (setf (window-position window) (values new-x new-y)))))))
 
 (defun finish-move (widget &optional verbose-p mode) 
-  "Terminate the move work (undraw grid, geometry infos, ...)."
+  "Ends the move work (undraw grid, geometry infos, ...)."
   (with-slots ((widget-window window) active-p) widget
     (when (eql mode :box)
       (with-slots (window gcontext) *clone*

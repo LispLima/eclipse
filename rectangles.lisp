@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: rectangles.lisp,v 1.2 2004/01/17 04:20:45 ihatchondo Exp $
+;;; $Id: rectangles.lisp,v 1.3 2004/02/13 15:20:26 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2003 Iban HATCHONDO
@@ -40,12 +40,12 @@
 
 (declaim (inline rectangle-width))
 (defun rectangle-width (rect)
-  "Return the width of a rectangle."
+  "Returns the width of a rectangle."
   (if (null rect) 0 (- (rectangle-lrx rect) (rectangle-ulx rect))))
 
 (declaim (inline rectangle-height))
 (defun rectangle-height (rect)
-  "Return the height of a rectangle."
+  "Returns the height of a rectangle."
   (if (null rect) 0 (- (rectangle-lry rect) (rectangle-uly rect))))
 
 (defun rectangle-surface< (rectangle1 rectangle2)
@@ -64,9 +64,9 @@
   (>= (rectangle-height rect1) (rectangle-height rect2)))
 
 (defun sub-rectangles (outside inside)
-  "Return the four (if exists) sub rectangles defined by the internal
-  rectangle in the outside one. The returned list will be sort ascending
-  order."
+  "Returns the four (if exists) sub rectangles defined by the internal
+   rectangle in the outside one. The returned list will be sort ascending
+   order."
   (declare (optimize (speed 3) (safety 0)))
   (multiple-value-bind (ulx1 uly1 lrx1 lry1) (rectangle-coordinates outside)
     (declare (type (signed-byte 16) ulx1 uly1 lrx1 lry1))
@@ -84,7 +84,7 @@
 	(stable-sort seq #'rectangle-surface>=)))))
 
 (defun overlap-p (rect1 rect2)
-  "Return true if rectangle1 intersects rectangle2."
+  "Returns true if rectangle1 intersects rectangle2."
   (declare (optimize (speed 3) (safety 0)))
   (multiple-value-bind (ulx1 uly1 lrx1 lry1) (rectangle-coordinates rect1)
     (declare (type (signed-byte 16) ulx1 uly1 lrx1 lry1))
@@ -102,7 +102,7 @@
       (and (<= ulx1 ulx2) (<= uly1 uly2) (<= lrx2 lrx1) (<= lry2 lry1)))))
 
 (defun rectangle-intersection (rect1 rect2)
-  "Return the intersection of rect1 and rect2 or nil of they do not overlap."
+  "Returns the intersection of rect1 and rect2 or nil of they do not overlap."
   (declare (optimize (speed 3) (safety 0)))
   (multiple-value-bind (ulx1 uly1 lrx1 lry1) (rectangle-coordinates rect1)
     (declare (type (signed-byte 16) ulx1 uly1 lrx1 lry1))
@@ -118,8 +118,8 @@
 	collect it))
 
 (defun find-empty-rectangles (space obstacles order)
-  "Return all the largest empty rectangles of space according 
-  to the obstacles list sorted according order."
+  "Returns all the largest empty rectangles of space according 
+   to the obstacles list sorted according order."
   (setf obstacles (stable-sort
 		      (rectangle-intersection* space obstacles) 
 		      #'rectangle-surface>=))
@@ -129,14 +129,14 @@
 	finally (return (stable-sort result order))))
 
 (defun window->rectangle (window)
-  "Return the rectangle that represent this window."
+  "Returns the rectangle that represent this window."
   (multiple-value-bind (x y w h) (window-geometry window)
     (make-rectangle :ulx x :uly y :lrx (+ x w) :lry (+ y h))))
 
 (defun compute-screen-rectangles (application &optional filter-overlap-p)
-  "Get screen content according to desktop number and filter all windows that 
-  are overlaped by the given one except if filter-overlap-p is NIL. Returns a
-  list of rectangles that represent all the founded windows."
+  "Gets screen content according to desktop number and filter all windows that 
+   are overlaped by the given one except if filter-overlap-p is NIL. Returns a
+   list of rectangles that represent all the founded windows."
   (with-slots (window master) application
     (multiple-value-bind (xx yy ww hh) 
 	(window-geometry (if master (widget-window master) window))
@@ -159,8 +159,8 @@
 			    :predicate #'predicate :skip-taskbar nil))))))
 
 (defun find-all-panel-rectangles (scr-num &key (predicate #'window-panel-p))
-  "Get all panel type window on this virtual desktop. Return a list of
-  rectangles representing all the founded windows."
+  "Gets all panel type window on this virtual desktop. Return a list of
+   rectangles representing all the founded windows."
   (mapcar
       (lambda (win)
 	(multiple-value-bind (l r to b lsy ley rsy rey tsx tex bsx bex)
@@ -181,7 +181,7 @@
       (screen-content scr-num :predicate predicate)))
 
 (defun window-panel-p (window scr-num iconify-p &rest options)
-  "Return true if window is a panel (in the sens of Gnome/KDE panel)."
+  "Returns true if window is a panel (in the sens of Gnome/KDE panel)."
   (declare (ignorable options))
   (when (lookup-widget window)
     (let ((n (or (window-desktop-num window) -1))
@@ -198,17 +198,17 @@
 (defun find-largest-empty-area (application &key area-include-me-p
 				                 (panels-only-p t) direction
 				                 (filter-overlap-p t))
-  "Return as a multiple values the coordinates of the largest empty area on
-  the desktop of the application and a bolean indicating that such area exists.
-  - If :area-include-me-p is T then the searched area WILL contain the
-   application (default is NIL).
-  - If :panels-only-p is T (the default), the research will not includes any
-   other windows of the desktop. Otherwise all mapped windows on the desktop
-   will be taken in account.
-  - If :filter-overlap-p is T (the default) then overlapped applications will
-   be ignored as obstacles. Otherwise They will be kept as obstacles. 
-  - :direction (or :vertical :horizontal :both) to indicate wat kind of 
-   region the search should be looking for."
+  "Returns as a multiple values the coordinates of the largest empty area on
+   the desktop of the application and a bolean indicating that such area exists.
+   - If :area-include-me-p is T then the searched area WILL contain the
+     application (default is NIL).
+   - If :panels-only-p is T (the default), the research will not includes any
+     other windows of the desktop. Otherwise all mapped windows on the desktop
+     will be taken in account.
+   - If :filter-overlap-p is T (the default) then overlapped applications will
+     be ignored as obstacles. Otherwise They will be kept as obstacles. 
+   - :direction (or :vertical :horizontal :both) to indicate wat kind of 
+     region the search should be looking for."
   (with-slots (window (m master)) application
     (multiple-value-bind (w h) (drawable-sizes (xlib:drawable-root window))
       (let ((app-rect (window->rectangle (if m (widget-window m) window)))
