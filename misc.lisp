@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.27 2004/03/04 20:15:16 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.28 2004/03/09 19:26:27 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -40,6 +40,8 @@
 
 (defmacro screen-height ()
   `(xlib:screen-height (xlib:display-default-screen *display*)))
+
+(defmacro current-desk () `(current-vscreen *root-window*))
 
 (defmacro id->atom-name (id)
   `(xlib:atom-name *display* ,id))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.19 2004/02/12 23:30:22 ihatchondo Exp $
+;;; $Id: virtual-screen.lisp,v 1.20 2004/03/08 23:40:34 ihatchondo Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -56,8 +56,6 @@
 		    (funcall fun window))))))))
 
 ;;;; Public
-
-(defmacro current-desk () `(current-vscreen *root-window*))
 
 (defun current-vscreen (win)
   "Get the current virtual screen index. The window parameter must be
