@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.11 2003/12/04 11:15:40 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.12 2004/01/19 16:13:14 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -227,7 +227,7 @@ In order to use it, you should first call intern-atoms to be sure all
 
 (defun net-workarea (window)
   "Returns a vector of the workareas geometry: [x y width height]* ."
-  (first (get-property window :_NET_WORKAREA :result-type 'vector)))
+  (get-property window :_NET_WORKAREA :result-type 'vector))
 
 (defsetf net-workarea
     (window &key (mode :replace) (start 0) end) (workareas)
