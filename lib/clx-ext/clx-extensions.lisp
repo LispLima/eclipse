@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: clx-extensions.lisp,v 1.9 2004/03/08 23:37:15 ihatchondo Exp $
+;;; $Id: clx-extensions.lisp,v 1.10 2005/01/15 12:27:00 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -131,9 +131,11 @@
 	       (setf screen-num
 		     (parse-integer string :start (1+ dot) :end dot-2))))))
     (if (or (equal host-name "unix") (equal host-name ""))
-	(multiple-value-setq (auth-name auth-data)
-	  (xlib::get-best-authorization (machine-instance) dpy-num protocol))
-	(setf protocol :internet))
+	(multiple-value-setq (host-name protocol)
+	  (values (machine-instance) :unix))
+	(setf protocol :tcp))
+    (multiple-value-setq (auth-name auth-data)
+      (xlib::get-best-authorization (machine-instance) dpy-num protocol))
     (let ((display (xlib:open-display host-name
 		       :display dpy-num
 		       :protocol protocol
