@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: $
+;;; $Id: gestures.lisp,v 1.1 2002/11/07 14:54:26 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -22,12 +22,134 @@
 
 (in-package :ECLIPSE-INTERNALS)
 
-(defvar *keystrock-table* (make-hash-table :test #'equal))
+(defvar *keystroke-map* (make-hash-table :test #'equal))
+(defvar *mouse-stroke-map* (make-hash-table :test #'equal))
+(defvar *registered-keycodes* (make-array 256 :element-type 'bit))
+(defvar *keystrokes* (make-hash-table :test #'eq))
+(defvar *mousestrokes* (make-hash-table :test #'eq))
+
+(defun lookup-keystroke (code state)
+  (gethash (cons code state) *keystroke-map*))
+
+(defun lookup-mouse-stroke (button state)
+  (gethash (cons button state) *mouse-stroke-map*))
+
+(defun keycode-registered-p (keycode &optional (count 1))
+  (loop for i from keycode below (+ keycode count)
+	when (aref *registered-keycodes* keycode) do (return t)))
+
+(defun unregister-all-keystrokes ()
+  (xlib:ungrab-key *root-window* :any :modifiers #x8000)
+  (setf *registered-keycodes* (make-array 256 :element-type 'bit))
+  (clrhash *keystroke-map*))
+
+(defun register-all-keystrokes ()
+  (loop for keystroke being each hash-value in *keystrokes*
+	do (define-combo-internal keystroke *root-window*)))
+
+(defun unregister-all-mouse-strokes ()
+  (xlib:ungrab-button *root-window* :any :modifiers #x8000)
+  (clrhash *mouse-stroke-map*))
+
+(defun register-all-mouse-strokes ()
+  (loop for mouse-stroke being each hash-value in *mousestrokes*
+	do (define-combo-internal mouse-stroke *root-window* :mouse-p t)))
+    
+;;;; stroke
+
+(defclass stroke ()
+  ((name 
+     :initarg :name 
+     :reader stroke-name)
+   (default-modifiers-p 
+     :initarg :default-modifiers-p
+     :reader default-modifiers-p)
+   (modifiers
+     :initarg :modifiers 
+     :reader stroke-modifiers)
+   (action
+     :initarg :action
+     :reader stroke-action)))
+
+(defgeneric stroke-keys (stroke))
+(defgeneric stroke-equal (s1 s2))
+
+(defmethod stroke-equal (s1 s2)
+  (declare (ignorable s1 s2))
+  nil)
+
+(defmethod stroke-equal :around ((s1 stroke) (s2 stroke))
+  (with-slots (name1 default-modifiers-p1 modifiers1) s1
+    (with-slots (name2 default-modifiers-p2 modifiers2) s2
+      (and (eq name1 name2)
+	   (and default-modifiers-p1 default-modifiers-p2)
+	   (equal modifiers1 modifiers2)
+	   (if (next-method-p) (call-next-method) t)))))
+
+;;;; keystroke
+
+(defclass keystroke (stroke)
+  ((keysyms :initarg :keysyms :reader keystroke-keysyms)))
+
+(defun make-keystroke (name key-name-set modifiers default-modifiers-p action)
+  (make-instance 'keystroke
+    :name name
+    :keysyms (mapcar #'kb:keyname->keysym key-name-set)
+    :default-modifiers-p default-modifiers-p
+    :modifiers modifiers
+    :action action))
+
+(defun keystroke-p (stroke)
+  (typep stroke 'keystroke))
+
+(defmethod stroke-keys ((stroke keystroke))
+  (loop for k in (keystroke-keysyms stroke)
+	append (multiple-value-list (xlib:keysym->keycodes *display* k))))
+
+(defmethod stroke-equal ((s1 keystroke) (s2 keystroke))
+  (equal (slot-value s1 'keysyms)  (slot-value s2 'keysyms)))
+  
+;;;; mouse stroke
+
+(defclass mouse-stroke (stroke)
+  ((button :initarg :button :reader mouse-stroke-button)))
+
+(defun make-mouse-stroke (name button modifiers default-modifiers-p action)
+  (unless (or (numberp button) (eq :any button)) 
+    (error (format nil "wrong button type: ~A~%" (type-of button))))
+  (make-instance 'mouse-stroke
+    :name name
+    :button (list button)
+    :default-modifiers-p default-modifiers-p
+    :modifiers modifiers
+    :action action))
+
+(defun mouse-stroke-p (stroke)
+  (typep stroke 'mouse-stroke))
+
+(defmethod stroke-keys ((stroke mouse-stroke))
+  (mouse-stroke-button stroke))
+
+(defmethod stroke-equal ((s1 mouse-stroke) (s2 mouse-stroke))
+  (= (car (slot-value s1 'button)) (car (slot-value s2 'button))))
+
+;;;;
+
+(defun translate-modifiers (modifiers)
+  (cond ((keywordp modifiers) 
+	 (list (kb:modifier->modifier-mask modifiers)))
+	((numberp modifiers) 
+	 (list modifiers))
+	((eq (car modifiers) :and)
+	 (list (loop for mod in (cdr modifiers)
+		     sum (kb:modifier->modifier-mask mod))))
+	(t (mapcar #'kb:modifier->modifier-mask modifiers))))
 
 (defmacro action ((&rest f1) (&rest f2))
   (when (or (eq (car f1) :release) (eq (car f2) :press)) (rotatef f1 f2))
   `(lambda (event)
      (typecase event
+       (button-press ,@(cdr f1))
        (key-press ,@(cdr f1))
        (key-release ,@(cdr f2)))))
 
@@ -49,21 +171,84 @@
       (:right-click #'(lambda (event) (perform-click 3 event)))
       (:scroll-up #'(lambda (event) (perform-click 4 event)))
       (:scroll-down #'(lambda (event) (perform-click 5 event)))
+      (:move-window 
+       #'(lambda (event)
+	   (mouse-stroke-for-move-and-resize event :action :move)))
+      (:resize-window 
+       #'(lambda (event)
+	   (mouse-stroke-for-move-and-resize event :action :resize)))
       )))
 
-(defmacro realize-keystroke (key mask action-keyword &optional lambda)
+(defmacro unrealize ((window &key mouse-p) code mask)
   `(progn
-     (setf (gethash (cons ,key ,mask) *keystrock-table*)
-	   (or ,lambda (action-key->lambda ,action-keyword)))
-     (xlib:grab-key *root-window* ,key :modifiers ,mask :owner-p nil)))
+     ,@(if mouse-p
+	   `((remhash (cons ,code ,mask) *mouse-stroke-map*)
+	     (xlib:ungrab-button ,window ,code :modifiers ,mask))
+	   `((remhash (cons ,code ,mask) *keystroke-map*)
+	     (setf (aref *registered-keycodes* ,code) 0)
+	     (xlib:ungrab-key ,window ,code :modifiers ,mask)))))
 
-;;;  - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
-;;;  - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
-;;;  - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)
+(defmacro undefine-combo-internal (stroke dest-window &key mouse-p)
+  `(with-slots (name modifiers default-modifiers-p action) ,stroke
+     (remhash name ,(if mouse-p '*mousestrokes* '*keystrokes*))
+     (loop with num-l = (kb:modifier->modifier-mask :NUM-LOCK)
+	   with caps-l = (kb:modifier->modifier-mask :CAPS-LOCK)
+	   for mask in (translate-modifiers modifiers) do
+	   (loop for key in (stroke-keys ,stroke) do
+		 (unrealize (,dest-window :mouse-p ,mouse-p) key mask)
+		 (when (and default-modifiers-p (not (eql mask :any)))
+		   (when caps-l 
+		     (unrealize (,dest-window :mouse-p ,mouse-p)
+		       key (+ mask caps-l)))
+		   (when num-l 
+		     (unrealize (,dest-window :mouse-p ,mouse-p)
+		       key (+ mask num-l)))
+		   (when (and num-l caps-l)
+		     (unrealize (,dest-window :mouse-p ,mouse-p)
+		       key (+ mask num-l caps-l))))))))
+
+(defmacro realize ((window &key mouse-p) code mask action-keyword action)
+  `(progn
+     ,@(if mouse-p
+	   `((setf (gethash (cons ,code ,mask) *mouse-stroke-map*)
+		 (or ,action (action-key->lambda ,action-keyword)))
+	     (xlib:grab-button ,window
+			       ,code 
+			       '(:button-press) 
+			       :modifiers ,mask 
+			       :sync-pointer-p t))
+	   `((setf (gethash (cons ,code ,mask) *keystroke-map*)
+		   (or ,action (action-key->lambda ,action-keyword)))
+	     (setf (aref *registered-keycodes* ,code) 1)
+	     (xlib:grab-key ,window ,code :modifiers ,mask :owner-p nil)))))
+
+(defmacro define-combo-internal (stroke dest-window &key mouse-p)
+  `(with-slots (name modifiers default-modifiers-p action) ,stroke  
+     (loop with num-l = (kb:modifier->modifier-mask :NUM-LOCK)
+	   with caps-l = (kb:modifier->modifier-mask :CAPS-LOCK)
+	   for mask in (translate-modifiers modifiers) do
+	   (loop for key in (stroke-keys ,stroke) do
+		 (realize (,dest-window :mouse-p ,mouse-p)
+		   key mask name action)
+		 (when (and default-modifiers-p (not (eql mask :any)))
+		   (when caps-l 
+		     (realize (,dest-window :mouse-p ,mouse-p)
+		       key (+ mask caps-l) name action ))
+		   (when num-l 
+		     (realize (,dest-window :mouse-p ,mouse-p)
+		       key (+ mask num-l) name action))
+		   (when (and num-l caps-l)
+		     (realize (,dest-window :mouse-p ,mouse-p)
+		       key (+ mask num-l caps-l) name action)))))))
+
 (defun define-key-combo (name &key keys
 			          (default-modifiers-p t)
 				  (modifiers :any)
 				  fun)
+;;; modifiers can be:
+;;;  - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
+;;;  - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
+;;;  - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)
   (catch 'keystroke-definition
     (handler-bind
         ((error #'(lambda (condition)
@@ -71,29 +256,33 @@
 		    (format t "Can't realize key-combo ~A~%" name)
 		    (format t " modifiers : ~A~% key : ~A~%" modifiers keys)
 		    (throw 'keystroke-definition nil))))
-      (define-combo-internal name keys default-modifiers-p modifiers fun))))
+      (let ((ks (make-keystroke name keys modifiers default-modifiers-p fun)))
+	(when (stroke-equal ks (gethash name *keystrokes*))
+	  (undefine-combo-internal ks *root-window*))
+	(define-combo-internal ks *root-window*)
+	(setf (gethash name *keystrokes*) ks)))))
 
-(defun define-combo-internal (name keys default-modifiers-p modifiers fun)
-  (setf keys (loop for k in keys append
-		   (multiple-value-list (kb:keyname->keycodes *display* k))))
-  (cond ((keywordp modifiers)
-	 (setf modifiers (list (kb:modifier->modifier-mask modifiers))))
-	((numberp modifiers) (setf modifiers (list modifiers)))
-	((eq (car modifiers) :and)
-	 (loop for mod in (cdr modifiers)
-	       sum (kb:modifier->modifier-mask mod) into mod-mask
-	       finally (setf modifiers (list mod-mask))))
-	(t (map-into modifiers #'kb:modifier->modifier-mask modifiers)))
-  (loop with num-l = (kb:modifier->modifier-mask :NUM-LOCK)
-	with caps-l = (kb:modifier->modifier-mask :CAPS-LOCK)
-	for mask in modifiers do
-	(loop for key in keys do
-	      (realize-keystroke key mask name fun)
-	      (when (and default-modifiers-p (not (eql mask :any)))
-		(and caps-l (realize-keystroke key (+ mask caps-l) name fun))
-		(and num-l (realize-keystroke key (+ mask num-l) name fun))
-		(when (and num-l caps-l)
-		  (realize-keystroke key (+ mask num-l caps-l) name fun))))))
+(defun define-mouse-combo (name &key button
+				     (default-modifiers-p t)
+				     (modifiers :any)
+				     fun)
+;;; modifiers can be:
+;;;  - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
+;;;  - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
+;;;  - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)
+  (catch 'mouse-stroke-definition
+    (handler-bind
+        ((error #'(lambda (condition)
+		    (declare (ignorable condition))
+		    (format t "Can't realize mouse-combo ~A~%" name)
+		    (format t " modifiers : ~A~% key : ~A~%" modifiers button)
+		    (throw 'mouse-stroke-definition nil))))
+      (let ((ms (make-mouse-stroke 
+		    name button modifiers default-modifiers-p fun)))
+	(when (stroke-equal ms (gethash name *mousestrokes*))
+	  (undefine-combo-internal ms *root-window*) :mouse-p t)
+	(define-combo-internal ms *root-window* :mouse-p t)
+	(setf (gethash name *mousestrokes*) ms)))))
 
 ;;; Cursor movements, and click.
 
@@ -115,3 +304,12 @@
 			     :root root :child child
 			     :state nil :code buton-number
 			     :same-screen-p ssp :time (event-time ev)))))
+
+(defun mouse-stroke-for-move-and-resize (event &key action)
+  (let ((widget (lookup-widget (event-child event))))
+    (unless (decoration-p widget)
+      (return-from mouse-stroke-for-move-and-resize nil))
+    (xlib:grab-pointer (event-child event) +pointer-event-mask+)
+    (menu-3-process event widget :key action)
+    (funcall (define-menu-3 action))
+    (focus-widget widget 0)))
