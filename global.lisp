@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.12 2003/10/06 17:57:26 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.13 2003/10/09 11:36:18 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -35,7 +35,12 @@
 (defconstant +netwm-protocol+
   '(:_net_client_list :_net_client_list_stacking :_net_number_of_desktops
     :_net_current_desktop :_net_active_window :_net_close_window :_net_wm_state
-    :_net_wm_desktop :_net_wm_window_type :_net_desktop_names
+    :_net_wm_desktop :_net_wm_window_type :_net_desktop_names :_net_wm_strut
+    :_net_wm_strut_partial
+    :_net_wm_window_type_desktop :_net_wm_window_type_dock
+    :_net_wm_window_type_toolbar :_net_wm_window_type_menu
+    :_net_wm_window_type_utility :_net_wm_window_type_splash
+    :_net_wm_window_type_dialog :_net_wm_window_type_normal
     :_net_wm_state_maximized_horz :_net_wm_state_maximized_vert
     :_net_wm_state_skip_taskbar :_net_wm_state_skip_pager :_net_wm_state_shaded
     :_net_wm_state_sticky :_net_wm_state_fullscreen :_net_wm_state_hidden
@@ -74,7 +79,9 @@
 (defparameter *focus-type* :none "values are: :none :on-click")
 (defparameter *font-name* 
   "-misc-fixed-medium-r-normal--14-110-100-100-c-70-iso8859-1")
-
+(defparameter *maximize-fill* nil
+ "Indicate if the action of maximizing window should making it filling whether
+ the largest area around (excluding overlapped windows) or screen area.")
 (defparameter *icon-hints* t
   "if you don't want eclipse to display miniature window for icons say nil")
 (defparameter *icon-box* '#(-75 5 -5 -5)
