@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-request.lisp,v 1.5 2004/03/16 16:56:54 ihatchondo Exp $
+;;; $Id: ICE-request.lisp,v 1.6 2004/03/17 13:38:12 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -306,7 +306,7 @@
 	 (class (buffer-read-card16 byte-order buff index))
 	 (err (decode-request (decode-error class) ice-conn buff byte-order))
 	 (severity (request-error-severity err)))
-    (declare (type error-handler))
+    (declare (type error-handler handler))
     (declare (type card16 class))
     ;; Close the connection if one this condition is satisfied (cf: ICE 6.1):
     ;;   severity is :fatal-to-connection.
