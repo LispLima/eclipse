@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.36 2004/03/08 23:40:33 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.37 2004/03/09 19:26:27 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -72,7 +72,7 @@
 	  (give-focus-to-next-widget-in-desktop) 
 	  (multiple-value-bind (x y s child) (xlib:query-pointer *root-window*)
 	    (declare (ignore x y s))
-	    (let ((e (make-event :enter-notify :kind :inferior :mode :normal)))
+	    (let ((e (make-event :enter-notify :kind :nonlinear :mode :normal)))
 	      (event-process e (or (lookup-widget child) *root*))))))))
 
 ;; Specialized ones.
