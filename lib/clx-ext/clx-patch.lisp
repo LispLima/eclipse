@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp -*-
-;;; $Id: clx-patch.lisp,v 1.2 2003/06/11 18:29:23 hatchond Exp $
+;;; $Id: clx-patch.lisp,v 1.3 2003/08/28 14:44:40 hatchond Exp $
 ;;;
 ;;; This file contains the patch fixing a bug in CLX as distributed
 ;;; with vanilla CMUCL versions up to 18d.
@@ -51,3 +51,35 @@ Indeed O or 1 are inappropriated ID's.
 	  (t (xlib::lookup-window display id))))
       (xlib::member8-get 1 :none :pointer-root :parent))))
 
+;; It seems that sometimes some id are still present in the clx display
+;; internal cache even when those resources have been destroyed. This has
+;; for effect that when the X server reallocate this id to a resource of
+;; another type than the previous one it provokes some internal error inside
+;; CLX. This patch correct this strange behavior. I know this not very 
+;; satisfying but I can't see another solution at the present time.
+
+(defun lookup-window (display id)
+   (declare (type display display) (type resource-id id))
+   (declare (clx-values window))
+   (let ((window (lookup-resource-id display id)))
+     (cond
+      ((null window) (setq window (make-window :display display :id id))
+       (save-id display id window))
+      ((not (window-p window))
+       (deallocate-resource-id-internal display id)
+       (setq window (make-window :display display :id id))
+       (save-id display id window))
+      (t window))))
+
+ (defun lookup-pixmap (display id)
+   (declare (type display display) (type resource-id id))
+   (declare (clx-values pixmap))
+   (let ((pixmap (lookup-resource-id display id)))
+     (cond
+      ((null pixmap) (setq pixmap (make-pixmap :display display :id id))
+       (save-id display id pixmap))
+      ((not (pixmap-p pixmap))
+       (deallocate-resource-id-internal display id)
+       (setq pixmap (make-pixmap :display display :id id))
+       (save-id display id pixmap))
+      (t pixmap))))
