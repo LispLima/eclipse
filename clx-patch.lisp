@@ -1,3 +1,9 @@
+;;; -*- Mode: Lisp -*-
+;;; $Id$
+;;;
+;;; This file contains the patch fixing a bug in CLX as distributed
+;;; with vanilla CMUCL versions up to 18d.
+
 (xlib:declare-event :configure-request
   ((xlib::data (xlib::member8 :above :below :top-if :bottom-if :opposite))
    stack-mode)
