@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-buffer.lisp,v 1.1 2004/01/12 11:10:51 ihatchondo Exp $
+;;; $Id: ICE-buffer.lisp,v 1.2 2004/03/05 16:18:27 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -73,7 +73,7 @@
 	       do (setf (aref v i) (,',read ,byte-order ,buffer ,index))
                finally (return v)))
        ((array byte-order buffer index)
-	`(loop for elem across ,array
+	`(loop for elem across (the ,',type ,array)
 	       do (,',write elem ,byte-order ,buffer ,index))))))
 
 ;;;; buffer-{read,write}-<type> macros.
@@ -169,6 +169,7 @@
      `(multiple-value-bind (,bo ,buff ,ver)
           (values ,byte-order ,buffer ,version)
         (declare (type buffer ,buff))
+        (declare (type version ,ver))
         (buffer-write-card16 (aref ,ver 0) ,bo ,buff ,index)
         (buffer-write-card16 (aref ,ver 1) ,bo ,buff ,index)))))
 
@@ -189,7 +190,7 @@
         (declare (type buffer ,buff))
         (let ((,length (length ,s)))
 	  (buffer-write-card16 ,length ,bo ,buff ,index)
-	  (buffer-write-data (map 'vector #'char-code ,s) ,bo ,buff ,index)
+	  (buffer-write-data (map 'data #'char-code ,s) ,bo ,buff ,index)
 	  (incf ,index (pad-length (+ 2 ,length) 4)))))))
 
 ;; sequence type.
@@ -200,9 +201,9 @@
 
 ;;;; special readers.
 
-(defmacro read-minor-opcode (buffer) `(aref ,buffer 1))
+(defmacro read-minor-opcode (buffer) `(aref (the buffer ,buffer) 1))
 
-(defmacro read-major-opcode (buffer) `(aref ,buffer 0))
+(defmacro read-major-opcode (buffer) `(aref (the buffer ,buffer) 0))
 
 ;;;;
 

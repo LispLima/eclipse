@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id:$
+;;; $Id: ICE-auth.lisp,v 1.1 2004/01/12 11:10:51 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -31,6 +31,7 @@
 
 (defun parse-ICEauthority-file (file-pathname &key filter)
   "returns the list of entries contained in an ICEauthority file."
+  (declare (type (or null function) filter))
   (let ((index 0) buff)
     (with-open-file (fs file-pathname :element-type '(unsigned-byte 8))
       (setf buff (make-array (file-length fs) :element-type '(unsigned-byte 8)))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id:$
+;;; $Id: ICE.lisp,v 1.1 2004/01/12 11:10:51 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -43,7 +43,9 @@
 
 (defun decode-ice-minor-opcode (index &optional (protocol-opcode 0))
   (declare (type card8 index))
-  (aref (aref *ice-minor-opcodes* protocol-opcode) index))
+  (aref (the (simple-array keyword (*))
+	  (svref *ice-minor-opcodes* protocol-opcode)) 
+	index))
   
 (defun encode-ice-minor-opcode (opcode-key)
   (declare (type keyword opcode-key))
@@ -82,10 +84,14 @@
 (deftype ice-byte-order () `(member :LSBFirst :MSBFirst))
 (deftype error-severity ()
   `(member :can-continue :fatal-to-protocol :fatal-to-connection))
-(deftype data () `(or null (simple-array card8 (*))))
+(deftype data () `(simple-array card8 (*)))
 (deftype version () `(simple-array card16 (2)))
 (deftype versions () `(simple-array version (*)))
 (deftype strings () `(or null (simple-array simple-string (*))))
+
+;; 
+         
+(deftype error-handler () `(or null function))
 
 ;; type length computation functions.
 

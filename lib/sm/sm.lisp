@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: SM-LIB; -*-
-;;; $Id: sm.lisp,v 1.3 2004/03/02 19:14:26 ihatchondo Exp $
+;;; $Id: sm.lisp,v 1.4 2004/03/05 16:18:28 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -143,7 +143,7 @@
    `(map 'string #'code-char (buffer-read-array8 ,byte-order ,buffer ,index)))
   ((string byte-order buffer index)
    `(buffer-write-array8
-     (map 'vector #'char-code ,string) ,byte-order ,buffer ,index)))
+     (map 'array8 #'char-code ,string) ,byte-order ,buffer ,index)))
 
 (define-sequence-accessor strings string)
 
@@ -321,10 +321,10 @@
      :initform nil :initarg :sm-vendor :type string
      :accessor sm-vendor)
    (sm-protocol-version
-     :initform nil :initarg :sm-protocol-version
+     :initform nil :initarg :sm-protocol-version :type card16
      :accessor sm-protocol-version)
    (sm-protocol-revision
-     :initform nil :initarg :sm-protocol-revision
+     :initform nil :initarg :sm-protocol-revision :type card16
      :accessor sm-protocol-revision)))
 
 (defun register-xsmp-protocol (opcode)
@@ -390,6 +390,8 @@
 	    "XSMP" (ice-connection-string sm-conn) (ice-auth-proto-names)))
 	  (versions (make-default-versions 
 		        :major +sm-proto-major+ :minor +sm-proto-minor+)))
+      (declare (type (simple-array string (*)) protocols))
+      (declare (type versions versions))
       (post-request :protocol-setup sm-conn
 		    :protocol-name "XSMP"
 		    :protocol-major-opcode +sm-proto-major+
@@ -404,8 +406,9 @@
       (setf (ice-error-handler sm-conn) (lambda (x) x))
       (request-case (sm-conn :timeout nil :place request :ice-flush-p nil)
 	(authentication-required ((index authentication-protocol-index))
-	  (let ((name (aref protocols index)))
-	    (funcall (get-protocol-handler name) sm-conn request))
+	  (let ((handler (get-protocol-handler (aref protocols index))))
+	    (declare (type function handler))
+	    (funcall handler sm-conn request))
 	  (values))
 	(protocol-reply (protocol-major-opcode vendor-name release-name)
 	  ;; internally register the protocol.
@@ -416,6 +419,7 @@
 	  ;; collect some connection infos.
 	  (with-slots (version-index) request
 	    (let ((version (aref versions version-index)))
+	      (declare (type version version))
 	      (setf (sm-protocol-version sm-conn) (aref version 0))
 	      (setf (sm-protocol-revision sm-conn) (aref version 1))))
 	  (setf (sm-release sm-conn) release-name)

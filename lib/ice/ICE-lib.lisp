@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-lib.lisp,v 1.1 2004/01/12 11:10:51 ihatchondo Exp $
+;;; $Id: ICE-lib.lisp,v 1.2 2004/03/02 19:14:26 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -22,37 +22,42 @@
 
 (defclass ice-connection () 
   ((input-buffer 
-    :initform nil :initarg :input-buffer
+    :initform nil :initarg :input-buffer :type buffer
     :accessor connection-input-buffer)
    (output-buffer
-    :initform nil :initarg :output-buffer
+    :initform nil :initarg :output-buffer :type buffer
     :accessor connection-output-buffer)
    (input-byte-order
-    :initform :MSBFirst
+    :initform :MSBFirst :type ice-byte-order
     :accessor connection-input-byte-order)
    (output-byte-order
-    :initform :MSBFirst
+    :initform :MSBFirst :type ice-byte-order
     :accessor connection-output-byte-order)
    (ice-vendor
-     :initform nil :initarg :ice-vendor
+     :initform nil :initarg :ice-vendor :type string
      :accessor ice-vendor)
    (ice-release
-     :initform nil :initarg :ice-release
+     :initform nil :initarg :ice-release :type string
      :accessor ice-release)
    (connection-string 
-     :initarg :connection-string
+     :initarg :connection-string :type string
      :accessor ice-connection-string)
    (protocol-version
-     :initform nil :initarg :protocol-version
+     :initform nil :initarg :protocol-version :type card16
      :accessor ice-protocol-version)
    (protocol-revision
-     :initform nil :initarg :protocol-revision
+     :initform nil :initarg :protocol-revision :type card16
      :accessor ice-protocol-revision)
    (error-handler
      :initform #'signal-request-error :initarg :error-handler
+     :type error-handler
      :accessor ice-error-handler)
-   (stream :initform nil :initarg :stream :accessor connection-stream)
+   (stream 
+     :initform nil :initarg :stream :type stream
+     :accessor connection-stream)
    ))
+
+(deftype handlers () '(simple-array (simple-array (or null function) (*)) (*)))
 
 (defgeneric ice-flush (ice-connection)
   (:documentation "attempts to ensure that any buffered output sent
@@ -80,6 +85,7 @@
 
 (defmethod last-sended-message ((conn ice-connection))
   (with-slots (output-buffer output-byte-order) conn
+    (declare (type buffer output-buffer))
     (decode-request
      (decode-ice-minor-opcode 
       (read-minor-opcode output-buffer)
@@ -88,6 +94,7 @@
 
 (defmethod last-received-message ((conn ice-connection))
   (with-slots (input-buffer input-byte-order) conn
+    (declare (type buffer input-buffer))
     (decode-request
      (decode-ice-minor-opcode 
       (read-minor-opcode input-buffer)
@@ -96,10 +103,12 @@
 
 (defmethod read-request ((ice-connection ice-connection))
   (with-slots (input-buffer input-byte-order stream) ice-connection
-    (setf input-buffer (make-array 4096 :element-type 'card8))
+    (declare (type (or null buffer) input-buffer))
+    (setf input-buffer (make-buffer 4096))
     (read-sequence input-buffer stream :start 0 :end 8)
     (let* ((index 4)
 	   (length (buffer-read-card32 input-byte-order input-buffer index)))
+      (declare (type fixnum index length))
       (read-sequence input-buffer stream :start 8 :end (* 8 (1+ length))))
     (decode-request
        (decode-ice-minor-opcode 
@@ -130,7 +139,7 @@
   of ice-connection) and request (an instance of request)."
   (declare (type ice-connection ice-connection))
   (declare (type (or null fixnum) timeout))
-  (declare (type (or null array function) handler))
+  (declare (type (or null handlers function) handler))
   (declare (type boolean ice-flush-p))
   (loop with request = nil with return = nil with rhandler = handler do
 	(when ice-flush-p (ice-flush ice-connection))
@@ -246,6 +255,8 @@
 	   (available-authentication-protocols
 	    "ICE" chosen-network-id (ice-auth-proto-names)))
 	  (versions (make-default-versions)))
+      (declare (type (simple-array string (*)) protocols))
+      (declare (type versions versions))
       (post-request :connection-setup connection
 		    :number-of-versions-offered (length versions)
 		    :must-authenticate-p must-authenticate-p
@@ -257,8 +268,9 @@
 		    (length protocols))
       (request-case (connection :timeout nil :place request)
 	(authentication-required ((index authentication-protocol-index))
-	  (let ((name (aref protocols index)))
-	    (funcall (get-protocol-handler name) connection request))
+	  (let ((handler (get-protocol-handler (aref protocols index))))
+	    (declare (type function handler))
+	    (funcall handler connection request))
 	  (values))
 	(connection-reply (vendor-name release-name version-index)
 	  (let ((version (aref versions version-index)))
@@ -286,6 +298,7 @@
     tcp/<HOST-NAME>:<PORT-NUMBER>
     decnet/<HOST-NAME>::<OBJ>
   If none of those format is founded an error will be signaled."  
+  (declare (type string network-id))
   (let* ((slash (or (position #\/ network-id :test #'char=) 0))
 	 (colon (or (position #\: network-id :test #'char= :start slash) 0)))
     (cond ((= 0 slash) (error "ICE: Badly formed network-id: no type present."))
@@ -300,7 +313,7 @@
 	    ((string= type "decnet")
 	     (setf type :decnet)
 	     ;; a second colon should be present.
-	     (if (= 0 (position #\: obj :test #'char=))
+	     (if (= 0 (or (position #\: (the string obj) :test #'char=) -1))
 		 (setf obj (subseq obj 1))
 	         (error "ICE: Invalid decnet network-id with one colon.")))
 	    (t (error "ICE: type is not (or \"local\" \"tcp\" \"decnet\").")))
@@ -326,6 +339,7 @@
     (&key (major +ice-proto-major+) (minor +ice-proto-minor+))
   (declare (type card16 major minor))
   (let ((versions (make-versions 1)))
+    (declare (type versions versions))
     (setf (aref versions 0) (make-version major minor))
     versions))
 

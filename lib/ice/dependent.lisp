@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: dependent.lisp,v 1.1 2004/01/12 11:10:51 ihatchondo Exp $
+;;; $Id: dependent.lisp,v 1.2 2004/03/04 14:51:06 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -58,7 +58,7 @@
 (defun connect-to-local-peer (host path &key (kind :stream) (bin t))
   "connect to a local unix socket designed by the pathname and returns a 
   two way stream associated with."
-  (declare (type simple-string host path) #-(or cmu sbcl) (ignore kind))
+  (declare (type simple-string host path) #-cmu (ignore kind))
   (declare (ignorable host))
   #+allegro (socket:make-socket :type :stream
                                 :address-family :file
