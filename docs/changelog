@@ -1,0 +1,44 @@
+0.01 => 0.02
+
+     Eclipse should now compile on every ANSI-compliant Common Lisp
+     implementation.  This release actually looks quite usable.
+
+     - sticky corrected.
+     - window cycling corrected.
+     - focus management is ICCCM complient. (thanks to Matthias Clasen)
+     - pointer freezing corrections.
+     - unexpected events during resize corrected.
+     - unexpected events during move partially corrected.
+     
+     - gnome extended wm spec implemented and support added.
+     - workspace names added.
+     - button behavior changed : they are now "push buttons".
+     - iconified windows now appears in the running menu like this: [ emacs ]
+     - added some forgotten WITH-STANDARD-IO-SYNTAX. (thanks to Eric Marsden)
+     - a mouse click in an application now puts it on top.
+     - users can now define their own keystrokes. (see the man section)
+
+     - complete change of keyboard handling. It works now without the 
+       cmucl-hemlocks part. (thanks to Gilbert Bauman)
+     - complete change of error-handling. (should work better)
+     
+     - some change in the autoconf script. Should now work correctly.
+     - corrections in some parts of man and README.
+       
+0.02 => pre 0.03 (for James A. CRIPPEN)
+
+     - bugs correction.
+     - some change on sticky. should be 100% correct.
+     - added X cursors.
+     - added more Extended WM Spec complience.
+     - update the gnome-manager.lisp (according to draft 1.2)
+       - added utf8<->string converters (maybe not 100% correct)
+       - all property that were suppose to be of type utf8 now are.
+     - change "second button" menu behavior concerning the sticky window.
+	They now apear in it.
+     - change the way to add or remove desktop:
+	now use (setf (number-of-virtual-screens) a-number)
+     - added a new file virtual-screen.lisp which contain a sort of 
+	generic implementation of the virtual-screen, and wm.lisp 
+	now contain a specialisation of this class, named:
+	eclipse-screens.

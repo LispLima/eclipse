@@ -1,0 +1,156 @@
+AC_INIT()
+
+SRC=`pwd`
+LISP=""
+CORE=""
+ARGS=""
+core_dest=""
+gnome_entry_dir=""
+interp=""
+
+# implementation dependant lisp system args : (default is for cmucl) 
+with_image="-core"
+load="-load"
+eval_form="-eval"
+save_lisp="save-lisp"
+
+# standard tests
+AC_SYS_INTERPRETER
+AC_PROG_INSTALL
+
+# assume that we can give argument to configure :
+# --with-lisp
+# --with-core
+# --with-gnome-entry-dir
+# --enable-compile-into-core
+
+AC_ARG_WITH(lisp,
+[  --with-lisp=DIR or FILE where to find your lisp system],
+LISP=$withval,
+[AC_PATH_PROG(LISP,lisp)])
+
+AC_ARG_WITH(core,
+[  --with-core=FILE        what is the core image to use],
+if test -n $withval -a -r $withval
+then CORE="${with_image} $withval"
+fi)
+
+AC_ARG_WITH(gnome_entry_dir,
+[  --with-gnome-entry-dir=[PATH]  path to the gnome WM entries directory.],
+gnome_entry_dir=$withval
+if test -z "${gnome_entry_dir}"
+then gnome_entry_dir=yes
+fi,
+gnome_entry_dir=yes)
+
+AC_ARG_ENABLE(compile-into-core,
+[  --enable-compile-into-core=[NAME] core file-name for compile destination],
+core_dest=$enableval)
+
+#
+# user gave a directory for the lisp system
+if test -n ${LISP} && test -d $LISP
+then LISP=`dirname $LISP/lisp`/lisp
+fi
+
+# no lisp system at all !!!
+if test ! -x ${LISP}
+then
+ AC_MSG_WARN([*** Cannot find a lisp system])
+ AC_MSG_ERROR([*** Maybe you want to use --with-lisp])
+fi
+
+#
+# extra check for gnome wm-properties directory.
+AC_CACHE_CHECK(checking for gnome wm-properties directory,
+clwm_cv_gnome_entry_dir,
+for dir in ${gnome_entry_dir} /usr/share/gnome /usr/local/share/gnome
+do 
+   if test $dir = no
+   then break
+   elif test -d $dir
+     then gnome_entry_dir=$dir; break
+     else gnome_entry_dir=no
+   fi
+done
+clwm_cv_gnome_entry_dir=${gnome_entry_dir})
+gnome_entry_dir=${clwm_cv_gnome_entry_dir}
+
+#
+# fix core image name destination if necessary.
+case "${core_dest}" in
+  yes) core_dest=eclipse-lisp.core ;;
+  no) ;;
+  "" | $) core_dest="no" ;;
+   *) ;;
+esac
+# and prepare the lisp arguments for the wm loader.
+if test ! ${core_dest} = no
+then
+ # put the absolute pathname of the core destination file.
+ if test `dirname ${core_dest}` = .
+ then core_dest=${SRC}/${core_dest}
+ fi
+ if test -d ${core_dest}
+ then core_dest=`dirname ${core_dest}`/`basename ${core_dest}`/eclipse-lisp.core
+ fi
+ ARGS="${with_image} ${core_dest} ${eval_form} \"(eclipse \${display_spec})\""
+else
+ ARGS="${CORE} ${load} ${SRC}/load-eclipse.lisp ${eval_form}\
+ \"(start \${display_spec})\""
+fi
+
+# set interp.
+if test $interpval = yes
+then interp="#!"
+else interp=""
+fi
+
+#
+# Final substitutions
+AC_SUBST(interp)   
+AC_SUBST(SHELL)
+AC_SUBST(LISP)
+AC_SUBST(CORE)
+AC_SUBST(SRC)
+AC_SUBST(ARGS)
+AC_SUBST(INSTALL)
+AC_SUBST(eval_form)
+AC_SUBST(with_image)
+AC_SUBST(load)
+AC_SUBST(save_lisp)
+AC_SUBST(core_dest)
+AC_SUBST(gnome_entry_dir)
+
+AC_OUTPUT([Makefile eclipse load-eclipse.lisp])
+
+if test ! ${gnome_entry_dir} = no
+then 
+     printf "creating Eclipse.desktop"
+     cat > Eclipse.desktop <<\EOF
+[[Desktop Entry]]
+Name=Eclipse
+Exec=eclipse
+TryExec=eclipse
+Terminal=false
+MultipleArgs=false
+
+[[Window Manager]]
+SessionManaged=false
+EOF
+
+fi
+
+#
+# Configuration report
+printf "\n\nConfiguration report\n"
+printf " - install prefix      : ${prefix}.\n"
+printf " - exec prefix         : ${exec_prefix}/bin.\n"
+printf " - lisp system found   : ${LISP}.\n"
+if test -n "${CORE}"
+then printf " - use specific image  : ${CORE}.\n"
+else printf " - use specific image  : no.\n"
+fi
+printf " - compile in an image : ${core_dest}\n"
+printf " - create gnome entry  : ${gnome_entry_dir}.\n"
+printf " - installer           : ${INSTALL}.\n"

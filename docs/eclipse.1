@@ -1,0 +1,434 @@
+.TH Eclipse 1 "(c) 2001 Iban HATCHONDO"
+
+
+.SH NAME
+eclipse - a window manager in Common Lisp
+
+
+.SH SYNOPSIS
+.B eclipse [ display specification ]
+
+
+.SH DESCRIPTION
+\fIeclipse\fP is a window manager for the X Window System. As a
+window manager it provides most standard window managing features,
+such as titlebar, icon management, keyboard shortcuts, and a powerful
+interaction mode.
+
+This program in usually started by the user's session manager or
+startup script. When used from \fIxdm(1)\fP or \fIxinit(1)\fP without
+a session manager, \fIeclipse\fP is frequently executed in the
+foreground as the last client. When run this way eclipse causes the
+session to be terminated. Otherwise the install adds a gnome entry in
+the window manager section. To use eclipse under a gnome-session, use
+the traditional way with the gnome-control-center (\fIgnomecc\fP).
+
+In most cases, application windows are surrounded by a "frame" with
+titlebar at the top and a special border around. The titlebar contains
+the name of the application window and some buttons near the right
+edge. Those buttons let you close, (un)maximize, and iconify the
+window (in order form the right-most to the left-most). 
+
+For the (un)maximization button, pressing pointer Button1 (usually the
+left-most button unless it has been changed with \fIxmodmap\fP)
+(un)maximizes the window in both directions (i.e., vertically and
+horizontally). Pressing pointer Button2 (middle one) (un)maximizes
+vertically, and of course pressing pointer Button3 (right-most)
+(un)maximizes horizontally.
+
+Windows are re-sized by pressing any pointer button on the window
+border, dragging the pointer over the edge that is to be moved, and
+releasing the pointer when desired. During this operation the window
+is represented as a 3x3 grid that shows you the future window
+geometry.
+Similarly, windows are moved by pressing any pointer button on the
+titlebar. Two "move-modes" are available : opaque or box (3x3 grid).
+
+When new windows are created, \fIeclipse\fP will honor any size and
+location information requested by the user (usually through the
+\fI-geometry\fP command line argument or resources for the individual
+applications). 
+
+Some predefined keyboard shortcuts also exist (that are user
+re-definable in the config file. See the keystroke section).
+
+.TP
+.B\-Alt-Tab\fP and \fBAlt-A\fP 
+circulate window up and down.
+.TP
+.B\-Ctrl-Leftarrow\fP and \fBCtrl-Rightarrow\fP 
+go to the previous or next workspace.
+.TP
+.B\-Ctrl-Alt-arrow\ 
+move the pointer up, down, right, or left, depending of the "arrow"
+key you pressed.
+.TP
+.B\-Ctrl-Alt-( z, w, x )\ 
+emulate button-press. Use \fBz\fP for button1 and so on with \fBw\fP
+\fBx\fP. This emulation does not work for re-sizing or moving windows,
+nor does it work on the root-window.
+
+
+.SH OPTIONS
+\fIeclipse\fP accepts one argument. This argument allows you to
+specify a particular display connection. To use this argument give it
+as the DISPLAY environment variable. Use eclipse gandalf:2.0 for example
+
+
+.SH MENUS
+\fIeclipse\fP also provides three pop-up menus when pressing pointer
+buttons on the root-window.
+
+\-button1\ : a customizable application menu, that permits you to
+lunch your favorite applications.
+
+\-button2\ : a recapitulation of the current running applications (if
+not iconified) sorted by workspace. Selecting any application is this
+menu will change the stacking order of that application to be on top
+of the others and will change your current desktop if necessary.
+
+\-button3\ : four functions for managing windows : move, re-size, close,
+destroy.
+
+
+.SH CUSTOMIZATION
+Two way of customizing \fIeclipse\fP exist.
+
+The first one is by using the configuration file named
+\fB$HOME/.eclipse\fP. If no local file can be found, \fIeclipse\fP will
+use the built-in default file that can be found in the install
+directory. \fBThis configuration file is written in Common
+Lisp\fP. Future improvements may add a graphical user interface for
+this file.
+
+The second way to customize the window manager is by using the
+\fBtelnet\fP server for it. (I guess it probably only works for CMUCL
+at this time). To use it, do a \fBtelnet\fP on \fBport 6789\fP. The
+password is \fB"clara"\fP (with the double quotes). I know there is a
+problem of security with the port number and the password, but it will
+be fixed in the future. 
+The telnet will drop you in a lisp remote session that share its
+environment with the Lisp session that is running the window
+manager. Of course your modification will not be saved at the end of
+the session, but you can \fBeasily\fP test some modifications that you
+want to add in your config file, change in the code, or that you want
+to send me for correcting bugs and/or add new features.
+
+.SH VARIABLES
+Here are some variables that can be changed (either in the config file
+or in the telnet session) :
+
+.TP
+.B\-*nb-vscreen*\ \fIinteger\fP 
+Indicate the number of virtual screens do you want.
+.TP
+.B\-*move-type*\ \fIkeyword\fP (or \fB:box :opaque\fP) 
+As usual :box will draw a 3x3 grid to show you the window move ;
+:opaque moves the window directly. (The box mode looks good on
+laptops).
+.TP
+.B\-*focus-type*\ \fIkeyword\fP (or \fB:none :on-click :when-switch\fP).
+
+ \fB:none\fP focus change when enter/exit a window.
+ \fB:on-click\fP focus change when click on a titlebar.
+ \fB:when-switch\fP focus change when circulating window.
+
+.TP
+.B\-*font-color*\ \fIxlib:color\fP
+Here is the default value (xlib:make-color :red 0.00 :green 0.00 :blue
+0.25) to change the font color of the titlebar.
+.TP
+.B\-*theme*\ \fIstring\fP
+Change the theme. There's only one theme available at the moment. In
+general, for a list of all the themes that come with \fIeclipse\fP,
+look in the directory called \fIthemes\fP. To use any one of those
+present in that directory: just set the \fB*theme*\fP to the directory
+name of the theme you want. ("microGUI" for example).
+But if the theme you want is not in the themes directory (because you
+created it). Set \fB*theme*\fP to the complete path-name directory
+("<$HOME>/tmp/my-new-theme").
+Also, note that if you change the theme during the execution, the older
+windows will not have their decorations changed. (I have to correct
+that too).
+.TP
+.B\-*change-desktop-message-active-p*\ \fIboolean\fP (or t nil) 
+If you want to be notified when the desktop changes this value should
+be \fIt\fP. In that case, a change will display a small window with
+the number of the new desktop. If the value is \fInil\fP, nothing will
+happen.
+
+
+.SH THEMES
+The theme part is not very sophisticated. The image file format is
+\fBpnm P6\fP.
+Here is a a decomposition of \fIeclipse\fP decorations :
+  ________________________________
+ |TL|        CENTER      I M C |TR|
+ |__|__________________________|__|
+ |  |                          |  |
+ |  |                          |  |
+ |  |                          |  |
+ |  |                          |  |
+ |L |                          |R |
+ |E |                          |I |
+ |F |                          |G |
+ |T |                          |H |
+ |  |                          |T |
+ |  |                          |  |
+ |  |                          |  |
+ |  |                          |  |
+ |  |                          |  |
+ |__|__________________________|__|
+ |BL|          BOTTOM          |BR|
+ |__|__________________________|__|
+
+
+Only the center, I (iconify button), M ((un)maximize button) and C
+(close button) are required. All the others are optional. Note that
+if LEFT is given, you should also provide RIGHT and vice versa.
+
+Concerning the highlighted parts, only the I, M, C buttons can be
+highlighted for the moment. This implies, that if you want to make
+a distinction between focused window and unfocused window, you should
+give two files for each buttons.
+.TP
+.B\-size requirements\ 
+TL height  = CENTER height = TR height
+.br
+LEFT width = RIGHT width
+.br
+BL height  = BOTTOM height = BR height
+.br
+I, M, C are square.
+
+.TP
+.B\-naming conventions\ 
+Here is the corresponding table between file names and decoration parts: 
+
+
+ part   |  file-name           |  required
+
+ TL        top_left.pnm           no
+ TR        top_right.pnm          no
+ BL        bottom_left.pnm        no
+ BR        bottom_right.pnm       no
+ CENTER    center.pnm             yes
+ BOTTOM    bottom.pnm             no
+ LEFT      left.pnm               no
+ RIGHT     right.pnm              no
+
+ I         iconify_normal.pnm     yes 
+           iconify_active.pnm     recommended
+
+ M         maximize_normal.pnm    yes
+           maximize_active.pnm    recommended
+
+ C         close_normal.pnm       yes
+           close_active.pnm       recommended
+
+If you do not respect the recommendations above, there is no
+guarantee of the resulting look and feel.
+
+.SH KEYSTROKES
+
+All customisations and definitions takes place in the config file.
+To define a keyboard shortcut, use the macro \fBdefine-key-combo\fP.
+
+\fBdefine-key-combo\fP keystroke-name \fB&key\fP key modifiers
+(default-modifiers-p t) fun 
+
+.TP
+.B\-keystroke-name\ \fIkeyword\fP 
+a keyword that names your keystroke.
+
+.TP
+.B\-keys\ \fIkeyword\fP \fIlist\fP
+a keyword list representing the keyboard key. (see \fIkeysymdef.lisp\fP)
+
+.TP
+.B\-modifiers\ \fIkeyword\fP \fIlist\fP
+a keyword list representing the keyword key, or a modifier-mask
+(unsigned-byte 8). If it is a list, it can be of two differents form:
+
+.in +2
+- '(:and :mod1 :mod2 ...)
+.br
+ to indicate a combination of modifiers.
+.br
+- '(:mo1 :mod2)
+.br
+ to indicate different possible modifiers.
+.in -2
+
+.br
+Use \fB0\fP instead of \fInil\fP to indicate no modifier.
+.br
+Use \fB:any\fP to indicate any subset of modifier keys. 
+
+.TP
+.B\-default-modifiers-p\ \fIboolean\fP
+default value is \fIt\fP. It allows you to define keystrokes with or
+without \fB:CAPS-LOCK\fP and \fB:NUM-LOCK\fP.
+
+.TP
+.B\-fun\ \fIfunction\fP
+a designator for a function or method of one argument. Its argument
+will be the keyboard event that occured. (i.e. key-press key-release
+type) You can also use the macro \fBaction\fP to produce your function:
+
+.in +2
+\fBaction\fP (\fB&rest\fP forms1) (\fB&rest\fP forms2)
+
+It simply checks for keywords \fB:press\fP or \fB:release\fP to be the
+\fIcar\fP of the forms and produces function as follows:
+
+.in +4
+(action (:press form1 form2) ())
+.br
+(action () (:press form1 form2))
+.in +3
+==> (lambda (event) 
+.br 
+.in +6
+(typepcase event
+.br
+.in +2 
+(key-press form1 form2)
+.br
+(key-release nil)))
+.in -8
+.in -3
+
+
+(action
+.br
+.in +2
+(:release form1 form2)
+.br
+(:press another-form))
+.in -2
+.in +3
+==> (lambda (event) 
+.br 
+.in +6
+(typepcase event
+.br
+.in +2 
+(key-press another-form)
+.br
+(key-release form1 form2)))
+.in -8
+.in -3
+
+.in -4
+.in -2
+
+.P
+There exist some predefined keystrokes:
+
+  - change window priority on the current desktop
+    :switch-win-up  
+    :switch-win-down
+
+  - change of desktop
+    :switch-screen-left
+    :switch-screen-right
+
+  - move the mouse cursor
+    :move-right
+    :move-left
+    :move-up 
+    :move-down
+
+  - perform mouse click
+    :left-click
+    :middle-click
+    :right-click
+
+\fBKeystroke customisation example\fP:
+
+\fB- predifined keystrokes:\fP
+.in +1
+
+(define-key-combo :switch-win-up
+  :keys '(:TAB)
+  :modifiers '(:ALT-LEFT))
+
+(define-key-combo :switch-win-d 
+  :keys '(:A)
+  :modifiers '(:ALT-LEFT))
+
+(define-key-combo :move-right
+  :keys '(:RIGHT)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+.in -1
+
+\fB- a user defined one:\fP
+.in +1
+
+(define-key-combo :raise-window-under-pointer
+  :keys '(:F4)
+  :modifiers 0 ; no modifiers.
+  :default-modifiers-p nil 
+  :fun (action 
+.br
+.in +9
+(:press (put-on-top (event-child event)))
+.br
+()))
+.in -9
+
+or
+
+(define-key-combo :raise-window-under-pointer
+  :keys '(:F4)
+  :modifiers '(:CONTROL-LEFT :SHIFT-LEFT) ; or C-F4, C-F4
+  :default-modifiers-p nil
+  :fun #'(lambda (event)
+.in +11
+.br
+(when (typep event 'key-press)
+.in +2
+.br
+(put-on-top (event-child event)))))
+.in -13
+.in -1
+
+.SH BUGS
+Sometimes when you move a window with the box type, the grid will fail
+to redraw on itself because of exposure events somewhere.
+
+The exit part is in progress so it does not work as expected.
+
+Finally I have to write something to be fully gnome compliant: the
+session-manager connection.
+
+
+.SH SEE ALSO
+\fBX\fP(1), \fBXserver\fP(1), \fBxdm\fP(1), \fBCMUCL\fP(1) or other
+AINSI CL implemention you can use.
+
+
+.SH AUTHOR
+A project I began with three friends in 2000 and that I try to
+finish.
+
+  Julien BONINFANTE, Aymeric LACORTE, Jocelyn FRECHOT, 
+Iban HATCHONDO <hatchond@yahoo.fr> 
+
+
+.SH COPYRIGHT
+Copyright (C) 2000,2001,2002 Iban HATCHONDO <hatchond@yahoo.fr>
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; version 2 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.

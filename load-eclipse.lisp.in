@@ -1,0 +1,11 @@
+;;; -*- Mode: Lisp; Package: User -*-
+;;; @configure_input@
+;;; watch out before modify it.
+;;; It use the MK-DEFSYSTEM for loading the system.
+
+(defun start (&optional display_specification)
+  (load "@SRC@/system.lisp")
+  (mk:operate-on-system :eclipse :load)
+  (eclipse display_specification)
+  (%quit%)
+  )

@@ -1,0 +1,6 @@
+@interp@ @SHELL@
+# @configure_input@
+# This file start the eclipse window manager
+
+display_spec=`if [ -n "$1" ]; then echo \"$1\"; fi`
+@LISP@ @ARGS@

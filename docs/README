@@ -1,0 +1,105 @@
+
+
+				    ECLIPSE
+
+				  Version 0.02
+
+                   Copyright (C) 2000-2001-2002 Iban HATCHONDO
+			       <hatchond@yahoo.fr>
+
+
+
+For complete instructions on how to use Eclipse, please read the
+manual.  This file contains only intallation instructions and some
+other general information. 
+Eclipse comes without ABSOLUTELY NO WARRANTY. See the COPYING file for
+details.
+
+I would love to receive feedback/coments/idea/bugreports, so feel free
+to send me any comments you might have.
+
+Finally, I only compiled and tested Eclipse with CMUCL.  It should
+work for other ANSI CL implementations, but the Makefile may have to
+be modified, I guess. 
+(I have test it under x86 and Sparc ultra 1 with solaris).
+
+
+
+Requirements :
+--------------
+
+In order to use Eclipse, you need the following to work on your
+machine :
+ - Common Lisp (see the www.cons.org/cmucl for a free implementation)
+ - Loop (it usually comes with the standard, at least for CMUCL and ACL)
+ - CLX library (AINSI CL implementation of the Xlib)
+ - MK-Defsystem library (http://sourceforge.net/projects/clocc/)
+ - GNOME (optional)
+
+You can find all the Lisp parts in the Debian packages
+(http://www.debian.org/distrib/packages), I recommand to use them.
+
+ - A core image of the language that includes CLX and defsystem (and
+   loop if needed). See the core creation section for more information.
+
+
+
+Install :
+---------
+
+shell $ ./configure
+shell $ make
+shell $ make install
+
+should work. (at least for CMUCL)
+
+see ./configure --help for options that can be used.
+the particular --enable and --with options recognized:
+
+  --with-lisp=DIR or FILE         your lisp system.
+  --with-core=FILE                specifies particular core image to use if
+				  the default one is not appropriate.
+  --enable-compile-into-core=FILE core image name for compile destination
+				  default is disable.
+				  default core name : eclipse-lisp.core.
+  --with-gnome-entry-dir=PATH     path to the wm-properties directory.
+				  default is enable.
+				  (default search list :
+					 /usr/share/gnome/wm-properties
+					 /usr/local/share/gnome/wm-properties )
+
+
+Core creation :
+---------------
+
+Here is an example of this operation for CMUCL:
+
+Process inferior-lisp finished
+CMU Common Lisp release x86-linux 2.4.22  3 October 2000 build 1154, running on localhost.localdomain
+Send questions to cmucl-help@cons.org. and bug reports to cmucl-imp@cons.org.
+Loaded subsystems:
+    Python 1.0, target Intel x86
+    CLOS based on PCL version:  September 16 92 PCL (f)
+* (load "/usr/local/src/cmucl-2.4.22/subsystems/clx-library.x86f")
+
+; Loading #p"/usr/local/src/cmucl-2.4.22/subsystems/clx-library.x86f".
+T
+* (load "/usr/local/src/cmucl-2.4.22/subsystems/defsystem-library.x86f")
+
+; Loading #p"/usr/local/src/cmucl-2.4.22/subsystems/defsystem-library.x86f".
+T
+* (save-lisp "lisp-custom.core")
+[Doing purification: Done.]
+[Undoing binding stack... done]
+[Saving current lisp image into lisp-custom.core:
+Writing 20842624 bytes from the Read-Only space at 0x10000000.
+Writing 2954992 bytes from the Static space at 0x28000000.
+Writing 4096 bytes from the Dynamic space at 0x48000000.
+done.]
+
+Process inferior-lisp finished
+
+Now create a symlink in your standard cmucl directory from your custom
+image to lisp.core to start lisp with the new image by default.
+Otherwise use the CMUCL shell option -core. (see CMUCL manual for
+complete information).

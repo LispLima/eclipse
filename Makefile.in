@@ -1,0 +1,70 @@
+# Makefile for Eclipse window manager.
+
+LISP = @LISP@
+CORE = @CORE@
+core_dest = @core_dest@
+PRG = eclipse
+
+# lisp argument name for evaluting forms :
+eval_form = @eval_form@
+# lisp argument name for loading file :
+load = @load@
+# lisp function for saving a system image :
+save_lisp = @save_lisp@
+
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+VPATH = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+datadir = @datadir@
+mandir = @mandir@
+install = @INSTALL@
+gnome = @gnome_entry_dir@
+gnome_entry_dir = @gnome_entry_dir@/wm-properties
+
+all:	compile core
+
+compile:
+	@$(LISP) $(CORE) -load compile.lisp
+
+core:	
+	@if test ! ${core_dest} = no;\
+        then $(LISP) $(CORE) ${eval_form}\
+	"(progn\
+	   (load \"system.lisp\")\
+	   (mk:operate-on-system :eclipse :load)\
+	   (${save_lisp} \"${core_dest}\"))";\
+	fi
+
+clean:
+	/bin/rm -f load-eclipse.lisp
+	/bin/rm -f eclipse
+	/bin/rm -f *.err
+	@$(LISP) $(CORE) ${eval_form}\
+	 "(progn\
+	    (load \"system.lisp\")\
+	    (mk:operate-on-system :eclipse :clean)\
+	    #+:cmu(ext:quit)\
+	    #+:allegro(excl:exit))"
+	@if test ! ${core_dest} = no; then /bin/rm -f ${core_dest}; fi
+
+install:
+	$(install) -d ${bindir}
+	$(install) -m 755 ${PRG} ${bindir}/${PRG}
+	$(install) -d ${mandir}/man1
+	$(install) -m 644 docs/eclipse.1 ${mandir}/man1/eclipse.1
+	if test ! ${gnome} = no;\
+	then\
+	  if ! test -d ${gnome_entry_dir};\
+	  then $(install) -d ${gnome_entry_dir};\
+	  fi;\
+	  $(install) -m 644 Eclipse.desktop ${gnome_entry_dir}/Eclipse.desktop;\
+	fi	
+
+uninstall: 
+	/bin/rm -f ${bindir}/${PRG}
+	/bin/rm -f ${mandir}/man1/eclipse.1
+	if test ! ${gnome_entry_dir} = no;\
+	then /bin/rm -f ${gnome_entry_dir}/Eclipse.desktop; fi

@@ -1,0 +1,78 @@
+;;;;; Base configuration
+
+;; Global definitions
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Keyboard shortcuts
+
+;; circulate windows : Alt-Tab / A
+
+(define-key-combo :switch-win-up
+  :keys '(:TAB)
+  :modifiers '(:ALT-LEFT))
+(define-key-combo :switch-win-down
+  :keys '(:A)
+  :modifiers '(:ALT-LEFT))
+
+;; change of virtual screen : Ctrl-LeftArrow / RightArrow
+
+(define-key-combo :switch-screen-left
+  :keys '(:LEFT)
+  :modifiers '(:CONTROL-LEFT))
+(define-key-combo :switch-screen-right
+  :keys '(:RIGHT)
+  :modifiers '(:CONTROL-LEFT))
+
+;; move mouse pointer : Ctrl-Alt-LeftArrow / RightArrow
+
+(define-key-combo :move-right
+  :keys '(:RIGHT)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+(define-key-combo :move-left
+  :keys '(:LEFT)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+(define-key-combo :move-up
+  :keys '(:UP)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+(define-key-combo :move-down
+  :keys '(:DOWN)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+
+;; mouse click : Ctrl-Alt-Z / X / C (left middle right)
+
+(define-key-combo :left-click
+  :keys '(:W)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+(define-key-combo :middle-click
+  :keys '(:X)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+(define-key-combo :right-click
+  :keys '(:C)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Custom variables.
+
+(setf (number-of-virtual-screens) 4
+      *move-type* :box
+      *focus-type* :none
+      *font-color* (xlib:make-color :red 0.00 :green 0.00 :blue 0.25)
+      *theme* "microGUI"
+      *change-desktop-message-active-p* nil)
+
+;; Application menu
+
+(setf *menu-1-items* 
+      (list (cons "Emacs"    (run-application "emacs"))
+	    (cons "Netscape" (run-application "netscape"))
+	    (cons "Gv"       (run-application "gv"))
+	    (cons "XMMS"     (run-application "xmms"))
+	    (cons "Xterm"    (run-application "xterm"))
+	    ))
+
+;; Desktop-names
+
+;(setf (workspace-names) '("Main" "Work" "Internet" "Games"))
+
+
+
