@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.35 2004/02/17 12:48:39 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.36 2004/03/01 14:53:57 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -136,7 +136,7 @@
    (menu3 :initform nil)
    (window-menu :initform nil)
    (client-list :initform (make-hash-table))
-   (desktop :initform nil :accessor root-desktop)
+   (desktop :initform nil :writer (setf root-desktop))
    (sm-conn :initform nil :accessor root-sm-conn)))
 
 (defmethod root-desktop ((root root) &optional window-p)
@@ -189,7 +189,7 @@
    (full-geometry :initform (make-geometry) :initarg :full-geometry)
    (type :initarg :type :accessor application-type)
    (transient-for :initarg :transient-for :accessor application-transient-for)
-   (dialogs :initform nil :accessor application-dialogs)))
+   (dialogs :initform nil :writer (setf application-dialogs))))
 
 (defmethod application-dialogs ((application application))
   (labels ((find-all-dialogs (leader)
