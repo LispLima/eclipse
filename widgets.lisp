@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.39 2004/03/08 23:50:19 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.40 2004/03/09 19:26:27 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -109,7 +109,7 @@
   (setf (xlib:window-priority (widget-window widget)) :above))
 
 (defmethod put-on-bottom ((widget base-widget))
-  (setf (xlib:window-priority (widget-window widget)) :above))
+  (setf (xlib:window-priority (widget-window widget)) :below))
 
 (defun base-widget-p (widget)
   (typep widget 'base-widget))

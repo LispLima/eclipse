@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.28 2004/03/09 19:26:27 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.29 2004/03/10 17:13:14 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -82,7 +82,7 @@
 (defun wm-state (window)
   (xlib:get-property window :WM_STATE))
 
-(defsetf wm-state (window &key icon-id) (state)
+(defsetf wm-state (window &key (icon-id 0)) (state)
   (let ((net-wm-state (gensym)))
     `(let ((,net-wm-state (netwm:net-wm-state ,window)))
        (if (or (= ,state 3) (= ,state 0))
@@ -180,32 +180,42 @@
 	   (snwm-state (and sib (netwm:net-wm-state sib))))
       (if (not (application-p widget))
 	  (setf (xlib:window-priority window sibling) stack-mode)
-	  (multiple-value-bind (b m a) (screen-windows-layers win)
+	  (multiple-value-bind (below-layer std-layer above-layer)
+	      (screen-windows-layers win)
+	    ;; Be aware of the net-wm-state of the client leader if any.
 	    (when (application-transient-for widget)
 	      (with-slots ((lw window)) (application-leader widget)
 		(setf wnwm-state (nconc wnwm-state (netwm:net-wm-state lw)))))
+	    ;; Find the correct sibling and reset the priority if needed.
 	    (cond ((member :_net_wm_state_below wnwm-state)
-		   (unless (member sib b :test #'xlib:window-equal)
-		     (setf sib (first (or b m a) (and b above-p)))
-		     (unless b (setf stack-mode :below))))
+		   (unless (member sib below-layer :test #'xlib:window-equal)
+		     (setf sib (first (or below-layer std-layer above-layer)
+				      (and below-layer above-p)))
+		     (unless below-layer (setf stack-mode :below))))
 		  ((member :_net_wm_state_above wnwm-state)
-		   (unless (member sib a :test #'xlib:window-equal)
+		   (unless (member sib above-layer :test #'xlib:window-equal)
 		     (unless (member :_net_wm_state_fullscreen snwm-state)
-		       (setf sib (first a above-p))
-		       (unless a (setf stack-mode :above)))))
+		       (setf sib (first above-layer above-p))
+		       (unless above-layer (setf stack-mode :above)))))
 		  ((member :_net_wm_state_fullscreen wnwm-state)
-		   (when (member sib b :test #'xlib:window-equal)
-		     (setf sib (first (or m a)))
+		   (when (member sib below-layer :test #'xlib:window-equal)
+		     (setf sib (first (or std-layer above-layer)))
 		     (setf stack-mode :below)))
-		  ((not (member sib m :test #'xlib:window-equal))
-		   (setf sib (first (or m b a) (if m above-p b)))
-		   (unless m (setf stack-mode (if b :above :below)))))
-	    (when (or b m a)
+		  ((not (member sib std-layer :test #'xlib:window-equal))
+		   (setf sib (first (or std-layer below-layer above-layer)
+				    (if std-layer above-p below-layer)))
+		   (unless std-layer
+		     (setf stack-mode (if below-layer :above :below)))))
+	    ;; If application is not alone, update its priority.
+	    (when (or below-layer std-layer above-layer)
 	      (with-slots ((tr transient-for)) widget
+		;; Restack all application transient window if any.
+		;; If it has a client leader then don't restack it 
+		;; at the end because it has already been restacked.
 		(loop with seq = (application-dialogs widget)
-		      for sib-app = (lookup-widget sib) then a
+		      for sib-app = (lookup-widget sib) then ap
 		      for priority = stack-mode then :below
-		      for a in (reverse seq) do (restack a sib-app priority)
+		      for ap in (reverse seq) do (restack ap sib-app priority)
 		      finally (unless tr (restack widget sib-app priority))))
 	      (update-client-list-stacking *root*))
 	    stack-mode)))))
