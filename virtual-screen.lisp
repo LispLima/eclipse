@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.4 2003/03/16 00:44:36 hatchond Exp $
+;;; $Id: virtual-screen.lisp,v 1.5 2003/08/28 14:50:35 hatchond Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -97,10 +97,9 @@
 	    (let ((widget (lookup-widget (input-focus *display*))))
 	      (when (application-p widget)
 		(setf (application-wants-focus-p widget) t))))
-	  ;; Revert the focus to the root-window.
-	  (xlib:set-input-focus *display* :pointer-root :pointer-root)
-	  (map-or-unmap-vscreen #'xlib:map-window new)
-	  (map-or-unmap-vscreen #'xlib:unmap-window cur))
+	  (with-pointer-grabbed (window nil)
+	    (map-or-unmap-vscreen #'xlib:map-window new)
+	    (map-or-unmap-vscreen #'xlib:unmap-window cur)))
 	(setf (gnome:win-workspace window) new
 	      (netwm:net-current-desktop window) new)
 	(when *change-desktop-message-active-p*
