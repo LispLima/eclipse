@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.17 2004/03/08 23:40:33 ihatchondo Exp $
+;;; $Id: gestures.lisp,v 1.18 2004/04/08 21:25:01 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -91,7 +91,7 @@
 		     (realize (,dest-window :mouse-p ,mouse-p)
 		       key (+ mask num-l caps-l) action)))))))
 
-;;;;
+;;;; Internal machinery for stroke management.
 
 (defvar *keystroke-map* (make-hash-table :test #'equal))
 (defvar *mouse-stroke-map* (make-hash-table :test #'equal))
@@ -101,25 +101,30 @@
 
 (declaim (type (simple-array bit (256)) *registered-keycodes*))
 
-(defun register-callback (action-keyword callback)
-  (setf (get action-keyword 'callback) callback))
-
 (defun action-key->lambda (action-keyword)
   "Returns the associated callback for the given action keyword."
   (get action-keyword 'callback))
 
+;; Public.
+
+(defun register-callback (action-keyword callback)
+  "Associates a particular callback function with a callback name.
+   action-keyword (keyword): the name of the stroke.
+   callback (function): a function designator of one argument of type event."
+  (setf (get action-keyword 'callback) callback))
+
 (defun lookup-keystroke (code state)
-  "Find the associated callback if any for this pair code modifier state."
+  "Find the associated callback if any for this pair (code, modifier state)."
   (or (gethash (cons code state) *keystroke-map*)
       (gethash (cons code #x8000) *keystroke-map*)))
 
 (defun lookup-mouse-stroke (button state)
-  "Find the associated callback if any for this pair button modifier state."
+  "Find the associated callback if any for this pair (button, modifier state)."
   (or (gethash (cons button state) *mouse-stroke-map*)
       (gethash (cons button #x8000) *keystroke-map*)))
 
 (defun keycode-registered-p (keycode &optional (count 1))
-  "Returns t if this keycode is used for any keystroke."
+  "Returns T if this keycode is used for any keystroke."
   (loop for i from keycode below (+ keycode count)
 	when (= 1 (aref *registered-keycodes* keycode)) do (return t)))
 
@@ -144,7 +149,7 @@
   (loop for mouse-stroke being each hash-value in *mousestrokes*
 	do (define-combo-internal mouse-stroke *root-window* :mouse-p t)))
 
-;;;; stroke
+;;;; Stroke protocol class.
 
 (defclass stroke ()
   ((name 
@@ -160,12 +165,12 @@
      :initarg :action
      :reader stroke-action)))
 
-(defgeneric stroke-keys (stroke))
-(defgeneric stroke-equal (s1 s2))
+(defgeneric stroke-keys (stroke)
+  (:documentation "Returns the list of keycodes that activate this stroke."))
 
-(defmethod stroke-equal (s1 s2)
-  (declare (ignorable s1 s2))
-  nil)
+(defgeneric stroke-equal (s1 s2)
+  (:documentation "Returns T if the two stroks are equal.")
+  (:method (s1 s2) (declare (ignorable s1 s2))))
 
 (defmethod stroke-equal :around ((s1 stroke) (s2 stroke))
   (with-slots ((name1 name) (dmp1 default-modifiers-p) (mods1 modifiers)) s1
@@ -173,7 +178,7 @@
       (and (eq name1 name2) (and dmp1 dmp2) (equal mods1 mods2)
 	   (if (next-method-p) (call-next-method) t)))))
 
-;;;; keystroke
+;;;; Keystroke
 
 (defclass keystroke (stroke)
   ((keysyms :initarg :keysyms :reader keystroke-keysyms)))
@@ -196,7 +201,7 @@
 (defmethod stroke-equal ((s1 keystroke) (s2 keystroke))
   (equal (slot-value s1 'keysyms)  (slot-value s2 'keysyms)))
 
-;;;; mouse stroke
+;;;; Mouse stroke
 
 (defclass mouse-stroke (stroke)
   ((button :initarg :button :reader mouse-stroke-button)))
@@ -223,6 +228,7 @@
 ;;;;
 
 (defun translate-modifiers (dpy modifiers)
+  "Returns a list of modifier mask (list xlib:mask16)."
   (cond ((keywordp modifiers) 
 	 (list (kb:modifier->modifier-mask dpy modifiers)))
 	((numberp modifiers) 
@@ -233,14 +239,23 @@
 	(t 
 	 (mapcar #'(lambda (m) (kb:modifier->modifier-mask dpy m)) modifiers))))
 
+
+;;;; End user functions for keystrokes and mousestrokes definition.
+
 (defun define-key-combo (name &key keys
 			          (default-modifiers-p t)
 				  (modifiers '(:any))
 				  fun)
-  " modifiers can be:
-  - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
-  - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
-  - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)"
+  "Defines a keystroke (if already defined then it will be undefined first):
+    name (string): name of the defined key stroke.
+    :keys (unsigned-byte 8): the keyboard keys used for this keystroke.
+    :default-modifiers-p (boolean): If T then :CAPS-LOCK and :NUM-LOCK won't 
+     affect the keystroke invokation. (default to T).
+    :modifiers (or (member :any) mask16 (list modifier-key)):
+     modifiers will be interpreted as follows:
+      - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
+      - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
+      - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)"
   (handler-case
       (let ((ks (make-keystroke name keys modifiers default-modifiers-p fun)))
 	(when (stroke-equal ks (gethash name *keystrokes*))
@@ -255,10 +270,16 @@
 				     (default-modifiers-p t)
 				     (modifiers '(:any))
 				     fun)
-  " modifiers can be:
-  - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
-  - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
-  - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)"
+  "Defines a mouse stroke (if already defined then it will be undefined first):
+    name (string): name of the defined mouse stroke.
+    :button (unsigned-byte 8): the mouse button used for this mouse stroke.
+    :default-modifiers-p (boolean): If T then :CAPS-LOCK and :NUM-LOCK won't 
+     affect the mouse stroke invokation. (default to T).
+    :modifiers (or (member :any) mask16 (list modifier-key)):
+     modifiers will be interpreted as follows:
+      - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
+      - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
+      - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)"
   (handler-case
       (let ((ms (make-mouse-stroke 
 		    name button modifiers default-modifiers-p fun)))
@@ -270,14 +291,30 @@
       (format *stderr* "Can't realize mouse-combo ~A~%" name)
       (format *stderr* " mods : ~A~% key : ~A~%" modifiers button))))
 
-;;; Cursor movements, and click.
+;;;; Cursor movements, and clicks.
 
-(defun move-cursor-right () (xlib:warp-pointer-relative *display* 10 0))
-(defun move-cursor-left () (xlib:warp-pointer-relative *display* -10 0))
-(defun move-cursor-up () (xlib:warp-pointer-relative *display* 0 -10))
-(defun move-cursor-down () (xlib:warp-pointer-relative *display* 0 10))
+(defun move-cursor-right ()
+  "Moves the mouse pointer of ten pixels to the right."
+  (xlib:warp-pointer-relative *display* 10 0))
+
+(defun move-cursor-left ()
+  "Moves the mouse pointer of ten pixels to the left."
+  (xlib:warp-pointer-relative *display* -10 0))
+
+(defun move-cursor-up ()
+  "Moves the mouse pointer of ten pixels up."
+  (xlib:warp-pointer-relative *display* 0 -10))
+
+(defun move-cursor-down ()
+  "Moves the mouse pointer of ten pixels down."
+  (xlib:warp-pointer-relative *display* 0 10))
 
 (defun perform-click (buton-number ev)
+  "Send a button-{press, release} event for button-number. The type of the
+   sent event will be determined according to the type of the ev event
+   argument: if type key-press then send button-press, if key-release then
+   button-release is sent. The destination window will be retreived in the
+   ev event argument."
   (flet ((my-query (win) (multiple-value-list (xlib:query-pointer win))))
     (loop with window = *root-window*
 	  with type = (if (typep ev 'key-press) :button-press :button-release)
@@ -291,6 +328,9 @@
 	      :same-screen-p ssp :time (event-time ev)))))
 
 (defun mouse-stroke-for-move-and-resize (event &key action)
+  "Initiates the move or resize processas if initiated by the menu-3 machinery.
+   The process that will be activated is specified by the action key argument.
+   If action is :resize then initiate resize, if :move initiate the move."
   (let ((widget (lookup-widget (event-child event))))
     (unless (or (decoration-p widget) (application-p widget))
       (return-from mouse-stroke-for-move-and-resize nil))
@@ -301,7 +341,7 @@
     (unless (menu-3-process (make-event :motion-notify) widget :key action)
       (xlib:ungrab-pointer *display*))))
 
-;;; Hook and Callbacks for :switch-win-{up, down} keystrokes.
+;;;; Hook and Callbacks for :switch-win-{up, down} keystrokes.
 
 (defvar *depth* nil)
 (defvar *current-widget-info* nil)
@@ -323,6 +363,8 @@
 	  *depth* 0)))
 
 (defun circulate-window-modifier-callback (event)
+  "Callback to handle the key-release on the modifier keys used for the
+   window circulation keystrokes."
   (when (typep event 'key-release)
     (xlib:ungrab-keyboard *display*)
     (loop with map = *keystroke-map*
