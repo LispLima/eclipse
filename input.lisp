@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.11 2003/09/10 23:55:17 hatchond Exp $
+;;; $Id: input.lisp,v 1.12 2003/09/12 00:25:48 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -149,7 +149,6 @@
 	   (change-vscreen root :n (aref data 0)))))
       (:_NET_NUMBER_OF_DESKTOPS 
        (setf (number-of-virtual-screens) (aref data 0)))
-      (:_NET_CLOSE_WINDOW (close-widget (lookup-widget event-window)))
       (:WM_PROTOCOLS
        (when (eq :wm_delete_window (id->atom-name (aref data 0)))
 	 (close-widget (lookup-widget event-window)))))))
@@ -376,6 +375,7 @@
 		 (xlib:map-window (or master-window window))
 		 (with-event-mask (*root-window*)
 		   (xlib:unmap-window (or master-window window)))))))
+	(:_NET_CLOSE_WINDOW (close-widget application))
 	(:_NET_ACTIVE_WINDOW
 	 (cond ((shaded-p application) (shade application))
 	       (iconic-p (uniconify icon)))
