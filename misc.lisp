@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.18 2004/01/19 16:19:17 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.19 2004/01/20 12:58:01 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -204,7 +204,7 @@
 	  (with-event-mask ((or parent win))
 	    (xlib:with-state (win)
 	      (when width (setf (xlib:drawable-width win) width))
-	    (when height (setf (xlib:drawable-height win) height)))
+	      (when height (setf (xlib:drawable-height win) height)))
 	    (when parent
 	      (with-window-gravity (parent g)
 		(resize-from application))
