@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: VIRTUAL-SCREEN -*-
-;;; $Id: virtual-screen.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
+;;; $Id: virtual-screen.lisp,v 1.3 2002/11/07 14:54:27 hatchond Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -36,6 +36,7 @@
 	   add-to-all
 	   remove-from-all
 	   adjust-vscreens
+	   restack-window
 	   create-virtual-screens))
 
 (in-package :virtual-screen)
@@ -52,9 +53,15 @@
   (with-slots (number-of-virtual-screen virtual-sceen-array) vscreens
     (setf virtual-sceen-array 
 	  (make-array number-of-virtual-screen
-	      :element-type 'list
-	      :initial-element '()
-	      :adjustable t))))
+	      :element-type 'vector
+	      :adjustable t
+	      :initial-contents 
+	      (loop for i from 0 below number-of-virtual-screen
+		    collect (make-empty-screen))))))
+
+(defun make-empty-screen ()
+  (make-array 0 :fill-pointer t :initial-element nil))
+    
 
 (defmacro with-index-in-screens ((index vscreens) &body body)
   `(when (< -1 ,index (number-of-virtual-screen ,vscreens))
@@ -69,36 +76,53 @@
     (setf (aref (vscreens vscreens) n) elements)))
 
 (defmethod add-to-vscreen ((vscreens virtual-screens) element
-			  &key (n (current-screen vscreens)))
+			  &key (n (current-screen vscreens))
+			       (test #'xlib:window-equal))
   (with-index-in-screens (n vscreens)
-    (pushnew element (aref (vscreens vscreens) n))))
+    (unless (position element (aref (vscreens vscreens) n) :test test)
+      (vector-push-extend element (aref (vscreens vscreens) n) 20))))
 
 (defmethod remove-from-vscreen ((vscreens virtual-screens) element
-			  &key (n (current-screen vscreens)))
+				&key (n (current-screen vscreens))
+				     (test #'xlib:window-equal))
   (with-index-in-screens (n vscreens)
-    (setf (aref (vscreens vscreens) n)
-	  (remove element (aref (vscreens vscreens) n)))))
+    (delete element (aref (vscreens vscreens) n) :test test)))
 
-(defmethod add-to-all ((vscreens virtual-screens) element)
+(defmethod add-to-all ((vscreens virtual-screens) element 
+		       &key (test #'xlib:window-equal))
   (loop for i from 0 below (number-of-virtual-screen vscreens) 
-	do (pushnew element (aref (vscreens vscreens) i))))
+	unless (position element (aref (vscreens vscreens) i) :test test)
+	do (vector-push-extend element (aref (vscreens vscreens) i) 20)))
 
-(defmethod remove-from-all ((vscreens virtual-screens) element &key except)
+(defmethod remove-from-all ((vscreens virtual-screens) element 
+			    &key except (test #'xlib:window-equal))
   (loop for i from 0 below (number-of-virtual-screen vscreens)
 	unless (and except (= i except)) do
-	  (setf (aref (vscreens vscreens) i)
-		(remove element (aref (vscreens vscreens) i)))))
-
-(defmethod adjust-vscreens ((vscreens virtual-screens) n &key map-when-reduce)
+	 (delete element (aref (vscreens vscreens) i) :test test)))
+  
+(defmethod adjust-vscreens ((vscreens virtual-screens) n 
+			    &key map-when-reduce
+			         (test #'xlib:window-equal))
   (let ((dimension (number-of-virtual-screen vscreens))
 	(new-size (1- n))
 	(vscreen (vscreens vscreens)))
     (when (> dimension n)
-      (loop for i from new-size below dimension nconc (aref vscreen i) into tmp
-	    finally (setf (aref vscreen new-size) (copy-list tmp)))
-      (when map-when-reduce (mapc map-when-reduce (aref vscreen new-size))))
+      (loop for i from (1+ new-size) below dimension
+	    do (loop for w across (aref vscreen i)
+		     do (vector-push-extend w (aref vscreen new-size) 20)))
+      (delete-duplicates (aref vscreen new-size) :test test)
+      (and map-when-reduce (map nil map-when-reduce (aref vscreen new-size))))
     (setf (number-of-virtual-screen vscreens) n)
-    (adjust-array vscreen n :initial-element '())))
+    (adjust-array vscreen n :initial-element nil)
+    (when (> n dimension)
+      (loop for i from dimension below n
+	    do (setf (aref vscreen i) (make-empty-screen))))))
+
+(defun restack-window (window screen &key (position 0))
+  (when (and (> (length screen) 1) (< position (length screen)) window)
+    (let ((init-pos (position window screen :test #'xlib:window-equal)))
+      (when (and init-pos (not (= init-pos position)))
+	(rotatef (aref screen position) (aref screen init-pos))))))
 
 (defun create-virtual-screens (n)
   (make-instance 'virtual-screens :number-of-virtual-screen n))
