@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.1 2002/11/07 14:22:42 hatchond Exp $
+;;; $Id: package.lisp,v 1.2 2003/03/16 00:34:38 hatchond Exp $
 ;;;
 ;;; This is the CLX extensions package definition.
 ;;;
@@ -31,6 +31,7 @@
    window-position
    drawable-sizes
    with-event-mask
+   with-pointer-grabbed
    get-environment-variable
    open-clx-display
    grab-button
