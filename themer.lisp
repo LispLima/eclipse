@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: themer.lisp,v 1.3 2003/06/11 18:29:23 hatchond Exp $
+;;; $Id: themer.lisp,v 1.4 2003/09/07 01:35:17 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -195,9 +195,12 @@
       (and bpixmaps (drawable-sizes (aref bpixmaps 0))))))
 
 (defmethod free-frame-style ((style frame-style))
+  "Release all X resources that are associated with this style."
   (with-slots (pixmap-table frame-item-pixmaps) style
     (loop for pixmap being each hash-value in pixmap-table
-	  do (xlib:free-pixmap pixmap))
+	  for id = (xlib:drawable-id pixmap)
+	  when (xlib::lookup-resource-id (xlib:drawable-display pixmap) id)
+	  do (ignore-errors (xlib:free-pixmap pixmap)))
     (clrhash pixmap-table)
     (clrhash frame-item-pixmaps)
     (setf pixmap-table nil 
@@ -262,7 +265,7 @@
     (and default-style (free-frame-style default-style))
     (and transient-style (free-frame-style transient-style)))
   (remhash name *themes*)
-  (unuse-package name))
+  (unuse-package (format nil "~:@(~A~)-ECLIPSE-THEME" name)))
 
 (defun load-theme (root-window name)
   "loads and returns theme named by parameter name. Themes are cached."
