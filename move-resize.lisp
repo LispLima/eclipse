@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.14 2004/02/12 23:30:22 ihatchondo Exp $
+;;; $Id: move-resize.lisp,v 1.15 2004/03/09 19:26:27 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -78,7 +78,8 @@
     (declare (type (signed-byte 16) x y))
     (declare (type (unsigned-byte 16) width height))
     (decf width) (decf height)
-    (xlib:with-gcontext (gctxt :function 8 :subwindow-mode :include-inferiors)
+    (xlib:with-gcontext
+	(gctxt :function boole-xor :subwindow-mode :include-inferiors)
       (xlib:draw-rectangle dest-window gctxt x y width height)
       (let ((w (round width 3))
 	    (h (round height 3)))
@@ -238,8 +239,8 @@
 	      (display-geometry (/ (- new-width basew) incw)
 				(/ (- new-height baseh) inch)))
 	    (case *card-point*
-	      ((or :north :ne) (incf new-y (- tmp-height new-height)))
-	      ((or :west :sw) (incf new-x (- tmp-width new-width)))
+	      ((:north :ne) (incf new-y (- tmp-height new-height)))
+	      ((:west :sw) (incf new-x (- tmp-width new-width)))
 	      (:nw (incf new-y (- tmp-height new-height))
 		   (incf new-x (- tmp-width new-width))))
 	    (xlib:with-state (master-win)
