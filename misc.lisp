@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.30 2004/06/18 22:01:53 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.31 2004/08/20 21:51:08 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -89,11 +89,10 @@
 	   (pushnew :_net_wm_state_hidden ,net-wm-state)
            (setf ,net-wm-state (delete :_net_wm_state_hidden ,net-wm-state)))
        (setf (netwm:net-wm-state ,window) ,net-wm-state)
-       (xlib:change-property ,window
-			     :WM_STATE
-			     (list ,state ,icon-id)
-			     :WM_STATE
-			     32))))
+       (xlib:change-property ,window :WM_STATE
+	   (list ,state ,icon-id)
+	   :WM_STATE
+	   32))))
 
 (defun workspace-names (window)
   (or (netwm:net-desktop-names window) (gnome:win-workspace-names window)))
@@ -114,7 +113,7 @@
       "incognito"))
 
 (defun decode-netwm-icon-pixmap (window property-vector)
-  "Return a pixmap containing the first icon of the property or NIL."
+  "Returns a pixmap containing the first icon of the property or NIL."
   ;;(declare (optimize (speed 3) (safety 1)))
   (declare (type (or null (simple-vector *)) property-vector))
   (unless property-vector (return-from decode-netwm-icon-pixmap nil))
@@ -146,19 +145,42 @@
 
 (defun motif-wm-decoration (window)
   "Returns the state (or :on :off) of the :_MOTIF_WM_HINT property that
-  indicates the application wants or not to be decorated."
+   indicates the application wants or not to be decorated."
   (let ((prop (xlib:get-property window :_MOTIF_WM_HINTS)))
     (or (and prop (logbitp 1 (first prop)) (zerop (third prop)) :OFF) :ON)))
 
 (defun stick-p (window)
   "Returns T if the window has a desktop-number equal to +any-desktop+ or
-  if it has win_state_sticky on."
+   if it has win_state_sticky on."
   (or (= (or (window-desktop-num window) -1) +any-desktop+)
       (logbitp 0 (or (gnome:win-state window :result-type t) 0))))
 
 ;;;; Miscellaneous functions.
 
-(defun set-window-priority (stack-mode window sibling)
+(defun grab-root-pointer (&key cursor owner-p confine-to)
+  (xlib:grab-pointer
+      *root-window*
+      +pointer-event-mask+
+      :confine-to confine-to
+      :cursor (or cursor (root-default-cursor *root*))
+      :owner-p owner-p))
+
+(defun send-wm-protocols-client-message (window atom &rest data)
+  "Send a client-message of type :wm-protocol to the specified window
+   with data being the given atom plus the rest of the function args."
+  (xlib:send-event window :client-message
+      nil
+      :window window
+      :type :WM_PROTOCOLS
+      :format 32
+      :data (cons (atom-name->id atom) data)))
+
+(deftype stack-mode () `(member :above :below :bottom-if :opposite :top-if))
+
+(defun set-window-priority (stack-mode window &optional sibling)
+  (declare (type stack-mode stack-mode))
+  (declare (type xlib:window window))
+  (declare (type (or null xlib:window) sibling))
   (when (member :_net_wm_window_type_desktop (netwm:net-wm-window-type window))
     (return-from set-window-priority stack-mode))
   (flet ((lookup-app-w (widget)
@@ -220,37 +242,48 @@
 	      (update-client-list-stacking *root*))
 	    stack-mode)))))
 
-(defun grab-root-pointer (&key cursor owner-p confine-to)
-  (xlib:grab-pointer
-      *root-window*
-      +pointer-event-mask+
-      :confine-to confine-to
-      :cursor (or cursor (root-default-cursor *root*))
-      :owner-p owner-p))
-
 (defsetf window-priority (window &optional sibling) (priority)
-  "Set the window priority such as if done by (setf xlib:window-priority) and
-  guaranty that stacking order constraints described in the extended window
-  manager protocol will be respected. Then invokes update-client-list-stacking
-  to reflect the new order in all the root properties that are involved in."
+  "Sets the window priority such as if done by (setf xlib:window-priority) and
+   guaranty that stacking order constraints described in the extended window
+   manager protocol will be respected. Then invokes update-client-list-stacking
+   to reflect the new order in all the root properties that are involved in.
+
+   window
+     A window. 
+   sibling
+     An optional argument specifying that window is to be restacked
+     relative to this sibling window. 
+   priority
+     One of :above, :below, :bottom-if, :opposite, or :top-if. 
+
+   Changes the stacking priority element of the window to the specified value.
+   It is an error if the sibling argument is specified and is not actually a
+   sibling of the window. Note that the priority of an existing window cannot
+   be returned.
+
+   When changing the priority of a window, if the :_net_wm_window_type_desktop
+   is present in its _net_wm_window_type property then no further processing
+   is performed. Otherwise, the priority is changed."
   `(set-window-priority ,priority ,window ,sibling))
 
-(defun send-wm-protocols-client-message (window atom &rest data)
-  "Send a client-message of type :wm-protocol to the specified window
-  with data being the given atom plus the rest of the function args."
-  (xlib:send-event window
-		   :client-message
-		   nil
-		   :window window
-		   :type :WM_PROTOCOLS
-		   :format 32
-		   :data (cons (atom-name->id atom) data)))
-
 (defun configure-window (win &key x y width height stack-mode sibling gravity)
-  "Configure a window. The coordinate system in which the location is expressed
-  is that of the root (irrespective of any reparenting that may have occurred).
-  The coordinates will be updated according to the given gravity position hint,
-  or to the most recently requested by the client."
+  "Configures a window. The coordinate system in which the location is
+   expressed is that of the root (irrespective of any reparenting that may
+   have occurred). The coordinates will be updated according to the given
+   gravity position hint, or to the most recently requested by the client.
+
+   win
+     A window. 
+   sibling
+     An optional argument specifying that window is to be restacked
+     relative to this sibling window. 
+   stack-mode
+     If given, one of :above or :below. See (setf window-priority) for 
+     further details about the stacking order.
+   x y 
+     If given, an xlib:int16.
+   width height
+     If given, an xlib:card16. The size of the window in pixels."  
   (let* ((widget (lookup-widget win))
 	 (application (when (application-p widget) widget))
 	 (master (when application (application-master application)))
@@ -304,9 +337,9 @@
 
 (defun screen-windows-layers (window &aux (i (window-desktop-num window)))
   "Returns, as multiple value, three window lists that corresponds to the
-  three layers (:_net_wm_state_below none :_net_wm_state_above) of the
-  virtual screen that the given `window' argument belongs to. The given
-  window will be filtered."
+   three layers (:_net_wm_state_below none :_net_wm_state_above) of the
+   virtual screen that the given `window' argument belongs to. The given
+   window will be filtered."
   (loop with n = (if (eql i +any-desktop+) (current-desk) i)
 	for w in (screen-content n :skip-taskbar nil)
         for nwm-state = (netwm:net-wm-state w)
@@ -317,7 +350,7 @@
         finally (return (values belows no-stack-state aboves))))
 
 (defun update-workarea-property (root)
-  "computes and sets the _net_workarea property for the root-window."
+  "Computes and sets the _net_workarea property for the root-window."
   (with-slots (window) root
     (loop for i from 0 below (number-of-virtual-screens window)
 	  nconc (multiple-value-bind (ulx uly llx lly)
@@ -334,8 +367,8 @@
 
 (defun query-application-tree (root-window)
   "Returns the children of the specified root-window as if all applications
-  where undecorated. The children are returned as a sequence of windows in
-  current stacking order, from bottom-most (first) to top-most (last)."
+   where undecorated. The children are returned as a sequence of windows in
+   current stacking order, from bottom-most (first) to top-most (last)."
   (loop for window in (xlib:query-tree root-window)
 	for obj = (lookup-widget window)
 	for appw = (typecase obj
@@ -357,8 +390,8 @@
 
 (defun eclipse-desktop-pointer-positions (window &optional desk-num)
   "Returns the value of the property named _eclipse_desktop_pointer_positions
-  if no desk-num is suplied. Otherwise returns as a multiple value the previous
-  pointer position for the given desk-num."
+   if no desk-num is suplied. Otherwise returns as a multiple value the
+   previous pointer position for the given desk-num."
   (let ((prop (xlib:get-property
 	          window
 		  :_eclipse_desktop_pointer_positions
@@ -377,8 +410,8 @@
 
 (defun initialize-eclipse-desktop-pointer-positions (root)
   "Initialize the _eclipse_desktop_pointer_positions property. If the 
-  property already exists then previous value is keeped and extended or
-  cuted according to the number of virtual screens."
+   property already exists then previous value is keeped and extended or
+   cuted according to the number of virtual screens."
   (with-slots ((rw window)) root
     (xlib:intern-atom 
         (xlib:drawable-display rw)
@@ -416,7 +449,7 @@
 ;;; application inspection functions
 
 (defun application-list ()
-  "Return the applications objects as a list."
+  "Returns the applications objects as a list."
   (loop for val being each hash-value in *widget-table*
 	when (application-p val) collect val))
 
@@ -435,5 +468,3 @@
 
 (defun application-class-type (app)
   (cdr (application-class app)))
-
-;;;; misc.lisp ends here.
