@@ -1,5 +1,5 @@
 -*- Mode: Text; Syntax: ANSI-English; Package: CL-USER; Base: 10. -*-
-$Id: README,v 1.2 2002/06/24 07:36:55 james Exp $
+$Id: README,v 1.3 2002/11/07 14:54:27 hatchond Exp $
 
 				    ECLIPSE
 
@@ -55,21 +55,38 @@ shell $ make install
 
 should work. (at least for CMUCL)
 
-see ./configure --help for options that can be used.
-the particular --enable and --with options recognized:
+See ./configure --help for options that can be used.
 
-  --with-lisp=DIR or FILE         your lisp system.
-  --with-core=FILE                specifies particular core image to use if
-				  the default one is not appropriate.
-  --enable-compile-into-core=FILE core image name for compile destination
-				  default is disable.
-				  default core name : eclipse-lisp.core.
-  --with-gnome-entry-dir=PATH     path to the wm-properties directory.
-				  default is enable.
-				  (default search list :
-					 /usr/share/gnome/wm-properties
-					 /usr/local/share/gnome/wm-properties )
+The particular --enable and --with options recognized:
 
+  --with-initfile=FILE    where to find your eclipse startup file
+  --with-lisp=DIR or FILE where to find your lisp system
+  --with-initcore=FILE    the name of the core to use when compiling
+  --with-corename=FILE    what is the name of the core image to dump
+  --with-coredest=DIR     what is the destination of the dumped core image
+  --with-gnome-entry-dir=[PATH]  path to the gnome WM entries directory.
+  --enable-compile-into-core=[yes|no]  compile to core
+
+
+Notes on installation :
+------------------------
+
+Eclipse can be run in one of two different organisations. Either
+eclipse is compiled into an imagefile or eclipse is compiled to fasl
+files which are loaded upon startup.
+
+The choice between the two is controlled by the configuration option
+`--enable-compile-into-core'. If this option is set to "no" eclipse
+will only compile to fasl files and no imagefile will be generated.
+
+This has implications for the installation procedure. If the fasl file
+organisation is used, eclipse will run off the fasl files as they were
+generated in the source directory. Only in the imagefile case will the
+`install' target generate a fully standalone installation that will be
+independent of the source directory.
+
+The actual values of the different eclipse specific options will be
+printed out as the last thing of running the configuration script.
 
 Core creation :
 ---------------
