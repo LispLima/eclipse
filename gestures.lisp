@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.21 2005/02/03 22:47:04 ihatchondo Exp $
+;;; $Id: gestures.lisp,v 1.22 2005/02/10 23:45:44 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -57,7 +57,9 @@
   (let* ((prefix (ecase mode (:undefine 'unrealize) (:define 'realize)))
 	 (macro (intern (format nil "~a-~a" prefix type))))
     `(with-slots (name modifiers default-modifiers-p action) ,stroke
-       (remhash name ,(if (eq type :keystroke) '*keystrokes* '*mousestrokes*))
+       ,(when (eql mode :undefine)
+	  `(remhash name
+	       ,(if (eq type :keystroke) '*keystrokes* '*mousestrokes*)))
        (loop with dpy = (xlib:drawable-display ,destination)
 	     with num-l = (kb:modifier->modifier-mask dpy :NUM-LOCK)
 	     with caps-l = (kb:modifier->modifier-mask dpy :CAPS-LOCK)
@@ -340,11 +342,10 @@
   (loop with map = *keystroke-map*
 	for mod in (stroke-modifiers (gethash :switch-win-up *keystrokes*))
 	for code = (unless (eq mod :and) (kb:keyname->keycodes dpy mod))
-	when code do
-	  (mapc #'(lambda (c)
-		    (setf (gethash (cons c #x8000) map)
-			  #'circulate-window-modifier-callback))
-		code))
+	when code do (mapc #'(lambda (c)
+			       (setf (gethash (cons c #x8000) map)
+				     #'circulate-window-modifier-callback))
+			   code))
   (xlib:grab-keyboard root-window)
   (unless *current-widget-info*
     (setf *current-widget-info* (create-message-box nil :parent root-window)))
@@ -360,8 +361,7 @@
     (loop with map = *keystroke-map*
 	  for mod in (stroke-modifiers (gethash :switch-win-up *keystrokes*))
 	  for code = (unless (eq mod :and) (kb:keyname->keycodes *display* mod))
-	  when code do
-	    (mapc #'(lambda (c) (remhash (cons c #x8000) map)) code))
+	  when code do (mapc #'(lambda (c) (remhash (cons c #x8000) map)) code))
     (let ((widget (lookup-widget (car *windows*))))
       (when widget (setf (application-wants-iconic-p widget) nil)))
     (xlib:unmap-window (widget-window *current-widget-info*))
@@ -373,8 +373,8 @@
     (with-slots ((root-win root)) event
       (unless *depth*
 	(initialize-circulate-window root-win (xlib:drawable-display root-win)))
-      (unless *windows* (return-from circulate-window-up-and-down nil))
       (setf *windows* (loop for w in *windows* if (lookup-widget w) collect w))
+      (unless *windows* (return-from circulate-window-up-and-down nil))
       (circulate-window
           (lookup-widget root-win)
 	  :direction direction
@@ -383,18 +383,16 @@
 	  :icon-p *cycle-icons-p*))
     (let* ((length (length *windows*))
 	   (depth-aux (mod *depth* length)))
-      (cond
-	((<= length 1) nil)
-	((and (eq direction :above) (= depth-aux 0))
-	 (setf (cdr (last *windows*)) (list (pop *windows*))))
-	((and (eq direction :below) (= depth-aux (1- length)))
-	 (let ((penultimate-cons (last *windows* 2)))
-	   (push (cadr penultimate-cons) *windows*)
-	   (setf (cdr penultimate-cons) nil)))
-	(t
-	 (when (eq direction :below) (incf depth-aux))
-	 (rotatef (nth 0 *windows*) (nth depth-aux *windows*)))))
-    (when (and *verbose-window-cycling* (car *windows*))
+      (cond ((and (eq direction :above) (= depth-aux 0))
+	     (setf (cdr (last *windows*)) (list (pop *windows*))))
+	    ((and (eq direction :below) (= depth-aux (1- length)))
+	     (let ((penultimate-cons (last *windows* 2)))
+	       (push (cadr penultimate-cons) *windows*)
+	       (setf (cdr penultimate-cons) nil)))
+	    (t
+	     (when (eq direction :below) (incf depth-aux))
+	     (rotatef (nth 0 *windows*) (nth depth-aux *windows*)))))
+    (when *verbose-window-cycling*
       (with-slots (window icon) (lookup-widget (car *windows*))
 	(setf (message-pixmap *current-widget-info*)
 	      (or (icon-pixmap-to-free icon)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.41 2005/01/16 23:25:59 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.42 2005/02/10 23:45:44 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -80,11 +80,12 @@
     (error 'exit-eclipse)))
 
 (defmethod event-process ((e property-notify) (w standard-property-holder))
-  (when (eql (event-atom e) :_net_active_window)
-    (let* ((window (netwm:net-active-window (widget-window w) :window-list t))
-	   (widget (lookup-widget window)))
-      (when (application-p widget)
-	(set-focus (application-input-model widget) window (event-time e))))))
+  (with-slots (atom time state event-window) e
+    (when (and (eql atom :_net_active_window) (eql state :new-value))
+      (let* ((window (netwm:net-active-window event-window :window-list t))
+	     (widget (lookup-widget window)))
+	(when (application-p widget)
+	  (set-focus (application-input-model widget) window time))))))
 
 ;;; Events for the root window
 
@@ -272,7 +273,10 @@
   (with-slots (master window) application
     (unless (eql (event-mode event) :grab)
       (when master (dispatch-repaint master :focus t))
-      (setf (netwm:net-active-window *root-window*) window))))
+      (setf (netwm:net-active-window *root-window*) window)
+      (xlib:delete-property
+          (widget-window (root-property-holder *root*))
+	  :_net_active_window))))
 
 (defmethod event-process ((event property-notify) (app application))
   (with-slots (window master type transient-for) app
