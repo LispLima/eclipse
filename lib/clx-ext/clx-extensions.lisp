@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: clx-extensions.lisp,v 1.8 2004/03/04 12:59:44 ihatchondo Exp $
+;;; $Id: clx-extensions.lisp,v 1.9 2004/03/08 23:37:15 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -135,10 +135,10 @@
 	  (xlib::get-best-authorization (machine-instance) dpy-num protocol))
 	(setf protocol :internet))
     (let ((display (xlib:open-display host-name
-				      :display dpy-num
-				      :protocol protocol
-				      :authorization-name auth-name
-				      :authorization-data auth-data)))
+		       :display dpy-num
+		       :protocol protocol
+		       :authorization-name auth-name
+		       :authorization-data auth-data)))
       (when screen-num
 	(let* ((screens (xlib:display-roots display))
 	       (num-screens (length screens)))
@@ -158,10 +158,10 @@
    But NO modifiers is equivalent to issuing the request for all possible
    modifier-key combinations (including the combination of no modifiers)."
   (xlib:grab-button window button event-mask
-		    :modifiers modifiers :owner-p owner-p
-		    :sync-pointer-p sync-pointer-p 
-		    :sync-keyboard-p sync-keyboard-p
-		    :confine-to confine-to :cursor cursor))
+      :modifiers modifiers :owner-p owner-p
+      :sync-pointer-p sync-pointer-p 
+      :sync-keyboard-p sync-keyboard-p
+      :confine-to confine-to :cursor cursor))
 
 (defun draw-glyphs (drawable gctxt x y seq
 		    &key (start 0) end 
@@ -170,9 +170,9 @@
   "The interpretation of the arguments is the same as with xlib:draw-glyphs.
    Only the default translate function differs."
   (xlib:draw-glyphs drawable gctxt x y seq
-		    :start start :end end
-		    :width width :size size
-		    :translate translate))
+      :start start :end end
+      :width width :size size
+      :translate translate))
 
 (defun translate (src src-start src-end afont dst dst-start)
   ;; This is for replacing the clx-translate-default-function who doesn't
@@ -228,16 +228,15 @@
   "Send a synthetic configure notify event to the given window (ICCCM 4.1.5)"
   (multiple-value-bind (x y)
       (xlib:translate-coordinates window 0 0 (xlib:drawable-root window))
-    (xlib:send-event window
-		     :configure-notify
-		     (xlib:make-event-mask :structure-notify)
-		     :event-window window :window window
-		     :x x :y y
-		     :override-redirect-p nil
-		     :border-width (xlib:drawable-border-width window)
-		     :width (xlib:drawable-width window)
-		     :height (xlib:drawable-height window)
-		     :propagate-p nil)))
+    (xlib:send-event window :configure-notify
+	(xlib:make-event-mask :structure-notify)
+	:event-window window :window window
+	:x x :y y
+	:override-redirect-p nil
+	:border-width (xlib:drawable-border-width window)
+	:width (xlib:drawable-width window)
+	:height (xlib:drawable-height window)
+	:propagate-p nil)))
 
 (defun wm-hints-icon-pixmap (window)
   (let ((hint (xlib:get-property window :WM_HINTS :result-type 'vector)))

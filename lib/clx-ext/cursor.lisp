@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: Clx-Extensions -*-
-;;; $Id: cursor.lisp,v 1.3 2003/12/03 14:32:38 ihatchondo Exp $
+;;; $Id: cursor.lisp,v 1.4 2004/03/08 23:37:15 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; This file is part of Eclipse. It gives an other (shortest) 
@@ -31,23 +31,29 @@
 
 (declaim (type (simple-array (or null xlib:cursor) *) *cursor-cache*))
 
-(defun cursor-key-name->cursor-font-index (cursor-key-name)
-  (let ((position (position cursor-key-name +cursors+)))
+(defun cursor-key-name->cursor-font-index (name &optional (cursors +cursors+))
+  "Returns the cursor font index of the specified cursor or NIL if not found.
+   - name: the name of the cursor to find.
+   - cursors (or list (simple-array * (*))): a cursor name collection.
+     Its default value is keyboard::+cursors+
+   Result is unpredictable if the type of name is not the same as the 
+   collection elements one."
+  (let ((position (position name cursors)))
     (and position (* 2 position))))
 
-(defun cache-cursor (index)
-  "return the cursor, or NIL, of index `index' from the cache."
+(defun lookup-cursor (index)
+  "Returns the cursor, or NIL, of index `index' from the cache."
   (aref *cursor-cache* (ash index -1)))
 
 (defsetf cache-cursor (index) (cursor)
-  "cache the given cursor of index `index'."
+  "Cache the given cursor of index `index'."
   `(setf (aref *cursor-cache* (ash ,index -1)) ,cursor))
 
-(defun get-x-cursor (display cursor-key-name &key reverse (cache t))
-  "Returns the cursor designed by `cursor-key-name' of the \"cursor\" font.
-  If :cache T then returns a cached (shared) cursor. Otherwise returns
-  a new allocated one (default value is T)."
-  (let ((i (cursor-key-name->cursor-font-index cursor-key-name)))
+(defun get-x-cursor (display cursor-name &key reverse (cache t))
+  "Returns the cursor designed by `cursor-name' of the \"cursor\" font.
+   If :cache T then returns a cached (shared) cursor. Otherwise returns
+   a new allocated one (default value is T)."
+  (let ((i (cursor-key-name->cursor-font-index cursor-name)))
     (unless +cursor-font+
       (setf +cursor-font+ (xlib:open-font display "cursor")))
     (flet ((make-cursor (index)
@@ -57,5 +63,5 @@
 	         :source-font +cursor-font+ :mask-font +cursor-font+
 		 :source-char index :mask-char (1+ index))))
       (if cache
-	  (or (cache-cursor i) (setf (cache-cursor i) (make-cursor i)))
+	  (or (lookup-cursor i) (setf (cache-cursor i) (make-cursor i)))
 	  (make-cursor i)))))

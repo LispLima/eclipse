@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: event.lisp,v 1.7 2004/08/08 12:30:43 ihatchondo Exp $
+;;; $Id: event.lisp,v 1.8 2005/01/05 00:23:57 ihatchondo Exp $
 ;;;
 ;;; Add on for CLX to have some CLOS events.
 ;;; This file is part of Eclipse.
@@ -20,7 +20,7 @@
 ;;; Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 (declaim (optimize (speed 3)
-		   (safety 3)
+		   (safety 0)
 		   (debug 0)
 		   (compilation-speed 0)))
 
@@ -41,22 +41,24 @@
 
 (defclass window-mixin ()
   ((window :initarg :window :initform nil :reader event-window)))
+
 (defclass coordinates-mixin ()
   ((x :initarg :x :reader event-x)
    (y :initarg :y :reader event-y)))
+
 (defclass size-mixin ()
   ((width :initarg :width :reader event-width)
    (height :initarg :height :reader event-height)))
+
 (defclass root-mixin ()
   ((root :initarg :root :reader event-root)
    (root-x :initarg :root-x :reader event-root-x)
    (root-y :initarg :root-y :reader event-root-y)))
+
 (defclass opcode-mixin () ;; for exopsure's
   ((drawable :initarg :drawable :reader event-drawable)
    (major :initarg :major :reader major)
    (minor :initarg :minor :reader minor)))
-
-;;; Keyboard and pointer events
 
 (defclass keyboard-pointer-event (event coordinates-mixin root-mixin)
   ((code :initarg :code :reader event-code)
@@ -64,16 +66,6 @@
    (time :initarg :time :reader event-time)
    (child :initarg :child :reader event-child)
    (same-screen-p :initarg :same-screen-p :reader event-same-screen-p)))
-
-(defclass pointer-event (keyboard-pointer-event) ())
-(defclass button-press (pointer-event) ())
-(defclass button-release (pointer-event) ())
-(defclass motion-notify (pointer-event)
-  ((hint-p :initarg :hint-p :reader event-hint-p)))
-
-(defclass keyboard-event (keyboard-pointer-event) ())
-(defclass key-press (keyboard-event) ())
-(defclass key-release (keyboard-event) ())
 
 (defclass in-out-window-event (event coordinates-mixin root-mixin)
   ((mode :initarg :mode :reader event-mode)
@@ -83,6 +75,19 @@
    (time :initarg :time :reader event-time)
    (child :initarg :child :reader event-child)
    (same-screen-p :initarg :same-screen-p :reader event-same-screen-p)))
+
+(defclass pointer-event (keyboard-pointer-event) ())
+(defclass keyboard-event (keyboard-pointer-event) ())
+
+;;; Keyboard and pointer events
+
+(defclass button-press (pointer-event) ())
+(defclass button-release (pointer-event) ())
+(defclass motion-notify (pointer-event)
+  ((hint-p :initarg :hint-p :reader event-hint-p)))
+
+(defclass key-press (keyboard-event) ())
+(defclass key-release (keyboard-event) ())
 
 (defclass leave-notify (in-out-window-event) ())
 (defclass enter-notify (in-out-window-event) ())
@@ -100,6 +105,7 @@
 
 (defclass keymap-notify (event)
   ((keymap :initarg :keymap :reader event-keymap)))
+
 (defclass mapping-notify (event)
   ((request :initarg :request :reader event-request)
    (start :initarg :start :reader event-start)
@@ -109,31 +115,49 @@
 
 (defclass exposure (event coordinates-mixin size-mixin)
   ((count :initarg :count :reader event-count)))
+
 (defclass no-exposure (event opcode-mixin) ())
+
 (defclass graphics-exposure  (exposure opcode-mixin) ())
 
 ;;; Window state events
 
 (defclass circulate-notify (event window-mixin)
   ((place :initarg :place :reader event-window-place)))
+
 (defclass configure-notify (event coordinates-mixin size-mixin window-mixin)
   ((border-width :initarg :border-width :reader event-border-width)
    (above-sibling :initarg :above-sibling :reader event-above-sibling)
-   (override-redirect-p :initarg :override-redirect-p :reader event-override-redirect-p)))
+   (override-redirect-p
+     :initarg :override-redirect-p
+     :reader event-override-redirect-p)))
+
 (defclass create-notify (event coordinates-mixin size-mixin window-mixin)
   ((parent :initarg :parent :reader event-parent)
    (border-width :initarg :border-width :reader event-border-width)
-   (override-redirect-p :initarg :override-redirect-p :reader event-override-redirect-p)))
+   (override-redirect-p
+     :initarg :override-redirect-p
+     :reader event-override-redirect-p)))
+
 (defclass map-notify (event window-mixin)
-  ((override-redirect-p :initarg :override-redirect-p :reader event-override-redirect-p)))
+  ((override-redirect-p
+     :initarg :override-redirect-p
+     :reader event-override-redirect-p)))
+
 (defclass reparent-notify (event coordinates-mixin window-mixin)
   ((parent :initarg :parent :reader event-parent)
-   (override-redirect-p :initarg :override-redirect-p :reader event-override-redirect-p)))
+   (override-redirect-p
+     :initarg :override-redirect-p
+     :reader event-override-redirect-p)))
+
 (defclass unmap-notify (event window-mixin)
   ((configure-p :initarg :configure-p :reader event-configure-p)))
+
 (defclass visibility-notify (event)
   ((state :initarg :state :reader event-state)))
+
 (defclass destroy-notify (event window-mixin) ())
+
 (defclass gravity-notify (event coordinates-mixin window-mixin) ())
 
 ;;; Structure control event
@@ -142,13 +166,17 @@
   ((colormap :initarg :colormap :reader event-colormap)
    (new-p :initarg :new-p :reader event-new-p)
    (installed-p :initarg :installed-p :reader event-installed-p)))
+
 (defclass configure-request (event coordinates-mixin size-mixin window-mixin)
   ((border-width :initarg :border-width  :reader event-border-width)
    (stack-mode :initarg :stack-mode :reader event-stack-mode)
    (above-sibling :initarg :above-sibling :reader event-above-sibling)
    (value-mask :initarg :value-mask :reader event-value-mask)))
+
 (defclass map-request (event window-mixin) ())
+
 (defclass resize-request (event size-mixin window-mixin) ())
+
 (defclass circulate-request (circulate-notify) ())
 
 ;;; Client communications events
@@ -157,32 +185,24 @@
   ((type :initarg :type :reader event-type)
    (format :initarg :format :reader event-data-format)
    (data :initarg :data :reader event-data)))
+
 (defclass property-notify (event)
   ((atom :initarg :atom :reader event-atom)
    (state :initarg :state :reader event-state)
    (time :initarg :time :reader event-time)))
+
 (defclass selection-clear (event)
   ((selection :initarg :selection :reader event-selection)
    (time :initarg :time :reader event-time)))
+
 (defclass selection-notify (selection-clear)
   ((target :initarg :target :reader event-target)
    (property :initarg :property :reader event-property)))
+
 (defclass selection-request (selection-notify)
   ((requestor :initarg :requestor :reader event-requestor)))
 
 ) ;; End eval-when.
-
-;;; 
-
-;(defmacro define-event (name
-;			(&rest super-classes)
-;			(&rest slots)
-;			(&key documentation))
-;  `(progn
-;     (defclass ,name ,super-classes ,slots (:documentation ,documentation))
-;     (xlib:declare-event :,name
-;       ,(loop for 
-;     ))
 
 ;;; We use resourcing in get-next-event.
 
