@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-lib.lisp,v 1.2 2004/03/02 19:14:26 ihatchondo Exp $
+;;; $Id: ICE-lib.lisp,v 1.3 2004/03/08 17:50:23 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -19,6 +19,8 @@
 ;;;
 
 (in-package :ICE-LIB)
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
 
 (defclass ice-connection () 
   ((input-buffer 
@@ -56,6 +58,7 @@
      :initform nil :initarg :stream :type stream
      :accessor connection-stream)
    ))
+) ;; End eval-when.
 
 (deftype handlers () '(simple-array (simple-array (or null function) (*)) (*)))
 
