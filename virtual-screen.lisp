@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.20 2004/03/08 23:40:34 ihatchondo Exp $
+;;; $Id: virtual-screen.lisp,v 1.21 2004/03/10 17:13:14 ihatchondo Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -113,7 +113,7 @@
 		(setf (application-wants-focus-p widget) t))))
 	  (xlib:set-input-focus *display* :pointer-root :pointer-root)
 	  (xlib:with-server-grabbed (*display*)
-	    (with-pointer-grabbed (rw nil)
+	    (with-pointer-grabbed (rw (xlib:make-event-mask))
 	      (map-or-unmap-vscreen #'xlib:unmap-window cur)
 	      (map-or-unmap-vscreen #'xlib:map-window new))))
 	(setf (gnome:win-workspace rw) new
@@ -175,7 +175,7 @@
 	  (first (lookup-widget (car windows))))
       ;; Grab the pointer to avoid enter notify events race concurrence
       ;; between the window hierarchy change and the warp-pointer call.
-      (with-pointer-grabbed ((widget-window root) nil)
+      (with-pointer-grabbed ((widget-window root) (xlib:make-event-mask))
 	(when (and (/= length 1) icon-p (application-wants-iconic-p first))
 	  (iconify first))
 	(flet ((set-window-priority (window sibling priority)

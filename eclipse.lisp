@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.20 2004/06/18 22:01:53 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.21 2004/11/30 23:48:10 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -221,7 +221,8 @@
   ;; This is for releasing any previous pointer grab.
   (ignore-errors
     (grab-root-pointer)
-    (xlib:ungrab-pointer *display*))
+    (xlib:display-finish-output *display*))
+  (xlib:ungrab-pointer *display*)
 
   ;; Create a socket connection to communicate with the window manager.
   ;; Works only for CMUCL -x86- (unless you compile this mp package).

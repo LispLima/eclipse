@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.44 2004/03/15 00:00:22 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.45 2004/03/19 15:09:45 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -83,10 +83,9 @@
   (with-slots (window frame-style) master
     (let* ((app-win (get-child master :application :window t))
 	   (netwm-prop (netwm:net-wm-state app-win))
-	   (gnome-prop (or (gnome:win-state app-win :result-type t) 0))
-	   (shaded-p (member :_net_wm_state_shaded netwm-prop)))
+	   (gnome-prop (or (gnome:win-state app-win :result-type t) 0)))
       (setf gnome-prop (logand gnome-prop #x3DF)) ; supress :win_state_shaded
-      (if shaded-p
+      (if (member :_net_wm_state_shaded netwm-prop)
 	  (with-event-mask (window) 
 	    ;; unshade.
 	    (xlib:map-window app-win)
@@ -281,7 +280,7 @@
 	      (slot-value title 'parent) parent-window
 	      (getf children :title-bar) title
 	      (xlib:window-background parent-window) :parent-relative
-	      (xlib:window-event-mask parent-window) nil)
+	      (xlib:window-event-mask parent-window) 0)
 	(if horizontal-p 
 	    (setf (slot-value title 'hmargin) (+ bcw mbw))
 	    (setf (slot-value title 'vmargin) (+ bch mbh)))
@@ -811,7 +810,7 @@
 		(2 (when (root-sm-conn *root*)
 		     (close-sm-connection *root* :exit-p nil))
 		   (xlib:display-finish-output *display*)
-		   (setf (xlib:window-event-mask *root-window*) '())
+		   (setf (xlib:window-event-mask *root-window*) 0)
 		   (let ((win (netwm:net-supporting-wm-check *root-window*)))
 		     (xlib:destroy-window win))
 		   (xlib:display-finish-output *display*)
