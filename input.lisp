@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.10 2003/09/07 01:37:34 hatchond Exp $
+;;; $Id: input.lisp,v 1.11 2003/09/10 23:55:17 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -145,7 +145,7 @@
     (case type
       ((or :_WIN_WORKSPACE :_NET_CURRENT_DESKTOP)
        (with-slots (window) root
-	 (unless (= (number-of-virtual-screens window) (aref data 0))
+	 (unless (= (current-vscreen window) (aref data 0))
 	   (change-vscreen root :n (aref data 0)))))
       (:_NET_NUMBER_OF_DESKTOPS 
        (setf (number-of-virtual-screens) (aref data 0)))
@@ -296,8 +296,8 @@
 
 (defmethod event-process ((event focus-in) (application application))
   (with-slots (master window) application
-    (when (and master (not (eql (event-mode event) :ungrab)))
-      (dispatch-repaint master :focus t)
+    (unless (eql (event-mode event) :ungrab)
+      (when master (dispatch-repaint master :focus t))
       (setf (netwm:net-active-window *root-window*) window))))
 
 (defmethod event-process ((event property-notify) (app application))
@@ -319,7 +319,7 @@
 
 (defmethod event-process ((event client-message) (application application))
   (with-slots (data type) event
-    (with-slots (master window) application
+    (with-slots (master window iconic-p icon) application
       (case type
 	(:_WIN_STATE
 	 (let* ((to-change (aref data 0))
@@ -376,6 +376,10 @@
 		 (xlib:map-window (or master-window window))
 		 (with-event-mask (*root-window*)
 		   (xlib:unmap-window (or master-window window)))))))
+	(:_NET_ACTIVE_WINDOW
+	 (cond ((shaded-p application) (shade application))
+	       (iconic-p (uniconify icon)))
+	 (focus-widget application nil))
 	(:WM_CHANGE_STATE
 	 (when (= 3 (aref data 0)) (iconify application)))))))
 
