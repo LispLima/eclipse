@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.37 2004/02/16 11:01:24 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.38 2004/02/17 12:48:39 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -124,7 +124,8 @@
 		wm-size-hints (recompute-wm-normal-hints app-win hm vm))
 	  (let ((width (+ (xlib:drawable-width app-win) hm))
 		(height (+ (xlib:drawable-height app-win) vm)))
-	    (setf (window-position app-win) (values left-margin top-margin)
+	    (setf (xlib:window-background window) (style-background frame-style)
+		  (window-position app-win) (values left-margin top-margin)
 		  (drawable-sizes window) (values width height))
 	    (make-edges master)
 	    (make-corner master width height)
