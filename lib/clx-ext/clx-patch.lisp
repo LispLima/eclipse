@@ -1,8 +1,10 @@
 ;;; -*- Mode: Lisp -*-
-;;; $Id: clx-patch.lisp,v 1.1 2002/11/07 14:22:42 hatchond Exp $
+;;; $Id: clx-patch.lisp,v 1.2 2003/06/11 18:29:23 hatchond Exp $
 ;;;
 ;;; This file contains the patch fixing a bug in CLX as distributed
 ;;; with vanilla CMUCL versions up to 18d.
+
+(in-package :xlib)
 
 (xlib:declare-event :configure-request
   ((xlib::data (xlib::member8 :above :below :top-if :bottom-if :opposite))
@@ -48,3 +50,4 @@ Indeed O or 1 are inappropriated ID's.
 	  (1 :pointer-root)
 	  (t (xlib::lookup-window display id))))
       (xlib::member8-get 1 :none :pointer-root :parent))))
+

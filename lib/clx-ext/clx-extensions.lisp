@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: $
+;;; $Id: clx-extensions.lisp,v 1.1 2002/11/07 14:22:42 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -46,8 +46,9 @@
   (let ((original-mask (gensym)))
     `(let ((,original-mask (xlib:window-event-mask ,window)))
        (unwind-protect
-	 (setf (xlib:window-event-mask ,window) ,ev-mask)
-	 ,@body
+	    (progn 
+	      (setf (xlib:window-event-mask ,window) ,ev-mask)
+	      ,@body)
 	 (setf (xlib:window-event-mask ,window) ,original-mask)))))
 
 (defun get-environment-variable (&optional (string "DISPLAY"))
@@ -70,10 +71,11 @@
   (unless string (error "No display specification available"))
   (let* ((string (coerce string 'simple-string))
 	 (length (length string))
-	 (host-name "unix")
+	 (host-name "")
+	 (protocol #+sbcl :local #-sbcl :unix)
 	 (auth-name nil)
 	 (auth-data nil)
-	 (display-num nil)
+	 (dpy-num nil)
 	 (screen-num nil))
     (declare (simple-string string))
     (let* ((colon (position #\: string :test #'char=))
@@ -88,15 +90,17 @@
 	    (t
 	     (unless (zerop colon) (setf host-name (subseq string 0 colon)))
 	     (incf colon)
-	     (setf display-num (parse-integer string :start colon :end dot))
+	     (setf dpy-num (parse-integer string :start colon :end dot))
 	     (when dot
 	       (setf screen-num
 		     (parse-integer string :start (1+ dot) :end dot-2))))))
-    (if (equal host-name "unix")
+    (if (or (equal host-name "unix") (equal host-name ""))
 	(multiple-value-setq (auth-name auth-data)
-	  (xlib::get-best-authorization (machine-instance) display-num :tcp)))
+	  (xlib::get-best-authorization (machine-instance) dpy-num protocol))
+	(setf protocol :internet))
     (let ((display (xlib:open-display host-name
-				      :display display-num
+				      :display dpy-num
+				      :protocol protocol
 				      :authorization-name auth-name
 				      :authorization-data auth-data)))
       (when screen-num

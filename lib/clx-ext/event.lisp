@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: event.lisp,v 1.1 2002/11/07 14:22:42 hatchond Exp $
+;;; $Id: event.lisp,v 1.2 2003/03/16 00:34:38 hatchond Exp $
 ;;;
 ;;; Add on for CLX to have some CLOS events.
 ;;; This file is part of Eclipse.
@@ -185,12 +185,26 @@
 
 (defun initialize-event-table ()
   (loop for event-key across
-	   (the (simple-array keyword (*)) xlib::*event-key-vector*)
-	when event-key do 
-	  (setf (gethash event-key *events*) 
-		(make-instance (intern (symbol-name event-key))))))
+	   (the (simple-array (or null keyword) (*)) xlib::*event-key-vector*)
+	for symbol = (intern (symbol-name event-key))
+	when (and event-key (find-class symbol nil)) do
+	  (setf (gethash event-key *events*) (make-instance symbol))))
 
 (initialize-event-table)
+
+(defgeneric make-event (event-key &rest args)
+  (:documentation "returns an new event of type given by event-key"))
+
+(defgeneric re-initialize-event (event-key &rest args)
+  (:documentation "re-initialize the event of type given by event-key"))
+
+(defmethod make-event (event-key &rest args)
+  (declare (ignorable args))
+  (values))
+
+(defmethod re-initialize-event (event-key &rest args)
+  (declare (ignorable args))
+  (values))
 
 ;;; Macro constructor
 
@@ -213,13 +227,8 @@
   #+lucid `(clos:slot-definition-initargs ,slot)
   #+sbcl `(slot-value ,slot 'sb-pcl::initargs))
 
-(defmacro class-initargs (foo)
-  `(mapcar #'(lambda (slot) (car (slot-initargs slot)))
-           (class-slots (typecase ,foo
-			  (class ,foo)
-			  (keyword (find-class (intern (symbol-name ,foo))))
-			  (symbol (find-class ,foo))
-			  (t (class-of ,foo))))))
+(defmacro class-initargs (class)
+  `(loop for slot in (class-slots ,class) collect (car (slot-initargs slot))))
 
 (defmacro keywds->names (keywords)
   `(mapcar #'(lambda (k) (intern (symbol-name k))) ,keywords))
@@ -227,8 +236,9 @@
 (macrolet ((define-make-event-function ()
   `(values
     ,@(loop for event-key across xlib::*event-key-vector*
-	    for initargs = (when event-key (class-initargs event-key))
-	    when event-key
+	    for class = (find-class (intern (symbol-name event-key)) nil)
+	    for initargs = (when class (class-initargs class))
+	    when class
 	    collect
 	    `(defmethod make-event ((,(gensym) (eql ,event-key))
 				    &key ,@(keywds->names initargs)
@@ -251,10 +261,22 @@
 ;;;; New event-processing function
 
 (defun clos-event-handler (&rest event-slots &key event-key &allow-other-keys)
+  "This display event handler returns an event object of type given by 
+   EVENT-KEY. It use only one instance of each event type, by reinitializing 
+   them each time it receive an event. Returns nil if no object can be found."
   (apply #'re-initialize-event event-key event-slots))
 
 (defun get-next-event (display &key timeout peek-p discard-p (force-output-p t))
-  (xlib:display-finish-output display)
+  "If force-output-p is true, first invokes display-force-output. Invokes 
+   clos-event-handler on the first queued event, and returns event object.
+   If such an object can not be found (i.e.: does not have a corresponding 
+   class) invokes clos-event-handler on the next queued event and so on.
+   If peek-p is true, then the event is not removed from the queue.  
+   If discard-p is true, then events for which event-clos-handler returns nil
+   (i.e.: event who do not have a corresponding class) are removed from the 
+   queue, otherwise they are left in place.
+   Hangs until non-nil is generated for some event, or for the specified 
+   timeout (in seconds, if given); Returns nil on timeout."
   (xlib:process-event display :handler #'clos-event-handler
 		      :timeout timeout :peek-p peek-p
 		      :discard-p discard-p :force-output-p force-output-p))
