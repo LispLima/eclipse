@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.34 2004/01/23 15:41:43 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.35 2004/02/12 23:30:22 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -391,7 +391,7 @@
 	      (t (values x y))))
 	  (multiple-value-bind (x y) (window-position app-window)
 	    (values (max 0 (- x left-margin)) (max 0 (- y top-margin))))))))
-  
+
 (defun make-decoration (app-window application &key theme)
   (unless theme (setf theme (root-decoration-theme *root*)))
   (let* ((dstyle (find-decoration-frame-style theme app-window))
@@ -567,21 +567,30 @@
   (xlib:ungrab-pointer *display*)
   t)
 
-(defmethod menu-3-process ((ev motion-notify) (ap application) &key key)
-  (when (application-active-p ap)
-    (when (eql key :move)
-      (activate-move-resize ap *root* 'move-status *move-mode* *verbose-move*))
-    t))
+(defmethod menu-3-process ((event button-release) (app application) &key key)
+  (declare (ignorable event))
+  (cond ((eql key :move) (finish-move app *verbose-move* *move-mode*)))
+  (call-next-method))
+
+(defmethod menu-3-process ((ev button-release) (dec decoration) &key key)
+  (cond	((eql key :resize) (finish-resize dec *verbose-resize* *resize-mode*))
+	((eql key :move) (finish-move dec *verbose-resize* *resize-mode*)))
+  (call-next-method))
+
+(defmethod menu-3-process ((ev motion-notify) (app application) &key key)
+  (when (eql key :move)
+    (activate-move-resize app *root* 'move-status *move-mode* *verbose-move*)
+    (application-active-p app)))
 
 (defmethod menu-3-process ((ev motion-notify) (master decoration) &key key)
-  (when (decoration-active-p master)
-    (cond ((eql key :resize)
-	   (activate-move-resize
-	       master *root* 'resize-status *resize-mode* *verbose-resize*))
-	  ((eql key :move)
-	   (activate-move-resize
-	       master *root* 'move-status *move-mode* *verbose-move*)))
-    t))
+  (when (or (eql key :resize) (eql key :move))
+    (multiple-value-call #'activate-move-resize
+      master *root*
+      (cond ((eql key :resize)
+	     (values 'resize-status *resize-mode* *verbose-resize*))
+	    ((eql key :move)
+	     (values 'move-status *move-mode* *verbose-move*))))
+    (decoration-active-p master)))
 
 (defmethod menu-3-process ((event enter-notify) (app application) &rest rest)
   (declare (ignorable event rest))
