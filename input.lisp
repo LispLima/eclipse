@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.38 2004/03/31 10:02:59 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.39 2004/11/30 23:48:10 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -292,8 +292,8 @@
     (declare (type client-message-data data))
     (with-slots (master window iconic-p icon) application
       (case (event-type event)
-	(:WM_CHANGE_STATE (when (= 3 (aref data 0)) (iconify application)))
-	(:_WIN_STATE
+	(:wm_change_state (when (= 3 (aref data 0)) (iconify application)))
+	(:_win_state
 	 (let* ((to-change (aref data 0))
 		(mask (or (gnome:win-state window :result-type t) 0))
 		(new-mask (logior (logandc1 (aref data 0) mask)
@@ -312,7 +312,7 @@
 	   (when (logbitp 3 to-change) (maximize-window application 3))
 	   ;; win_state_shaded
 	   (when (and (logbitp 5 to-change) master) (shade master))))
-	(:_NET_WM_STATE
+	(:_net_wm_state
          (let ((mode (aref data 0))
 	       (p (netwm:net-wm-state window))
 	       (p1 (id->atom-name (aref data 1)))
@@ -345,11 +345,7 @@
 	       (when (or-eql :_net_wm_state_below p1 p2)
 		 (set-netwm-state :_net_wm_state_below mode)
 		 (put-on-bottom application))))))
-	(:_NET_ACTIVE_WINDOW
-	 (cond ((shaded-p application) (shade application))
-	       (iconic-p (uniconify icon)))
-	 (focus-widget application nil))
-	(:_NET_MOVERESIZE_WINDOW
+	(:_net_moveresize_window
 	 (let ((value-mask (logand #x0F (ash (aref data 0) -8)))
 	       (gravity (logand #xFF (aref data 0))))
 	   (configure-window window
@@ -361,8 +357,15 @@
 			(svref '#(:unmap :north-west :north :north-east :west
 				  :center :east :south-west :south :south-east
 				  :static) gravity)))))
-	(:_NET_WM_DESKTOP (migrate-application application (aref data 0)))
-	(:_NET_CLOSE_WINDOW (close-widget application))))))
+	(:_net_restack_window
+	 (let ((sibling (xlib::lookup-window *display* (aref data 1))))
+	   (configure-window window :stack-mode :above :sibling sibling)))
+	(:_net_active_window
+	 (cond ((shaded-p application) (shade application))
+	       (iconic-p (uniconify icon)))
+	 (focus-widget application nil))
+	(:_net_wm_desktop (migrate-application application (aref data 0)))
+	(:_net_close_window (close-widget application))))))
 
 ;;; Events for buttons
 

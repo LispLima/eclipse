@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.25 2004/05/21 11:38:53 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.26 2004/11/30 23:48:10 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -34,9 +34,10 @@
     :_win_workspace_names))
 (defconstant +netwm-protocol+
   '(:_net_client_list :_net_client_list_stacking :_net_number_of_desktops
-    :_net_current_desktop :_net_active_window :_net_close_window :_net_wm_state
-    :_net_wm_desktop :_net_wm_window_type :_net_desktop_names :_net_wm_strut
-    :_net_wm_strut_partial :_net_workarea :_net_moveresize_window
+    :_net_current_desktop :_net_active_window :_net_close_window :_net_workarea
+    :_net_wm_desktop :_net_wm_window_type :_net_desktop_names
+    :_net_restack_window :_net_moveresize_window
+    :_net_wm_strut_partial :_net_wm_state :_net_wm_strut
     :_net_wm_window_type_desktop :_net_wm_window_type_dock
     :_net_wm_window_type_toolbar :_net_wm_window_type_menu
     :_net_wm_window_type_utility :_net_wm_window_type_splash
@@ -106,7 +107,7 @@
   \(aka `icon-sort-creation-order'\).")
 
 (defsetf font-name () (name)
-  "Set the title bar font to the font named by `name'.
+  "Sets the title bar font to the font named by `name'.
   The following pattern characters can be used for wildcard matching:
    #\* Matches any sequence of zero or more characters. 
    #\? Matches any single character."
@@ -134,7 +135,7 @@
 	      ,modifier-key (kb:modifiers))))
     
 (defmacro deftypedparameter (type symbol value &optional documentation)
-  "define a parameter with the same syntax and behavior as defparameter 
+  "Defines a parameter with the same syntax and behavior as defparameter 
   except that its type must be given first."
   `(progn
      (defparameter ,symbol ,value ,documentation)
@@ -186,7 +187,8 @@
 (defun get-username ()
   "Returns the real user name (a string) associated with the current process."
   #+sbcl (sb-unix:uid-username (sb-unix:unix-getuid))
-  #+cmu18e (unix:user-info-name (unix:unix-getpwuid (unix:unix-getuid)))
+  #+(or cmu18e cmu19) (unix:user-info-name
+		       (unix:unix-getpwuid (unix:unix-getuid)))
   #+allegro-v6.2 (excl.osi:pwent-name (excl.osi:getpwent (excl.osi:getuid)))
   #-(or sbcl cmu allegro-v6.2) "nobody")
 
