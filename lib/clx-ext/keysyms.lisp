@@ -1,9 +1,9 @@
 ;;; -*- Mode: Lisp; Package: Keyboard -*-
-;;; $Id: keysyms.lisp,v 1.5 2004/03/01 14:54:04 ihatchondo Exp $
+;;; $Id: keysyms.lisp,v 1.6 2005/01/15 12:27:00 ihatchondo Exp $
 ;;;
 ;;; This is a CLX extension for managing keyboard.
 ;;;
-;;; Copyright (C) 2002 Iban HATCHONDO, Gilbert BAUMANN
+;;; Copyright (C) 2002 Iban HATCHONDO, Gilbert BAUMANN
 ;;; contact : hatchond@yahoo.fr
 ;;;           unk6@rz.uni-karlsruhe.de
 ;;;

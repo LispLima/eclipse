@@ -1,9 +1,9 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.5 2004/01/16 15:46:25 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.6 2004/03/01 14:54:04 ihatchondo Exp $
 ;;;
 ;;; This is the CLX extensions package definition.
 ;;;
-;;; Copyright (C) 2002 Iban HATCHONDO
+;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
 ;;;
 ;;; This program is free software; you can redistribute it and/or

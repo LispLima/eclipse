@@ -1,9 +1,9 @@
 ;;; -*- Mode: Lisp; Package: GNOME -*-
-;;; $Id: gnome-manager.lisp,v 1.3 2004/03/01 14:54:02 ihatchondo Exp $
+;;; $Id: gnome-manager.lisp,v 1.4 2004/05/10 22:20:56 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
-;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
+;;; Copyright (C) 2001, 2002, 2003, 2004 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
 ;;;
 ;;; This program is free software; you can redistribute it and/or

@@ -1,9 +1,9 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.18 2004/05/10 22:20:56 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.19 2005/01/05 22:19:51 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
-;;; Copyright (C) 2002 Iban HATCHONDO
+;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
 ;;;
 ;;; This program is free software; you can redistribute it and/or
