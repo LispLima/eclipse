@@ -1,5 +1,5 @@
 .TH Eclipse 1 "(c) 2001 Iban HATCHONDO"
-.\"$Id: eclipse.1,v 1.9 2003/10/09 11:40:39 ihatchondo Exp $
+.\"$Id: eclipse.1,v 1.10 2003/12/02 19:07:07 ihatchondo Exp $
 
 .SH NAME
 eclipse - a window manager in Common Lisp
@@ -217,10 +217,14 @@ Sets the font used in title bar to display the application title.
 The following pattern characters can be used for wildcard matching:
  \fB#\\*\fP Matches any sequence of zero or more characters. 
  \fB#\\?\fP  Matches any single character. 
-
 For example, the pattern "T?mes Roman" matches the name "Times Roman"
 but not the name "Thames Roman". However, the pattern "T*mes Roman"
 matches both names. 
+.TP
+.B\-(setf maximize-modifier) value\ \fImodifier keyword\fP
+Sets the modifier key that will be use to decide if we should maximize
+the window (when pressing on the maximize button of a frame) with the
+*maximize-fill*, if not down, or with (not *maximize-fill*), if down.
 
 .SH THEMES
 The image file format is \fBpnm P6\fP.

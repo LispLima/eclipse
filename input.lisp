@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.24 2003/11/28 10:13:47 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.25 2003/12/08 15:02:41 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -428,7 +428,13 @@
 (defmethod event-process ((event button-release) (max-b maximize-button))
   (when (< (event-code event) 4)
     (with-slots (master) max-b
-      (maximize-window (get-child master :application)  (event-code event)))
+      (let ((state (event-state event)) 
+	    (fill-p *maximize-fill*)
+	    (mod (kb:modifier->modifier-mask *display* *maximize-modifer*)))
+	(unless (eq 0 (logand mod state))		       
+	  (setf fill-p (not *maximize-fill*)))
+	(maximize-window
+	 (get-child master :application) (event-code event) :fill-p fill-p)))
     (when (eq *focus-type* :on-click) (focus-widget max-b 0))))
 
 ;; Initialize the resize process.

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.14 2003/11/24 13:12:26 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.15 2003/12/02 19:07:06 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -80,6 +80,9 @@
 (defparameter *move-mode* :opaque "values are: :box :opaque")
 (defparameter *resize-mode* :opaque "values are: :box :opaque")
 (defparameter *focus-type* :none "values are: :none :on-click")
+(defparameter *maximize-modifer* :SHIFT-LEFT 
+  "If modifier is down when pressing on a maximize button then it will be 
+  equivalent to maximizing the window with (not *maximize-fill*).")
 (defparameter *maximize-fill* nil
  "Indicate if the action of maximizing window should making it filling whether
  the largest area around (excluding overlapped windows) or screen area.")
@@ -117,6 +120,12 @@
 	       finally (and ,free-old-theme-p (free-theme old-name))))
        (setf decoration-theme theme))))
 
+(defsetf maximize-modifier () (modifier-key)
+  `(if (member ,modifier-key (kb:modifiers))
+       (setf *maximize-modifer* ,modifier-key)
+       (error "Invalid modifier key: ~a is not a (member ~a)~%"
+	      ,modifier-key (kb:modifiers))))
+    
 (defmacro deftypedparameter (type symbol value &optional documentation)
   "define a parameter with the same syntax and behavior as defparameter 
   except that its type must be given first."
