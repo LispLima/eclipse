@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: Clx-Extensions -*-
-;;; $Id: cursor.lisp,v 1.1 2002/11/07 14:22:42 hatchond Exp $
+;;; $Id: cursor.lisp,v 1.2 2003/09/16 21:32:53 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; This file is part of Eclipse. It gives an other (shortest) 
@@ -23,26 +23,37 @@
 
 (in-package :clx-extensions)
 
-(defvar +cursor-table+ (make-hash-table))
 (defvar +cursor-font+ nil)
 (defvar +clx-color-black+ (xlib:make-color :red 0 :green 0 :blue 0))
 (defvar +clx-color-white+ (xlib:make-color :red 1 :green 1 :blue 1))
 
-(defun define-glyph-cursor (cursor-key-name font-index)
-  (setf (gethash cursor-key-name +cursor-table+) font-index))
+(defvar *cursor-cache* (make-array 128 :initial-element nil))
 
 (defun cursor-key-name->cursor-font-index (cursor-key-name)
-  (gethash cursor-key-name +cursor-table+))
+  (let ((position (position cursor-key-name +cursors+)))
+    (and position (* 2 position))))
 
-(defun get-x-cursor (display cursor-key-name &key reverse)
-  "Returns the cursor designed by `cursor-key-name' of the \"cursor\" font."
-  (let ((index (cursor-key-name->cursor-font-index cursor-key-name)))
+(defun cache-cursor (index)
+  "return the cursor, or NIL, of index `index' from the cache."
+  (aref *cursor-cache* (ash index -1)))
+
+(defsetf cache-cursor (index) (cursor)
+  "cache the given cursor of index `index'."
+  `(setf (aref *cursor-cache* (ash ,index -1)) ,cursor))
+
+(defun get-x-cursor (display cursor-key-name &key reverse (cache t))
+  "Returns the cursor designed by `cursor-key-name' of the \"cursor\" font.
+  If :cache T then returns a cached (shared) cursor. Otherwise returns
+  a new allocated one (default value is T)."
+  (let ((i (cursor-key-name->cursor-font-index cursor-key-name)))
     (unless +cursor-font+
       (setf +cursor-font+ (xlib:open-font display "cursor")))
-    (xlib:create-glyph-cursor
-        :source-font +cursor-font+
-	:mask-font +cursor-font+
-	:source-char index
-	:mask-char (1+ index)
-	:foreground (if reverse +clx-color-white+ +clx-color-black+)
-	:background (if reverse +clx-color-black+ +clx-color-white+))))
+    (flet ((make-cursor (index)
+	     (xlib:create-glyph-cursor
+		 :foreground (if reverse +clx-color-white+ +clx-color-black+)
+		 :background (if reverse +clx-color-black+ +clx-color-white+)
+	         :source-font +cursor-font+ :mask-font +cursor-font+
+		 :source-char index :mask-char (1+ index))))
+      (if cache
+	  (or (cache-cursor i) (setf (cache-cursor i) (make-cursor i)))
+	  (make-cursor i)))))
