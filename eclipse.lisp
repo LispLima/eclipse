@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.9 2003/09/30 12:18:36 hatchond Exp $
+;;; $Id: eclipse.lisp,v 1.10 2003/10/06 17:57:26 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -63,10 +63,10 @@
 
     ;; Check if a non ICCCM complient window manager is not running.
     (flet ((handle-redirect-error (condition)
-	   (declare (ignorable condition))
-	   (format *error-output* "Redirect error - another WM is running~%")
-	   (xlib:close-display display)
-	   (%quit%)))
+	     (declare (ignorable condition))
+	     (format *error-output* "Redirect error - another WM is running~%")
+	     (xlib:close-display display)
+	     (%quit%)))
       (handler-bind ((error #'handle-redirect-error)) ; xlib:access-error
 	(setf (xlib:window-event-mask root-window)
 	      '(:substructure-redirect :button-press :button-release
