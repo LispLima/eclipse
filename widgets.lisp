@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.2 2002/12/18 10:50:49 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.3 2003/03/16 00:57:02 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -214,10 +214,13 @@
 (defmethod remove-desktop-application ((root root) (desktop base-widget))
   (setf (root-desktop root) (delete desktop (root-desktop root))))
 
-(defun dismiss-move (root)
-  (with-slots (move-status current-active-decoration) root
-    (when (and (eql *move-mode* :opaque) move-status)
+(defun dismiss-move-resize (root)
+  (with-slots (resize-status move-status current-active-decoration) root
+    (when *verbose-move* (undraw-geometry-info-box))
+    (when (or (and (eql *move-mode* :opaque) move-status)
+	      (and (eql *resize-mode* :opaque) resize-status))
       (setf move-status nil
+	    resize-status nil
 	    current-active-decoration nil)
       (xlib:ungrab-pointer *display*))))
 
