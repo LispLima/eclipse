@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PPM -*-
-;;; $Id: image-reader.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
+;;; $Id: image-reader.lisp,v 1.1 2002/11/07 14:23:31 hatchond Exp $
 ;;;
 ;;; This a ppm image reader for CLX
 ;;; This file is part of Eclipse
@@ -73,7 +73,8 @@
    (max :initarg :max :type card-8 :accessor picture-max)
    (data :initarg :data :accessor picture-data)))
 
-(defmethod initialize-instance :after ((image picture) &rest)
+(defmethod initialize-instance :after ((image picture) &rest rest)
+  (declare (ignore rest))
   (with-slots (width height data) image
     (declare (type picture-size width height))
     (when (typep image 'colored-24)

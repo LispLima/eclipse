@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: $
+;;; $Id: widgets.lisp,v 1.1 2002/11/07 15:06:03 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -138,7 +138,8 @@
   ((window :initarg :window :reader widget-window)
    (gcontext :initarg :gcontext :reader widget-gcontext :allocation :class)))
 
-(defmethod initialize-instance :after ((widget base-widget) &rest)
+(defmethod initialize-instance :after ((widget base-widget) &rest rest)
+  (declare (ignore rest))
   (setf (gethash (widget-window widget) *widget-table*) widget))
 
 (defgeneric remove-widget (widget))
