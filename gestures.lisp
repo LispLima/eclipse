@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.8 2003/09/30 12:18:36 hatchond Exp $
+;;; $Id: gestures.lisp,v 1.9 2003/10/06 17:57:26 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -329,6 +329,7 @@
 
 (defvar *depth* nil)
 (defvar *current-widget-info* nil)
+(defvar *windows* nil)
 
 (defun initialize-circulate-window (root-window dpy)
   "Initialize gestures internal hooks before circulating windows."
@@ -341,7 +342,9 @@
   (xlib:grab-keyboard root-window)
   (unless *current-widget-info*
     (setf *current-widget-info* (create-message-box nil :parent root-window)))
-  (setf *depth* 0))
+  (let ((i (current-vscreen root-window)))
+    (setf *windows* (reverse (get-screen-content i :iconify-p *cycle-icons-p*))
+	  *depth* 0)))
 
 (defun circulate-window-modifier-callback (event)
   (when (typep event 'key-release)
@@ -351,30 +354,43 @@
 	  for code = (unless (eq mod :and) (kb:keyname->keycodes *display* mod))
 	  when code
 	  do (remhash (cons (if (listp code) (car code) code) #x8000) map))
-    (let ((widget (lookup-widget (input-focus *display*))))
+    (let ((widget (lookup-widget (car *windows*))))
       (when widget (setf (application-wants-iconic-p widget) nil)))
     (xlib:unmap-window (widget-window *current-widget-info*))
-    (setf *depth* nil)))
+    (setf *depth* nil *windows* nil)))
 
-(defun circulate-window-up-and-down (event dir)
-  "Make window circulating according to the `dir' argument (or :above :below)."
+(defun circulate-window-up-and-down (event direction)
+  "Circulate windows according to the `direction' argument (or :above :below)."
   (when (typep event 'key-press)
     (with-slots ((root-win root)) event
       (unless *depth*
 	(initialize-circulate-window root-win (xlib:drawable-display root-win)))
-      (if (eq dir :above) (incf *depth*) (decf *depth*))
-      (let ((widget (circulate-window
-			(lookup-widget root-win)
-			:direction dir
-			:nth *depth*
-			:icon-p *cycle-icons-p*)))
-	(when (and *verbose-window-cycling* widget)
-	  (with-slots (window)
-	      (if (decoration-p widget) (get-child widget :application) widget)
-	    (setf (message-pixmap *current-widget-info*)
-		  (clx-ext::wm-hints-icon-pixmap window))
-	    (setf (button-item-to-draw *current-widget-info*) (wm-name window)))
-	  (with-slots (window) *current-widget-info*	  
-	    (xlib:map-window window)
-	    (setf (xlib:window-priority window) :above)
-	    (repaint *current-widget-info* nil nil)))))))
+      (unless *windows* (return-from circulate-window-up-and-down nil))
+      (circulate-window
+          (lookup-widget root-win)
+	  :direction direction
+	  :nth (if (eq direction :above) (incf *depth*) (decf *depth*))
+	  :windows *windows*
+	  :icon-p *cycle-icons-p*))
+    (let* ((length (length *windows*))
+	   (depth-aux (mod *depth* length)))
+      (cond
+	((<= length 1) nil)
+	((and (eq direction :above) (= depth-aux 0))
+	 (setf (cdr (last *windows*)) (list (pop *windows*))))
+	((and (eq direction :below) (= depth-aux (1- length)))
+	 (let ((penultimate-cons (last *windows* 2)))
+	   (push (cadr penultimate-cons) *windows*)
+	   (setf (cdr penultimate-cons) nil)))
+	(t
+	 (when (eq direction :below) (incf depth-aux))
+	 (rotatef (nth 0 *windows*) (nth depth-aux *windows*)))))
+    (when (and *verbose-window-cycling* (car *windows*))
+      (with-slots (window) (lookup-widget (car *windows*))
+	(setf (message-pixmap *current-widget-info*)
+	      (clx-ext::wm-hints-icon-pixmap window))
+	(setf (button-item-to-draw *current-widget-info*) (wm-name window)))
+      (with-slots (window) *current-widget-info*	  
+	(xlib:map-window window)
+	(setf (xlib:window-priority window) :above)
+	(repaint *current-widget-info* nil nil)))))

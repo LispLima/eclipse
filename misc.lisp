@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.11 2003/09/16 14:47:12 hatchond Exp $
+;;; $Id: misc.lisp,v 1.12 2003/10/06 17:57:26 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -31,6 +31,10 @@
 
 
 ;;;; Helpers macros.
+
+(defmacro with-gensym (symbols &body body)
+  `(let ,(loop for s in symbols collect `(,s (gensym)))
+     ,@body))
 
 (defmacro screen-width ()
   `(xlib:screen-width (xlib:display-default-screen *display*)))
@@ -142,13 +146,62 @@
 		   :format 32
 		   :data (cons (atom-name->id atom) data)))
 
+(defun screen-windows-layers (window &aux (i (window-desktop-num window)))
+  "Returns, as multiple value, three window lists that corresponds to the
+  three layers (:_net_wm_state_below none :_net_wm_state_above) of the
+  virtual screen that the given `window' argument belongs to. The given
+  window will be filtered."
+  (loop with n = (if (eql i +any-desktop+) (current-desk) i)
+	for w in (get-screen-content n)
+        for nwm-state = (netwm:net-wm-state w)
+        unless (xlib:window-equal w window)
+          if (member :_net_wm_state_above nwm-state) collect w into aboves
+	  else if (member :_net_wm_state_below nwm-state) collect w into belows
+	  else collect w into no-stack-state
+        finally (return (values belows no-stack-state aboves))))
+
 (defsetf window-priority (window &optional sibling) (priority)
-  "Set the window priority such as (setf xlib:window-priority) but 
-  also invoke update-client-list-stacking to reflect the priority
-  change in all the root properties that are involved in."
-  `(progn
-     (setf (xlib:window-priority ,window ,sibling) ,priority)
-     (update-client-list-stacking *root*)))
+  "Set the window priority such as if done by (setf xlib:window-priority) and
+  guaranty that stacking order constraints described in the extended window
+  manager protocol will be respected. Then invokes update-client-list-stacking
+  to reflect the new order in all the root properties that are involved in."
+  (with-gensym (above-p wnwm-state snwm-state win sib b m a %priority)
+    `(flet ((lookup-app-w (widget)
+	      (when (decoration-p widget)
+		(get-child widget :application :window t)))
+	    (first (windows &optional above-p)
+	      (car (if above-p (last windows) windows))))
+       (let* ((,%priority ,priority)
+	      (,win (or (lookup-app-w (lookup-widget ,window)) ,window))
+	      (,sib (or (lookup-app-w (lookup-widget ,sibling)) ,sibling))
+	      (,above-p (eq ,priority :above))
+	      (,wnwm-state (netwm:net-wm-state ,win))
+	      (,snwm-state (and ,sib (netwm:net-wm-state ,sib))))
+	 (if (not (application-p (lookup-widget ,win)))
+	     (setf (xlib:window-priority ,window ,sibling) ,priority)
+	     (multiple-value-bind (,b ,m ,a) (screen-windows-layers ,win)
+	       (cond ((member :_net_wm_state_below ,wnwm-state)
+		      (unless (member ,sib ,b)
+			(setf ,sib (first (or ,b ,m ,a) (and ,b ,above-p)))
+			(unless ,b (setf ,%priority :below))))
+		     ((member :_net_wm_state_above ,wnwm-state)
+		      (unless (member ,sib ,a)
+			(unless (member :_net_wm_state_fullscreen ,snwm-state)
+			  (setf ,sib (first ,a ,above-p))
+			  (unless ,a (setf ,%priority :above)))))
+		     ((member :_net_wm_state_fullscreen ,wnwm-state)
+		      (when (member ,sib ,b)
+			(setf ,sib (first (or ,m ,a)))
+			(setf ,%priority :below)))
+		     ((not (member ,sib ,m))
+		      (setf ,sib (first (or ,m ,b ,a) (if ,m ,above-p ,b)))
+		      (unless ,m (setf ,%priority (if ,b :above :below)))))
+	       (when (and ,sib (application-master (lookup-widget ,sib)))
+		 (with-slots (master) (lookup-widget ,sib)
+		   (setf ,sib (widget-window master))))
+	       (when (or ,b ,m ,a)
+		 (setf (xlib:window-priority ,window ,sib) ,%priority)
+		 (update-client-list-stacking *root*))))))))
 
 (defun grab-root-pointer (&key cursor owner-p confine-to)
   (xlib:grab-pointer
@@ -217,8 +270,7 @@
   (car (member name (application-list) :test #'equal :key #'application-name)))
 
 (defun application-class (app)
-  (multiple-value-bind (name type)
-      (xlib:get-wm-class (widget-window app))
+  (multiple-value-bind (name type) (xlib:get-wm-class (widget-window app))
     (cons name type)))
 
 (defun application-class-name (app)

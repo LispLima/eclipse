@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.9 2003/10/06 17:57:26 ihatchondo Exp $
+;;; $Id: virtual-screen.lisp,v 1.10 2003/10/09 11:39:41 ihatchondo Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -129,14 +129,16 @@
 	  (unless given-p
 	    (xlib:set-input-focus *display* :pointer-root :pointer-root))))
 
-(defmethod circulate-window ((root root) &key direction (nth 0) icon-p)
-  (let* ((wins (reverse (get-screen-content (current-desk) :iconify-p icon-p)))
-	 (length (length wins)))
-    (or wins (return-from circulate-window nil))
+(defmethod circulate-window
+    ((root root) &key direction (nth 0) icon-p windows (desk (current-desk)))
+  (unless windows
+    (setf windows (reverse (get-screen-content desk :iconify-p icon-p))))
+  (or windows (return-from circulate-window nil))
+  (let ((length (length windows)))
     (setf nth (mod nth length))
     (let ((above-p (eq direction :above))
-	  (focus-dest (nth nth wins))
-	  (first (lookup-widget (car wins))))
+	  (focus-dest (nth nth windows))
+	  (first (lookup-widget (car windows))))
       ;; Grab the pointer to avoid enter notify events race concurrence
       ;; between the window hierarchy change and the warp-pointer call.
       (with-pointer-grabbed ((widget-window root) nil)
@@ -151,15 +153,15 @@
 		 (setf (window-priority window sibling) priority)))
 	  (cond ((= length 1) (set-window-priority focus-dest nil :above))
 		((= nth 0)
-		 (let ((sibling (if above-p (last wins) (cdr wins))))
-		   (set-window-priority (car wins) (car sibling) :below)
-		   (setf focus-dest (second wins))))
+		 (let ((sibling (if above-p (last windows) (cdr windows))))
+		   (set-window-priority (car windows) (car sibling) :below)
+		   (setf focus-dest (second windows))))
 		((or (and (= nth (1- length)) (not above-p))
 		     (and (= nth 1) above-p))
 		 (set-window-priority focus-dest nil :above))
 		(t (unless above-p
-		     (setf focus-dest (nth (incf nth) wins)))
-		   (set-window-priority (car wins) focus-dest :below)
+		     (setf focus-dest (nth (incf nth) windows)))
+		   (set-window-priority (car windows) focus-dest :below)
 		   (set-window-priority focus-dest nil :above))))
 	(with-slots (master) (setf focus-dest (lookup-widget focus-dest))
 	  (when (and icon-p (application-iconic-p focus-dest))
@@ -168,6 +170,6 @@
 	  (when master (setf focus-dest master)))
 	(when *warp-pointer-when-cycle*
 	  (xlib:warp-pointer (widget-window focus-dest) 8 5)))
-      (when (and (eq *focus-type* :on-click) *focus-when-window-cycle*)
+      (when *focus-when-window-cycle*
 	(focus-widget focus-dest 0))
       focus-dest)))

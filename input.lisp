@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.19 2003/10/09 11:38:18 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.20 2003/10/12 21:59:17 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -361,10 +361,15 @@
 	       (maximize-window application 3))
 	     (when (and master (or-eql :_net_wm_state_shaded p1 p2))
 	       (shade master))
-	     (when (or-eql :_net_wm_state_above p1 p2)
-	       (put-on-top application))
-	     (when (or-eql :_net_wm_state_below p1 p2)
-	       (put-on-bottom application)))))
+	     (flet ((set-stack-state (s)
+		      (setf (netwm:net-wm-state window)
+			    (if (= 0 mode) (remove s p) (pushnew s p)))))
+	       (when (or-eql :_net_wm_state_above p1 p2)
+		 (set-stack-state :_net_wm_state_above)
+		 (put-on-top application))
+	       (when (or-eql :_net_wm_state_below p1 p2)
+		 (set-stack-state :_net_wm_state_below)
+		 (put-on-bottom application))))))
 	(:_NET_WM_DESKTOP
 	 (let* ((cur-desk (window-desktop-num window))
 		(new-desk (aref data 0))
