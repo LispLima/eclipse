@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: themer.lisp,v 1.5 2003/09/08 12:58:05 hatchond Exp $
+;;; $Id: themer.lisp,v 1.6 2003/09/30 12:18:36 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -39,6 +39,11 @@
      :type keyword
      :initarg :title-bar-position
      :reader style-title-bar-position)
+   (background 
+     :initform :parent-relative
+     :type (or (member :none :parent-relative) xlib:pixel xlib:pixmap)
+     :initarg :background
+     :reader style-background)
    (parts-to-redraw-on-focus
      :initform nil
      :type list
@@ -247,6 +252,15 @@
   (when (probe-file fname)
     (xlib:image-pixmap window (ppm:load-ppm-into-clx-image fname window))))
 
+(defun make-background (background window directory)
+  (let ((screen (car (xlib:display-roots (xlib:drawable-display window)))))
+    (etypecase background
+      (string (load-pnm->pixmap directory background window))
+      ((or integer (member :none :parent-relative)) background)
+      (null :parent-relative)
+      (xlib:color 
+       (xlib:alloc-color (xlib:screen-default-colormap screen) background)))))
+
 (defun find-decoration-frame-style (theme window)
   (with-slots (default-style transient-style) theme
     (if (ignore-errors (window-transient-p window))
@@ -351,48 +365,55 @@
 		  vmargin (+ top-margin bottom-margin))))
 
        (parse-args (args)
-	 (destructuring-bind (style
-			      (&key (title-bar-position :top))
-			      (&key parts-to-redraw-on-focus)
-			      &rest rest) 
-	     args
-	   (list style 
-		 title-bar-position
-		 (if (eq parts-to-redraw-on-focus :all)
-		     (loop for (key nil) in rest
-			   when (eq key title-bar-position) 
-			   do (setq key :title-bar) end
-			   unless (eq key :custom) collect key)
-		     parts-to-redraw-on-focus)
-		 rest))))
+	 (destructuring-bind (style &rest options) args
+	   (let (background title-bar-position parts-to-redraw-on-focus items)
+	     (loop for option in options
+		   if (listp (car option)) do (setf items option)
+		   else do (case (car option)
+			     (:title-bar-position
+			      (setf title-bar-position (cadr option)))
+			     (:parts-to-redraw-on-focus 
+			      (setf parts-to-redraw-on-focus (cadr option)))
+			     (:background (setf background (cadr option)))))
+	     (list style 
+		   (or title-bar-position :top)
+		   (or background :parent-relative)
+		   (if (eq parts-to-redraw-on-focus :all)
+		       (loop for (key nil) in items
+			     when (eq key title-bar-position) 
+			     do (setq key :title-bar) end
+			     unless (eq key :custom) collect key)
+		       parts-to-redraw-on-focus)
+		   items)))))
 	 
-    (destructuring-bind ((style1 title-pos1 parts-to-redraw-on-focus1 items1)
-			 (style2 title-pos2 parts-to-redraw-on-focus2 items2))
+    (destructuring-bind
+	  ((style1 title-pos1 bkgrd1 parts-to-redraw-on-focus1 items1)
+	   (style2 title-pos2 bkgrd2 parts-to-redraw-on-focus2 items2))
 	(mapcar #'parse-args forms)
 
-      (let ((fs1 (gensym))
-	    (fs2 (gensym)))
-	`(defun initialize-frame (dir window)
-	   (let ((,fs1 ,(and items1 `(make-instance 
-				         ',(intern (symbol-name style1)
-						   "ECLIPSE-INTERNALS")
-				         :theme-name ,theme-name
-				         :title-bar-position ,title-pos1
-				         :parts-to-redraw-on-focus
-				         ',parts-to-redraw-on-focus1)))
-		 (,fs2 ,(and items2 `(make-instance
-				         ',(intern (symbol-name style2)
-						   "ECLIPSE-INTERNALS")
-				         :theme-name ,theme-name
-				         :title-bar-position ,title-pos2
-				         :parts-to-redraw-on-focus
-				         ',parts-to-redraw-on-focus2))))
-	     ,(unless items2 `(declare (ignorable ,fs2)))
-	     ,(when items1 (define-style fs1 items1 `dir `window))
-	     ,(when items2 (define-style fs2 items2 `dir `window fs1))
-	     (setf (gethash ,theme-name eclipse::*themes*)
-		   (make-instance 'eclipse::theme 
-				  :name ,theme-name 
-				  ,@(and style1 `(,style1 ,fs1))
-				  ,@(and style2 `(,style2 ,fs2))))))))))
+      `(defun initialize-frame (dir window)
+	 (let ((fs1 ,(and items1 
+			  `(make-instance 
+			    ',(intern (symbol-name style1) "ECLIPSE-INTERNALS")
+			    :theme-name ,theme-name
+			    :title-bar-position ,title-pos1
+			    :background (make-background ,bkgrd1 window dir)
+			    :parts-to-redraw-on-focus
+			    ',parts-to-redraw-on-focus1)))
+	       (fs2 ,(and items2 
+			  `(make-instance
+			    ',(intern (symbol-name style2) "ECLIPSE-INTERNALS")
+			    :theme-name ,theme-name
+			    :title-bar-position ,title-pos2
+			    :background (make-background ,bkgrd2 window dir)
+			    :parts-to-redraw-on-focus
+			    ',parts-to-redraw-on-focus2))))
+	   ,(unless items2 `(declare (ignorable fs2)))
+	   ,(when items1 (define-style `fs1 items1 `dir `window))
+	   ,(when items2 (define-style `fs2 items2 `dir `window `fs1))
+	   (setf (gethash ,theme-name eclipse::*themes*)
+		 (make-instance 'eclipse::theme 
+				:name ,theme-name 
+				,@(and style1 `(,style1 fs1))
+				,@(and style2 `(,style2 fs2)))))))))
 

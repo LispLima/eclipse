@@ -10,46 +10,44 @@
 
 (define-theme ("brushed-metal")
   ((:default-style
-     ()
      (:parts-to-redraw-on-focus :all)
-     (:top ("top-i" "top-a"))
-     (:top-left ("top-left-i" "top-left-a"))
-     (:top-right ("top-right-i" "top-right-a"))
-     (:menu-button ("menu-button-i"
-		    "menu-button-a"
-		    "menu-button-i-clicked"
-		    "menu-button-a-clicked"))
-     (:close ("close-i"
-	      "close-a"
-	      "close-i-clicked"
-	      "close-a-clicked"))
-     (:icon-b ("minimize-i"
-	       "minimize-a"
-	       "minimize-i-clicked"
-	       "minimize-a-clicked"))
-     (:maximize ("maximize-i"
-		 "maximize-a"
-		 "maximize-i-clicked"
-		 "maximize-a-clicked"))
-     (:bottom ("bottom-i" "bottom-a"))
-     (:bottom-right ("bottom-right-i" "bottom-right-a"))
-     (:bottom-left ("bottom-left-i" "bottom-left-a"))
-     (:right ("right-i" "right-a"))
-     (:left ("left-i" "left-a"))
-     (:custom ("title-left-i" "title-left-a" "title-right-i" "title-right-a"))
-     )
+     ((:top ("top-i" "top-a"))
+      (:top-left ("top-left-i" "top-left-a"))
+      (:top-right ("top-right-i" "top-right-a"))
+      (:menu-button ("menu-button-i"
+		     "menu-button-a"
+		     "menu-button-i-clicked"
+		     "menu-button-a-clicked"))
+      (:close ("close-i"
+	       "close-a"
+	       "close-i-clicked"
+	       "close-a-clicked"))
+      (:icon-b ("minimize-i"
+		"minimize-a"
+		"minimize-i-clicked"
+		"minimize-a-clicked"))
+      (:maximize ("maximize-i"
+		  "maximize-a"
+		  "maximize-i-clicked"
+		  "maximize-a-clicked"))
+      (:bottom ("bottom-i" "bottom-a"))
+      (:bottom-right ("bottom-right-i" "bottom-right-a"))
+      (:bottom-left ("bottom-left-i" "bottom-left-a"))
+      (:right ("right-i" "right-a"))
+      (:left ("left-i" "left-a"))
+      (:custom ("title-left-i" "title-left-a" "title-right-i" "title-right-a"))
+      ))
    (:transient-style
-     ()
      (:parts-to-redraw-on-focus :all)
-     (:top ("t-top-i" "t-top-a"))
-     (:top-left ("t-top-left-i" "t-top-left-a"))
-     (:top-right ("t-top-right-i" "t-top-right-a"))
-     (:bottom ("t-bottom-i" "t-bottom-a"))
-     (:bottom-right ("t-bottom-right-i" "t-bottom-right-a"))
-     (:bottom-left ("t-bottom-left-i" "t-bottom-left-a"))
-     (:right ("t-right-i" "t-right-a"))
-     (:left ("t-left-i" "t-left-a")))))
-
+     ((:top ("t-top-i" "t-top-a"))
+      (:top-left ("t-top-left-i" "t-top-left-a"))
+      (:top-right ("t-top-right-i" "t-top-right-a"))
+      (:bottom ("t-bottom-i" "t-bottom-a"))
+      (:bottom-right ("t-bottom-right-i" "t-bottom-right-a"))
+      (:bottom-left ("t-bottom-left-i" "t-bottom-left-a"))
+      (:right ("t-right-i" "t-right-a"))
+      (:left ("t-left-i" "t-left-a"))))))
+  
 (defun default-draw-on-focus-in (title-bar frame-style)
   (with-slots ((window eclipse::window)
 	       (item-to-draw eclipse::item-to-draw)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.31 2004/01/15 15:35:34 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.32 2004/01/20 16:10:00 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -376,7 +376,7 @@
 (defun make-decoration (application-window application)
   (let* ((theme (root-decoration-theme *root*))
 	 (style (find-decoration-frame-style theme application-window)))
-    (with-slots (hmargin vmargin left-margin top-margin) style
+    (with-slots (hmargin vmargin left-margin top-margin background) style
       (multiple-value-bind (wm-sizes gravity) 
 	  (recompute-wm-normal-hints application-window hmargin vmargin)
 	(multiple-value-bind (x y width height) 
@@ -385,7 +385,7 @@
 			    :parent (xlib:drawable-root application-window)
 			    :width (+ width hmargin)
 			    :height (+ height vmargin)
-			    :background :parent-relative
+			    :background background
 			    :event-mask +decoration-event-mask+
 			    :x (max 0 (- x left-margin))
 			    :y (max 0 (- y top-margin))

@@ -10,54 +10,51 @@
 
 (eclipse:define-theme ("microGUI")
   ((:default-style
-     ()
      (:parts-to-redraw-on-focus 
-       (:close :icon-b :maximize 
-	:title-bar :top-left :menu-button))
-     (:top ("center"))
-     (:menu-button ("menu-normal"
-		    "menu-active"
-		    "menu-normal-clicked"
-		    "menu-active-clicked"))
-     (:icon-b ("iconify-normal"
-	       "iconify-active"
-	       "iconify-normal-clicked"
-	       "iconify-active-clicked"))
-     (:maximize ("maximize-normal"
-		 "maximize-active"
-		 "maximize-normal-clicked"
-		 "maximize-active-clicked"))
-     (:close ("close-normal"
-	      "close-active"
-	      "close-normal-clicked"
-	      "close-active-clicked"))
-     (:top-left ("top-left-inactive" "top-left"))
-     (:top-right ("top-right"))
-     (:bottom ("bottom"))
-     (:bottom-right ("bottom-right"))
-     (:bottom-left ("bottom-left"))
-     (:right ("right"))
-     (:left ("left"))
-     (:custom ("top-curves-inactive"
-	       "top-curves" 
-	       "top-blue"
-	       "top-blue-inactive"))
-     )
+      (:close :icon-b :maximize :title-bar :top-left :menu-button))
+     ((:top ("center"))
+      (:menu-button ("menu-normal"
+		     "menu-active"
+		     "menu-normal-clicked"
+		     "menu-active-clicked"))
+      (:icon-b ("iconify-normal"
+		"iconify-active"
+		"iconify-normal-clicked"
+		"iconify-active-clicked"))
+      (:maximize ("maximize-normal"
+		  "maximize-active"
+		  "maximize-normal-clicked"
+		  "maximize-active-clicked"))
+      (:close ("close-normal"
+	       "close-active"
+	       "close-normal-clicked"
+	       "close-active-clicked"))
+      (:top-left ("top-left-inactive" "top-left"))
+      (:top-right ("top-right"))
+      (:bottom ("bottom"))
+      (:bottom-right ("bottom-right"))
+      (:bottom-left ("bottom-left"))
+      (:right ("right"))
+      (:left ("left"))
+      (:custom ("top-curves-inactive"
+		"top-curves" 
+		"top-blue"
+		"top-blue-inactive"))))
    (:transient-style
      (:title-bar-position :right)
      (:parts-to-redraw-on-focus (:close))
-     (:top ("t-top"))
-     (:close ("t-close-normal"
-	      "t-close-active"
-	      "t-close-normal-clicked"
-	      "t-close-active-clicked"))
-     (:top-left ("t-top-left"))
-     (:top-right ("t-top-right"))
-     (:bottom ("t-bottom"))
-     (:bottom-right ("t-bottom-right"))
-     (:bottom-left ("t-bottom-left"))
-     (:right ("t-right"))
-     (:left ("t-left")))))
+     ((:top ("t-top"))
+      (:close ("t-close-normal"
+	       "t-close-active"
+	       "t-close-normal-clicked"
+	       "t-close-active-clicked"))
+      (:top-left ("t-top-left"))
+      (:top-right ("t-top-right"))
+      (:bottom ("t-bottom"))
+      (:bottom-right ("t-bottom-right"))
+      (:bottom-left ("t-bottom-left"))
+      (:right ("t-right"))
+      (:left ("t-left"))))))
 
 (defun redraw-title-bar (button top-pix curv-pix)
   (with-slots ((window eclipse::window)

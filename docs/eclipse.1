@@ -1,5 +1,5 @@
 .TH Eclipse 1 "(c) 2001 Iban HATCHONDO"
-.\"$Id: eclipse.1,v 1.12 2004/01/12 11:22:06 ihatchondo Exp $
+.\"$Id: eclipse.1,v 1.13 2004/01/15 15:35:34 ihatchondo Exp $
 
 .SH NAME
 eclipse - a window manager in Common Lisp
@@ -360,8 +360,19 @@ themes for more):
 .in +3
 (:title-bar-position :right)
 .br
+;; The parts to redraw on focus designator can be:
+.br 
+;; - :all to indicate that all the style parts should be
+.br
+;;    redrawn when focus change.
+.br
+;; - or null or a list of keywords as follows.
+.br
 (:parts-to-redraw-on-focus (:close :top-left))
 .br
+(;; The following are the frame parts for the default style.
+.br
+.in +1
 (:top ("top"))
 .br
 (:close ("close-normal"
@@ -386,16 +397,37 @@ themes for more):
 .br
 (:right ("right"))
 .br
-(:left ("left")))
+(:left ("left"))))
 .br
-.in -2
+.in -3
 (:transient-style
-.in +2
+.in +3
+.br
+;; a background can be specified. It might be either:
+.br
+;; - an integer desining a color (e.g: an rgb value)
+.br
+;; - one of the :NONE :PARENT-RELATIVE keyword
+.br
+;; - a string that design a pnm file
+.br
+;; - a (xlib:make-color
+.br
+;;         :red <(real 0 1)>
+.br
+;;         :green <(real 0 1)>
+.br
+;;         :blue <(real 0 1)>)
+.br
+;;   form.
+.br
+(:background :parent-relative)
+.br
 .br
 ;; the rest of the definition
 .br
 )))
-.in -5
+.in -6
 
 (defmethod repaint ((widget title-bar) (name (eql "Foo")) (focus t))
   "handle repaint WHEN focused."

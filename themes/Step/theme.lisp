@@ -10,37 +10,34 @@
 
 (define-theme ("Step")
   ((:default-style
-     ()
      (:parts-to-redraw-on-focus (:close :title-bar :menu-button))
-     (:top ("top-inactive" "top-active"))
-     (:menu-button ("menu-button-inactive"
-		    "menu-button-active"
-		    "menu-button-inactive-clicked"
-		    "menu-button-active-clicked"))
-     (:close ("close-inactive"
-	      "close-active"
-	      "close-inactive-clicked"
-	      "close-active-clicked"))
-     (:bottom ("bottom"))
-     (:bottom-right ("bottom-right"))
-     (:bottom-left ("bottom-left"))
-     (:right ("side"))
-     (:left ("side"))
-     )
+     ((:top ("top-inactive" "top-active"))
+      (:menu-button ("menu-button-inactive"
+		     "menu-button-active"
+		     "menu-button-inactive-clicked"
+		     "menu-button-active-clicked"))
+      (:close ("close-inactive"
+	       "close-active"
+	       "close-inactive-clicked"
+	       "close-active-clicked"))
+      (:bottom ("bottom"))
+      (:bottom-right ("bottom-right"))
+      (:bottom-left ("bottom-left"))
+      (:right ("side"))
+      (:left ("side"))))
    (:transient-style
-     ()
      (:parts-to-redraw-on-focus (:close :title-bar :top-left))
-     (:close ("close-inactive"
-	      "close-active"
-	      "close-inactive-clicked"
-	      "close-active-clicked"))
-     (:top ("top-inactive" "top-active"))
-     (:top-left ("t-top-left-i" "t-top-left-a"))
-     (:bottom ("bottom"))
-     (:bottom-right ("bottom-right"))
-     (:bottom-left ("bottom-left"))
-     (:right ("side"))
-     (:left ("side")))))
+     ((:close ("close-inactive"
+	       "close-active"
+	       "close-inactive-clicked"
+	       "close-active-clicked"))
+      (:top ("top-inactive" "top-active"))
+      (:top-left ("t-top-left-i" "t-top-left-a"))
+      (:bottom ("bottom"))
+      (:bottom-right ("bottom-right"))
+      (:bottom-left ("bottom-left"))
+      (:right ("side"))
+      (:left ("side"))))))
 
 (defmethod repaint ((widget title-bar) (name (eql "Step")) (focus t))
   (declare (ignorable name focus))
