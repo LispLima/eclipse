@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.11 2003/12/08 15:01:02 ihatchondo Exp $
+;;; $Id: move-resize.lisp,v 1.12 2004/01/29 00:43:58 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -198,8 +198,8 @@
 		   (when (or (= corner 2) (= corner 3)) (incf y h))
 		   (aref (aref corners corner) (find x y rx ry w h)))))
 	(setf *card-point* (get-card x y root-x root-y width height))
-	(when (>= root-x (+ x (* 3 (floor width 4)))) (incf x width))
-	(when (>= root-y (+ y (* 3 (floor height 4)))) (incf y height))
+	(when (member *card-point* '(:ne :east :se)) (incf x width))
+	(when (member *card-point* '(:se :south :sw)) (incf y height))
 	(setf *delta-x* (- root-x x)
 	      *delta-y* (- root-y y))))))
 
