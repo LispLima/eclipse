@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.31 2004/01/22 22:02:54 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.32 2004/01/22 22:44:24 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -188,8 +188,8 @@
    (iconic-p :initform nil :accessor application-iconic-p)
    (wants-iconic-p :initform nil :accessor application-wants-iconic-p)
    (wants-focus-p :initform nil :accessor application-wants-focus-p)
-   (initial-geometry :initform (make-geometry))
-   (full-geometry :initform (make-geometry))
+   (initial-geometry :initform (make-geometry) :initarg :initial-geometry)
+   (full-geometry :initform (make-geometry) :initarg :full-geometry)
    (type :initarg :type :accessor application-type)))
 
 (defmethod remove-widget :after ((app application))
@@ -272,7 +272,7 @@
 	   (setf (drawable-sizes window) (geometry-sizes fgeometry))
 	   (unless (window-not-decorable-p window)
 	     (setf (decoration-frame-style master)
-		   (slot-value master 'old-frame-style)))	   
+		   (slot-value master 'old-frame-style)))
 	   (multiple-value-bind (x y) (geometry-coordinates fgeometry)
 	     (with-slots (window) (or master ,application)
 	       (configure-window window :x x :y y)))))
@@ -306,13 +306,26 @@
 	  ((and input-p (not take-focus-p)) :passive)
 	  ((and input-p take-focus-p) :locally-active))))
 
+(defun make-initital-geometry (window &optional (geometry (make-geometry)))
+  (multiple-value-bind (x y w h) (window-geometry window)
+    (let ((hint (ignore-errors (xlib:wm-normal-hints window))))
+      (setf (geometry geometry)
+	    (values (or (when hint (xlib:wm-size-hints-x hint)) x)
+		    (or (when hint (xlib:wm-size-hints-y hint)) y)
+		    (or (when hint (xlib:wm-size-hints-width hint)) w)
+		    (or (when hint (xlib:wm-size-hints-height hint)) h)))
+      geometry)))
+
 (defun create-application (window master)
   (let* ((input (find-input-model window))
 	 (type (ignore-errors (netwm:net-wm-window-type window)))
 	 (desktop-p (member :_net_wm_window_type_desktop type))
 	 (dock-p (member :_net_wm_window_type_dock type))
+	 (initial-geometry (make-initital-geometry window))
 	 (app (make-instance 'application
-		:window window :master master :input input :type type)))
+		:window window :master master :input input :type type
+		:initial-geometry initial-geometry
+		:full-geometry (copy-geometry initial-geometry))))
     (ignore-errors 
       (create-icon app master)
       (if (or desktop-p dock-p)
@@ -328,8 +341,6 @@
 	    (setf (netwm:net-wm-state window) netwm-state
 		  (window-desktop-num window) +any-desktop+))
 	  (grab-button window :any '(:button-press) :sync-pointer-p t))
-      (with-slots (initial-geometry) app
-	(setf (geometry initial-geometry) (window-geometry window)))
       (setf (xlib:window-event-mask window) +application-mask+))
     app))
 
