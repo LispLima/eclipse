@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.49 2005/02/10 23:45:44 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.50 2005/03/01 22:41:31 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -375,8 +375,13 @@
 	      (:south-west (values x  (- y vmargin)))
 	      (:static (values (- x left-margin) (- y top-margin)))
 	      (t (values x y))))
-	  (multiple-value-bind (x y) (window-position app-window)
-	    (values (max 0 (- x left-margin)) (max 0 (- y top-margin))))))))
+	  (let* ((n (or (window-desktop-num app-window) 0))
+		 (k (if (= +any-desktop+ n) 0 (* 4 n)))
+		 (areas (netwm:net-workarea *root-window*))
+		 (ax (aref areas k)) (ay (aref areas (1+ k))))
+	    (multiple-value-bind (x y) (window-position app-window)
+	      (values (max ax (- x left-margin))
+		      (max ay (- y top-margin)))))))))
 
 (defun make-decoration (app-window application &key theme)
   "Returns a newly initialized decoration to hold the given application."

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: system.lisp,v 1.14 2004/04/08 21:22:32 ihatchondo Exp $
+;;; $Id: system.lisp,v 1.15 2005/02/25 14:00:30 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -37,10 +37,11 @@
   #-:clx (require :clx)
   #-:loop (require :loop))
 
-;; For session management & connection.
+;;;; Load the ICE and SM lib systems for session management.
 
-(load "lib/ice/system.lisp")
-(load "lib/sm/system.lisp")
+(let ((dir (make-pathname :defaults cl-user::*eclipse-src-directory*)))
+  (load (merge-pathnames (parse-namestring "lib/ice/system.lisp") dir))
+  (load (merge-pathnames (parse-namestring "lib/sm/system.lisp") dir)))
 
 ;;;; ECLIPSE SYSTEM.
 
