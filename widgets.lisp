@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.11 2003/09/09 13:51:56 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.12 2003/09/12 01:17:53 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -282,8 +282,8 @@ the extended window manager specification."))
 	  (let* ((prec-desk (get-root-desktop *root* t))
 		 (stack-mode (if prec-desk :above :below))
 		 (netwm-state (ignore-errors (netwm:net-wm-state window))))
-	    (push :_net_wm_state_skip_pager netwm-state)
-	    (push :_net_wm_state_skip_taskbar netwm-state)
+	    (pushnew :_net_wm_state_skip_pager netwm-state)
+	    (pushnew :_net_wm_state_skip_taskbar netwm-state)
 	    (when desktop-p
 	      (add-desktop-application *root* app)
 	      (setf (window-priority window prec-desk) stack-mode))
