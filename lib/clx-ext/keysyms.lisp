@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: Keyboard -*-
-;;; $Id: keysyms.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
+;;; $Id: keysyms.lisp,v 1.1 2002/11/07 14:22:42 hatchond Exp $
 ;;;
 ;;; This is a CLX extension for managing keyboard.
 ;;;
@@ -33,13 +33,14 @@
    keyname->keycodes
    keycode->keyname
    modifier->modifier-mask
+   modifier-map-changed-p
    init-keyboard))
 
 (in-package :keyboard)
 
 (defvar *keyname->keysyms* (make-hash-table :test #'eq))
 (defvar *keysym->keyname* (make-hash-table :test #'eql))
-(defvar *modifier->modifier-mask* '(:any #x8000))
+(defvar *modifier->modifier-mask* nil)
 
 (defun define-keysym (name value)
   (pushnew name (gethash value *keysym->keyname* nil))
@@ -63,8 +64,18 @@
 (defsetf modifier->modifier-mask (disp mod) (value)
   `(setf (getf *modifier->modifier-mask* (keycode->keyname ,disp ,mod)) ,value))
 
-(defun init-keyboard (disp)
-  (loop for mods in (multiple-value-list (xlib:modifier-mapping disp))
+(defun make-modifier->mofier-mask (disp)
+  (loop with map = '(:any #x8000)
+	for mods in (multiple-value-list (xlib:modifier-mapping disp))
 	for i = 1 then (* 2 i) do
-	(loop for mod in mods do (setf (modifier->modifier-mask disp mod) i))))
+	(loop for mod in mods
+	      for key-name = (keycode->keyname disp mod)
+	      for prec = (getf map key-name) do
+	      (setf (getf map key-name) (+ (if (numberp prec) prec 0) i)))
+	finally (return map)))
 
+(defun modifier-map-changed-p (display)
+  (eql (make-modifier->mofier-mask display) *modifier->modifier-mask*))
+
+(defun init-keyboard (disp)
+  (setf *modifier->modifier-mask* (make-modifier->mofier-mask disp)))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: $
+;;; $Id: package.lisp,v 1.1 2002/11/07 14:22:42 hatchond Exp $
 ;;;
 ;;; This is the CLX extensions package definition.
 ;;;
@@ -47,11 +47,13 @@
    ;; events class name
    event
    keyboard-pointer-event
+   pointer-event
    button-press
    button-release
+   motion-notify
+   keyboard-event
    key-press
    key-release
-   motion-notify
    in-out-window-event
    leave-notify
    enter-notify

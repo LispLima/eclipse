@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: event.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
+;;; $Id: event.lisp,v 1.1 2002/11/07 14:22:42 hatchond Exp $
 ;;;
 ;;; Add on for CLX to have some CLOS events.
 ;;; This file is part of Eclipse.
@@ -63,11 +63,14 @@
    (child :initarg :child :reader event-child)
    (same-screen-p :initarg :same-screen-p :reader event-same-screen-p)))
 
-(defclass button-press (keyboard-pointer-event) ())
-(defclass button-release (keyboard-pointer-event) ())
-(defclass key-press (keyboard-pointer-event) ())
-(defclass key-release (keyboard-pointer-event) ())
-(defclass motion-notify (keyboard-pointer-event) ())
+(defclass pointer-event (keyboard-pointer-event) ())
+(defclass button-press (pointer-event) ())
+(defclass button-release (pointer-event) ())
+(defclass motion-notify (pointer-event) ())
+
+(defclass keyboard-event (keyboard-pointer-event) ())
+(defclass key-press (keyboard-event) ())
+(defclass key-release (keyboard-event) ())
 
 (defclass in-out-window-event (event coordinates-mixin root-mixin)
   ((mode :initarg :mode :reader event-mode)
