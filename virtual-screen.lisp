@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.10 2003/10/09 11:39:41 ihatchondo Exp $
+;;; $Id: virtual-screen.lisp,v 1.11 2003/11/13 11:12:28 ihatchondo Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -23,17 +23,23 @@
 
 ;;;; Private
 
-(defun window-belongs-to-vscreen-p (win scr-num iconify-p)
+(defun window-belongs-to-vscreen-p
+    (win scr-num iconify-p skip-taskbar skip-desktop skip-dock)
   (when (lookup-widget win)
     (let ((n (or (window-desktop-num win) -1))
 	  (wm-state (car (wm-state win)))
-	  (netwm-type (netwm:net-wm-window-type win)))
+	  (netwm-type (netwm:net-wm-window-type win))
+	  (netwm-state (netwm:net-wm-state win)))
       (and (or (= n scr-num) (= n +any-desktop+))
 	   (or (eq wm-state 1) (and iconify-p (eq wm-state 3)))
-	   (not (member :win_hints_skip_taskbar (gnome:win-hints win)))
-	   (not (member :_net_wm_state_skip_taskbar (netwm:net-wm-state win)))
-	   (not (member :_net_wm_window_type_desktop netwm-type))
-	   (not (member :_net_wm_window_type_dock netwm-type))))))
+	   (not (and skip-taskbar
+		     (member :_net_wm_state_skip_taskbar netwm-state)))
+	   (not (and skip-taskbar
+		     (member :win_hints_skip_taskbar (gnome:win-hints win))))
+	   (not (and skip-desktop
+		     (member :_net_wm_window_type_desktop netwm-type)))
+	   (not (and skip-dock
+		     (member :_net_wm_window_type_dock netwm-type)))))))
 
 (defun map-or-unmap-vscreen (fun scr-num)
   (loop for widget being each hash-value in *widget-table*
@@ -109,16 +115,28 @@
 			     (or (nth new (workspace-names window))
 				 (format nil "WORKSPACE ~D" new))))))))
 
-(defun get-screen-content (scr-num &key iconify-p)
+
+(defun screen-content (scr-num 
+		       &key (predicate #'window-belongs-to-vscreen-p) iconify-p
+		            (skip-taskbar t) (skip-desktop t) (skip-dock t))
   "Returns the list of application's windows that represent the contents
-  of the given virtual screen. Use :iconify-p t to includes iconfied windows"
-  (loop for win in (query-application-tree *root-window*)
-	when (window-belongs-to-vscreen-p win scr-num iconify-p) collect win))
+  of the given virtual screen. 
+   :iconify-p to include or not iconfied windows (default nil).
+   :skip-taskbar to include window with skip-taskbar hint (default t).
+   :skip-desktop to include window with desktop window type (default t).
+   :skip-dock to include window with dock window type (default t).
+   :predicate a function of six arguments:
+     window screen-number iconify-p skip-taskbar-p skip-desktop-p skip-dock-p."
+  (loop with i = (if (eql scr-num +any-desktop+) (current-desk) scr-num)
+	for w in (query-application-tree *root-window*)
+	when (funcall 
+	         predicate w i iconify-p skip-taskbar skip-desktop skip-dock)
+	collect w))
 
 (defun give-focus-to-next-widget-in-desktop ()
   "Gives the focus to the window that is on top of the stacking order."
   (loop	with given-p = nil
-	for window in (reverse (get-screen-content (current-desk)))
+	for window in (reverse (screen-content (current-desk)))
 	when (eq :viewable (xlib:window-map-state window))
 	do (with-slots (input-model) (lookup-widget window)
 	     (unless (eq input-model :no-input)
@@ -132,7 +150,7 @@
 (defmethod circulate-window
     ((root root) &key direction (nth 0) icon-p windows (desk (current-desk)))
   (unless windows
-    (setf windows (reverse (get-screen-content desk :iconify-p icon-p))))
+    (setf windows (reverse (screen-content desk :iconify-p icon-p))))
   (or windows (return-from circulate-window nil))
   (let ((length (length windows)))
     (setf nth (mod nth length))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.9 2003/10/06 17:57:26 ihatchondo Exp $
+;;; $Id: gestures.lisp,v 1.10 2003/11/13 11:12:28 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -343,7 +343,7 @@
   (unless *current-widget-info*
     (setf *current-widget-info* (create-message-box nil :parent root-window)))
   (let ((i (current-vscreen root-window)))
-    (setf *windows* (reverse (get-screen-content i :iconify-p *cycle-icons-p*))
+    (setf *windows* (reverse (screen-content i :iconify-p *cycle-icons-p*))
 	  *depth* 0)))
 
 (defun circulate-window-modifier-callback (event)

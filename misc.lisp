@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.12 2003/10/06 17:57:26 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.13 2003/11/13 11:12:28 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -152,7 +152,7 @@
   virtual screen that the given `window' argument belongs to. The given
   window will be filtered."
   (loop with n = (if (eql i +any-desktop+) (current-desk) i)
-	for w in (get-screen-content n)
+	for w in (screen-content n)
         for nwm-state = (netwm:net-wm-state w)
         unless (xlib:window-equal w window)
           if (member :_net_wm_state_above nwm-state) collect w into aboves
