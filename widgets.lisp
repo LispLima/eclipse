@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.29 2004/01/15 15:35:34 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.30 2004/01/20 16:10:00 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -249,6 +249,7 @@
   "Mode may be (or :on :off). Put or remove application in or from fullscreen."
   `(with-slots (window (fgeometry full-geometry) master icon) ,application
      (if (eq ,mode :on)
+	 ;; put in fullscreen mode.
 	 (with-event-mask (*root-window*)
 	   (multiple-value-bind (x y w h) (window-geometry window)
 	     (when master
@@ -265,16 +266,19 @@
 		     (xlib:xfree86-vidmode-get-viewport *display* scr))
 		   (setf w (xlib:mode-info-hdisplay ml)
 			 h (xlib:mode-info-vdisplay ml)))
-	         (setf x 0 y 0 w (screen-width) h (screen-height)))
+		 (setf x 0 y 0 w (screen-width) h (screen-height)))
 	     (configure-window window :x x :y y :width w :height h))
-	   (focus-widget application 0))
+	   (focus-widget ,application 0))
+	 ;; revert: restore precedent geometry and decoration style.
 	 (with-event-mask (*root-window*)
 	   (setf (drawable-sizes window) (geometry-sizes fgeometry))
 	   (unless (window-not-decorable-p window)
 	     (setf (decoration-frame-style master)
-		   (slot-value master 'old-frame-style)))
+		   (slot-value master 'old-frame-style)))	   
 	   (multiple-value-bind (x y) (geometry-coordinates fgeometry)
-	     (configure-window window :x x :y y))))
+	     (with-slots (window) (or master ,application)
+	       (configure-window window :x x :y y)))))
+     ;; reset appropriately _net_wm_state property.
      (let ((prop (netwm:net-wm-state window)))
        (if (eq ,mode :on)
 	   (pushnew :_net_wm_state_fullscreen prop)

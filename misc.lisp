@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.20 2004/01/20 13:08:46 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.21 2004/01/20 15:27:42 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -172,7 +172,8 @@
   is that of the root (irrespective of any reparenting that may have occurred).
   The coordinates will be updated according to the given gravity position hint,
   or to the most recently requested by the client."
-  (let* ((application (lookup-widget win))
+  (let* ((widget (lookup-widget win))
+	 (application (when (application-p widget) widget))
 	 (master (when application (application-master application)))
 	 (parent (when master (widget-window master)))
 	 (top-margin 0) (left-margin 0)
