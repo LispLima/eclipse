@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.18 2003/10/06 17:57:26 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.19 2003/10/09 11:38:18 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -478,4 +478,4 @@
 ;;; Events for Message Box
 
 (defmethod event-process ((event visibility-notify) (box box-button))
-  (setf (window-priority (widget-window box)) :above))
+  (setf (xlib:window-priority (widget-window box)) :above))
