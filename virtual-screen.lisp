@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.13 2003/11/24 13:12:01 ihatchondo Exp $
+;;; $Id: virtual-screen.lisp,v 1.14 2003/11/24 16:42:59 ihatchondo Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -117,11 +117,12 @@
 	      (map-or-unmap-vscreen #'xlib:map-window new))))
 	(setf (gnome:win-workspace window) new
 	      (netwm:net-current-desktop window) new)
+	(when (eq *focus-type* :on-click)
+	  (give-focus-to-next-widget-in-desktop))
 	(when *change-desktop-message-active-p*
 	  (timed-message-box window
 			     (or (nth new (workspace-names window))
 				 (format nil "WORKSPACE ~D" new))))))))
-
 
 (defun screen-content (scr-num 
 		       &key (predicate #'window-belongs-to-vscreen-p) iconify-p
@@ -142,17 +143,20 @@
 
 (defun give-focus-to-next-widget-in-desktop ()
   "Gives the focus to the window that is on top of the stacking order."
-  (loop	with given-p = nil
+  (loop	with focus-dest = nil
 	for window in (reverse (screen-content (current-desk)))
 	when (eq :viewable (xlib:window-map-state window))
-	do (with-slots (input-model) (lookup-widget window)
+	do (with-slots (input-model wants-focus-p) (lookup-widget window)
 	     (unless (eq input-model :no-input)
-	       (set-focus input-model window 0)
-	       (setf given-p t)
-	       (loop-finish)))
+	       (when wants-focus-p
+		 (setf focus-dest (lookup-widget window))
+		 (loop-finish))
+	       (unless focus-dest (setf focus-dest window))))
 	finally 
-	  (unless given-p
-	    (xlib:set-input-focus *display* :pointer-root :pointer-root))))
+	  (typecase focus-dest
+	    (application (put-on-top focus-dest))
+	    (xlib:window (focus-widget (lookup-widget focus-dest) 0))
+	    (t (xlib:set-input-focus *display* :pointer-root :pointer-root)))))
 
 (defmethod circulate-window
     ((root root) &key direction (nth 0) icon-p windows (desk (current-desk)))
