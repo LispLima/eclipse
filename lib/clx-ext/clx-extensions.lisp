@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: clx-extensions.lisp,v 1.7 2004/01/19 14:12:23 ihatchondo Exp $
+;;; $Id: clx-extensions.lisp,v 1.8 2004/03/04 12:59:44 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -241,5 +241,6 @@
 
 (defun wm-hints-icon-pixmap (window)
   (let ((hint (xlib:get-property window :WM_HINTS :result-type 'vector)))
+    (declare (type (simple-vector *) hint))
     (when (and hint (logbitp 2 (aref hint 0)))
       (xlib::lookup-pixmap (xlib:window-display window) (aref hint 3)))))

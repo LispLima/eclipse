@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Package: Clx-Extensions -*-
 ;;; Copyright 1987, 1998  The Open Group
-;;; $Id: cursordef.lisp,v 1.1 2002/11/07 14:22:42 hatchond Exp $
+;;; $Id: cursordef.lisp,v 1.2 2003/12/03 14:32:38 ihatchondo Exp $
 ;;;
 ;;; Permission to use, copy, modify, distribute, and sell this software and its
 ;;; documentation for any purpose is hereby granted without fee, provided that
@@ -25,6 +25,8 @@
 ;;; from The Open Group.
 
 (common-lisp:in-package :clx-extensions)
+
+(declaim (type (simple-array keyword 78) +cursors+))
 
 (defconstant +cursors+ 
   '#(:XC_X_CURSOR              :XC_ARROW

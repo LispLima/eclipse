@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: Clx-Extensions -*-
-;;; $Id: cursor.lisp,v 1.2 2003/09/16 21:32:53 hatchond Exp $
+;;; $Id: cursor.lisp,v 1.3 2003/12/03 14:32:38 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; This file is part of Eclipse. It gives an other (shortest) 
@@ -28,6 +28,8 @@
 (defvar +clx-color-white+ (xlib:make-color :red 1 :green 1 :blue 1))
 
 (defvar *cursor-cache* (make-array 128 :initial-element nil))
+
+(declaim (type (simple-array (or null xlib:cursor) *) *cursor-cache*))
 
 (defun cursor-key-name->cursor-font-index (cursor-key-name)
   (let ((position (position cursor-key-name +cursors+)))
