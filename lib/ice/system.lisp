@@ -30,6 +30,7 @@
     "dependent.lisp"
     "ICE.lisp"
     "ICE-buffer.lisp"
+    "ICE-macros.lisp"
     "ICE-request.lisp"
     "ICE-auth.lisp"
     "ICE-lib.lisp"))

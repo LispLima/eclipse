@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-lib.lisp,v 1.3 2004/03/08 17:50:23 ihatchondo Exp $
+;;; $Id: ICE-lib.lisp,v 1.4 2004/03/10 17:17:29 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -261,14 +261,13 @@
       (declare (type (simple-array string (*)) protocols))
       (declare (type versions versions))
       (post-request :connection-setup connection
-		    :number-of-versions-offered (length versions)
-		    :must-authenticate-p must-authenticate-p
-		    :vendor-name +vendor-name+
-		    :release-name +release-name+
-		    :authentication-protocol-names protocols
-		    :version-list versions
-		    :number-of-authentication-protocol-names-offered
-		    (length protocols))
+	:number-of-versions-offered (length versions)
+	:must-authenticate-p must-authenticate-p
+	:vendor-name +vendor-name+
+	:release-name +release-name+
+	:authentication-protocol-names protocols
+	:version-list versions
+	:number-of-authentication-protocol-names-offered (length protocols))
       (request-case (connection :timeout nil :place request)
 	(authentication-required ((index authentication-protocol-index))
 	  (let ((handler (get-protocol-handler (aref protocols index))))

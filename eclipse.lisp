@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.17 2004/01/15 15:35:34 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.18 2004/02/17 12:48:38 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -31,28 +31,27 @@
 (defun sm-init (sm-conn dpy)
   "Sets the xsmp properties that are required by the protocols."
   (declare (type (or null string) dpy))
-  (flet ((encode (&rest rest)
-	   (loop for s in rest collect (map 'sm-lib:array8 #'char-code s))))
-    (let ((id (format nil "--sm-client-id=~a" (sm-lib:sm-client-id sm-conn)))
-	  (display (format nil "--display=~a" dpy)))
-      (ice-lib:post-request :set-properties sm-conn
-	:properties
-	(list (sm-lib:make-property
-	       :name "CloneCommand"
-	       :type "LISTofARRAY8"
-	       :values (if dpy (encode "eclipse" display) (encode "eclipse")))
-	      (sm-lib:make-property
-	       :name "Program"
-	       :type "ARRAY8"
-	       :values (encode "eclipse"))
-	      (sm-lib:make-property
-	       :name "RestartCommand"
-	       :type "LISTofARRAY8"
-	       :values (encode "eclipse" id))
-	      (sm-lib:make-property
-	       :name "UserID"
-	       :type "ARRAY8"
-	       :values (encode (get-username))))))))
+  (let ((id (format nil "--sm-client-id=~a" (sm-lib:sm-client-id sm-conn)))
+	(display (format nil "--display=~a" dpy)))
+    (ice-lib:post-request :set-properties sm-conn
+      :properties
+      (list (sm-lib:make-property
+	     :name "CloneCommand"
+	     :type "LISTofARRAY8"
+	     :values (cons (sm-lib:string->array8 "eclipse")
+			   (when dpy (sm-lib:strings->array8s display))))
+	    (sm-lib:make-property
+	     :name "Program"
+	     :type "ARRAY8"
+	     :values (sm-lib:strings->array8s "eclipse"))
+	    (sm-lib:make-property
+	     :name "RestartCommand"
+	     :type "LISTofARRAY8"
+	     :values (sm-lib:strings->array8s "eclipse" id))
+	    (sm-lib:make-property
+	     :name "UserID"
+	     :type "ARRAY8"
+	     :values (sm-lib:strings->array8s (get-username)))))))
 
 (defun connect-to-session-manager (dpy-name &optional previous-id)
   "Try to connect us to the session manager. If connected set xsmp
