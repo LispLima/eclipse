@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.22 2004/12/16 21:36:47 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.23 2005/02/10 23:45:44 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -53,7 +53,7 @@
 
 (defun connect-to-session-manager (dpy-name &optional previous-id)
   "Try to connect us to the session manager. If connected set xsmp
-  properties and returns the sm-connection instance."  
+   properties and returns the sm-connection instance."  
   (handler-case
       (let ((sm-conn (sm-lib:open-sm-connection :previous-id previous-id)))
 	(sm-init sm-conn dpy-name)
@@ -62,9 +62,9 @@
 
 (defun handle-session-manager-request (sm-conn root-widget)
   "Handles xsmp requests. If a DIE request is received then invoke
-  close-sm-connection and propagate the exit-eclipse condition."
+   close-sm-connection and propagate the exit-eclipse condition."
   (handler-case
-      (ice-lib::request-case (sm-conn :timeout 0)
+      (ice-lib:request-case (sm-conn :timeout 0)
 	(sm-lib:save-yourself ()
           (ice-lib:post-request :save-yourself-done sm-conn :success-p t)
 	  t)
@@ -73,8 +73,8 @@
     (exit-eclipse (condition) (signal condition))
     (error (condition) (format *error-output* "~&~A~&" condition))))
 
-;; ICCCM section 2.8
 (defun initialize-manager (display root-window)
+  ;; ICCCM section 2.8
   (setf +xa-wm+ (format nil "WM_S~A" (xlib:display-display display)))
   (xlib:intern-atom display +xa-wm+)
   (let ((managing-since)
@@ -127,7 +127,8 @@
   (gnome:intern-gnome-atom display)
   (netwm:intern-atoms display)
   (let ((first-desknum (current-vscreen window))
-	(nb-vs (number-of-virtual-screens window)))
+	(nb-vs (number-of-virtual-screens window))
+	(srcw (screen-width)) (srch (screen-height)))
     (delete-properties window (append +gnome-protocols+ +netwm-protocol+))
     (unless (< -1 first-desknum nb-vs) (setf first-desknum 0))
     (setf (gnome:win-protocols window) +gnome-protocols+
@@ -143,8 +144,11 @@
 	  (netwm:net-number-of-desktops window) nb-vs
 	  (netwm:net-current-desktop window) first-desknum
 	  (netwm:net-desktop-viewport window) (make-viewport-property nb-vs)
-	  (netwm:net-desktop-geometry window)
-	  (list (screen-width) (screen-height))
+	  (netwm:net-desktop-geometry window) (list srcw srch)
+	  (netwm:net-workarea window) (make-list nb-vs
+					:initial-element
+					(manager-commons:make-geometry-hint
+					  :x 0 :y 0 :width srcw :height srch))
 	  )))
 
 (defun initialize (display-specification sm-client-id)
@@ -207,8 +211,8 @@
       from debugger or not during initialisation phase.
     - :activate-log (boolean): indicates if errors should be logged.
       If T then errors will be logged in a file named: eclipse-yyyy-mm-dd.log
-  If neither the DISPLAY environment variable is defined nor the :display
-  argument is defined then Eclipse will not be able to starts."
+   If neither the DISPLAY environment variable is defined nor the :display
+   argument is defined then Eclipse will not be able to starts."
   (declare (type (or null string) display sm-client-id))
   (declare (type boolean activate-log die-on-init-error))
   (when *display* 
