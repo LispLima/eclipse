@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.11 2003/11/24 16:57:46 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.12 2003/11/28 10:13:47 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -167,6 +167,7 @@
    "MAKE-SUBSTRUCTURE"			  ;function
    "MAKE-TITLE-BAR"			  ;function
    "MAKE-VIEWPORT-PROPERTY"		  ;function
+   "MAXIMIZE-MODIFIER"                    ;setf function
    "MAXIMIZE-WINDOW"			  ;function
    "MOTIF-WM-DECORATION"		  ;function
    "MOUSE-STROKE-FOR-MOVE-AND-RESIZE"	  ;function
@@ -354,6 +355,7 @@
    "*ICON-BOX-SORT-FUNCTION*"		  ;variable
    "*ICON-HINTS*"			  ;variable
    "*MAXIMIZE-FILL*"                      ;variable
+   "*MAXIMIZE-MODIFIER*"                  ;variable
    "*MENU-1-ITEMS*"			  ;variable
    "*MOVE-MODE*"			  ;variable
    "*RESIZE-MODE*"			  ;variable
@@ -362,5 +364,5 @@
    "*VERBOSE-MOVE*"			  ;variable
    "*VERBOSE-RESIZE*"			  ;variable
    "*VERBOSE-WINDOW-CYCLING*"             ;variable
-   "*WARP-POINTER-WHEN-CYCLE*"		  ;variable
+   "*WARP-POINTER-WHEN-CYCLE*"		  ;variable   
    ))
