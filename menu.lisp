@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: menu.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
+;;; $Id: menu.lisp,v 1.3 2002/11/07 14:54:27 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO, Robert STRANDH
@@ -160,7 +160,7 @@
 ;;; menu-leaf-item
 
 (defclass menu-leaf-item (menu-item)
-  ((callback :initform nil :initarg :callback :reader meanu-leaf-callback)))
+  ((callback :initform nil :initarg :callback :reader menu-leaf-callback)))
 
 (defun make-menu-leaf-item (text parent callback)
   (make-instance 'menu-leaf-item :text text :callback callback :client parent))
