@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: menu.lisp,v 1.4 2003/03/16 01:01:34 hatchond Exp $
+;;; $Id: menu.lisp,v 1.5 2004/02/10 14:03:14 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO, Robert STRANDH
@@ -180,9 +180,9 @@
 (defmethod event-process ((event button-press) (item menu-item)))
 
 (defmethod event-process ((event button-release) (item menu-leaf-item))
-  (with-slots (armed text client callback) item
+  (with-slots (armed callback) item
     (when armed
-      (when callback (funcall callback))
+      (when callback (funcall (the function callback)))
       (destroy-substructure (menu-root item)))))
 
 (defmethod event-process ((event leave-notify) (item menu-leaf-item))

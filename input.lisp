@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.34 2004/02/17 16:30:54 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.35 2004/02/25 10:59:36 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -138,13 +138,13 @@
     (let ((callback (lookup-keystroke code state)))
       (when callback
 	(xlib:allow-events *display* :async-keyboard)
-	(funcall callback event)))))
+	(funcall (the function callback) event)))))
 
 (defmethod event-process :around ((event pointer-event) (root root))
   (with-slots (code state) event
     (let ((callback (lookup-mouse-stroke code state)))
       (if callback 
-	  (unwind-protect (funcall callback event)
+	  (unwind-protect (funcall (the function callback) event)
 	    (xlib:allow-events *display* :async-pointer))
 	  (and (next-method-p) (call-next-method))))))
 

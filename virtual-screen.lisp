@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.18 2004/01/20 16:10:00 ihatchondo Exp $
+;;; $Id: virtual-screen.lisp,v 1.19 2004/02/12 23:30:22 ihatchondo Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -99,6 +99,7 @@
 	finally (return w)))
 
 (defmethod change-vscreen ((root root) &key direction n)
+  (declare (type (or null function) direction))
   (with-slots ((rw window)) root
     (let* ((nb-vscreens (number-of-virtual-screens rw))
 	   (cur (netwm:net-current-desktop rw))
@@ -141,6 +142,7 @@
    :skip-dock to include window with dock window type (default t).
    :predicate a function of six arguments:
      window screen-number iconify-p skip-taskbar-p skip-desktop-p skip-dock-p."
+  (declare (type function predicate))
   (loop with i = (if (eql scr-num +any-desktop+) (current-desk) scr-num)
 	for w in (query-application-tree *root-window*)
 	if (funcall predicate w i iconify-p skip-taskbar skip-desktop skip-dock)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PROGRAMMED-TASKS  -*-
-;;; $Id: programmed-tasks.lisp,v 1.6 2004/01/21 10:42:32 ihatchondo Exp $
+;;; $Id: programmed-tasks.lisp,v 1.7 2004/03/01 14:53:57 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001 Iban HATCHONDO
@@ -43,7 +43,8 @@
 (defun execute-preprogrammed-tasks ()
   "Execute all tasks that have an expired time."
   (loop for task = (get-preprogrammed-task)
-	while task do (remove-preprogrammed-task task) (funcall (cdr task))))
+	while task do (remove-preprogrammed-task task)
+                      (funcall (the function (cdr task)))))
 
 (defun get-preprogrammed-task ()
   "Get the next task to execute if any at this time."
