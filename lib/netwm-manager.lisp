@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.19 2005/01/05 22:19:51 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.20 2005/01/16 23:22:23 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -329,10 +329,10 @@
 ;; _NET_WM_NAME
 
 (defun net-wm-name (window)
-  (car (get-text-property window :_net_wm_name)))
+  (car (get-text-property window :_NET_WM_NAME)))
   
 (defsetf net-wm-name (window) (name)
-  `(set-simple-text-property ,window ,name :NET-WM-USER-TIME :utf8_string))
+  `(set-simple-text-property ,window ,name :_NET_WM_NAME :utf8_string))
 
 ;; _NET_WM_VISIBLE_NAME
 
@@ -340,7 +340,7 @@
   (car (get-text-property window :_NET_WM_VISIBLE_NAME )))
 		
 (defsetf net-wm-visible-name (window) (name)
-  `(set-simple-text-property ,window ,name :NET-WM-USER-TIME :utf8_string))
+  `(set-simple-text-property ,window ,name :_NET_WM_VISIBLE_NAME :utf8_string))
 
 ;; _NET_WM_ICON_NAME
 
@@ -348,7 +348,7 @@
   (car (get-text-property window :_NET_WM_ICON_NAME)))
 
 (defsetf net-wm-icon-name (window) (name)
-  `(set-simple-text-property ,window ,name :NET-WM-USER-TIME :utf8_string))
+  `(set-simple-text-property ,window ,name :_NET_WM_ICON_NAME :utf8_string))
 
 ;; _NET_WM_VISIBLE_ICON_NAME
 
@@ -356,7 +356,8 @@
   (car (get-text-property window :_NET_WM_VISIBLE_ICON_NAME)))
 
 (defsetf net-wm-visible-icon-name (window) (name)
-  `(set-simple-text-property ,window ,name :NET-WM-USER-TIME :utf8_string))
+  `(set-simple-text-property ,window
+       ,name :_NET_WM_VISIBLE_ICON_NAME :utf8_string))
 
 ;; _NET_WM_DESKTOP
 
