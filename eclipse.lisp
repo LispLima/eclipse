@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.13 2003/12/03 14:34:34 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.14 2004/01/06 17:02:06 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -26,6 +26,63 @@
     (or loaded-p (format *error-output* "~A~%" error))))
 
 ;;; Initializations and Main.
+
+;; ICE & SM.
+
+(defun get-username ()
+  "Returns the real user name (a string) associated with the current process."
+  #+sbcl (sb-unix:uid-username (sb-unix:unix-getuid))
+  #+cmu (unix:user-info-name (unix:unix-getpwuid (unix:unix-getuid)))
+  #+allegro-v6.2 (excl.osi:pwent-name (excl.osi:getpwent (excl.osi:getuid)))
+  #-(or sbcl cmu allegro-v6.2) "nobody")
+
+(defun sm-init (sm-conn dpy)
+  "Sets the xsmp properties that are required by the protocols."
+  (declare (type (or null string) dpy))
+  (flet ((encode (&rest rest)
+	   (loop for s in rest collect (map 'sm-lib:array8 #'char-code s))))
+    (let ((sm-client-id (sm-lib:sm-client-id sm-conn)))
+      (ice-lib:post-request :set-properties sm-conn
+	:properties
+	(list (sm-lib:make-property
+	       :name "CloneCommand"
+	       :type "LISTofARRAY8"
+	       :values
+	       (if dpy (encode "eclipse" "--display" dpy) (encode "eclipse")))
+	      (sm-lib:make-property
+	       :name "Program"
+	       :type "ARRAY8"
+	       :values (encode "eclipse"))
+	      (sm-lib:make-property
+	       :name "RestartCommand"
+	       :type "LISTofARRAY8"
+	       :values (encode "eclipse" "--sm-client-id" sm-client-id))
+	      (sm-lib:make-property
+	       :name "UserID"
+	       :type "ARRAY8"
+	       :values (encode (get-username))))))))
+
+(defun connect-to-session-manager (dpy-name &optional previous-id)
+  "Try to connect us to the session manager. If connected set xsmp
+  properties and returns the sm-connection instance."  
+  (handler-case
+      (let ((sm-conn (sm-lib:open-sm-connection :previous-id previous-id)))
+	(sm-init sm-conn dpy-name)
+	sm-conn)
+    (error (condition) (format *error-output* "~&~A~&" condition))))
+
+(defun handle-session-manager-request (sm-conn root-widget)
+  "Handles xsmp requests. If a DIE request is received then invoke
+  close-sm-connection and propagate the exit-eclipse condition."
+  (handler-case
+      (ice-lib::request-case (sm-conn :timeout 0)
+	(sm-lib:save-yourself ()
+          (ice-lib:post-request :save-yourself-done sm-conn :success-p t)
+	  t)
+	(sm-lib:die () (close-sm-connection root-widget) t)
+	(t t))
+    (exit-eclipse () (error 'exit-eclipse))
+    (error (condition) (format *error-output* "~&~A~&" condition))))
 
 ;; ICCCM section 2.8
 (defun initialize-manager (display root-window)
@@ -110,7 +167,7 @@
 	  (list (screen-width) (screen-height))
 	  )))
 
-(defun initialize (display-specification)
+(defun initialize (display-specification sm-client-id)
   (multiple-value-bind (display screen)
       (open-clx-display display-specification)
     (let* ((colormap (xlib:screen-default-colormap screen))
@@ -123,7 +180,9 @@
 	    (xlib:display-after-function display) #'xlib:display-force-output)
       (setf *root* (make-instance 'root :window root-window :manager manager)
 	    *root-window* root-window
-	    (root-default-cursor *root*) (get-x-cursor *display* :xc_left_ptr))
+	    (root-default-cursor *root*) (get-x-cursor *display* :xc_left_ptr)
+	    (root-sm-conn *root*)
+	    (connect-to-session-manager display-specification sm-client-id))
       ;; init all gnome properties on root.
       (init-gnome-compliance display root-window manager)
       (ppm:initialize colormap)
@@ -152,8 +211,9 @@
       (unless (root-decoration-theme *root*)
 	(setf (decoration-theme) "microGUI")))))
 
-(defun eclipse (&optional display-specification)
-  (initialize display-specification)
+(defun eclipse (&key display sm-client-id)
+  (declare (type (or null string) display sm-client-id))
+  (initialize display sm-client-id)
   ;(init-log-file)
 
   ;; Create a socket connection to communicate with the window manager.

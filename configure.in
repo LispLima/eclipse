@@ -1,4 +1,4 @@
-# $Id: configure.in,v 1.4 2003/04/07 13:35:32 hatchond Exp $
+# $Id: configure.in,v 1.5 2003/09/04 11:53:52 hatchond Exp $
 AC_INIT()
 
 eclipsedir=${libdir}/eclipse
@@ -99,10 +99,10 @@ gnome_entry_dir=${clwm_cv_gnome_entry_dir}
 if test ! ${usecore} = no
 then
  ARGS="${with_image} ${COREDIR}/${CORENAME}\
-       ${eval_form} \"(eclipse:eclipse \${display_spec})\""
+       ${eval_form} \"(eclipse:eclipse \${options})\""
 else
  ARGS="${INITCORE} ${load_switch} ${SRC}/load-eclipse.lisp ${eval_form}\
- \"(start \${display_spec})\""
+ \"(start \${options})\""
 fi
 
 # set interp.

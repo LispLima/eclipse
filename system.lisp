@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: system.lisp,v 1.7 2003/11/10 10:02:53 ihatchondo Exp $
+;;; $Id: system.lisp,v 1.8 2003/11/24 16:57:46 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -32,6 +32,10 @@
 #+:excl(require :loop)
 #+mk-defsystem (use-package "MK")
 
+;; for session management & connection
+(load "lib/ice/system.lisp")
+(load "lib/sm/system.lisp")
+
 (defmacro eclipse-defsystem ((module &key depends-on) &rest components)
   `(defsystem ,module #-mk-defsystem ()
        #+mk-defsystem :source-pathname *eclipse-src-directory*
@@ -61,7 +65,7 @@
    "lib/gnome-manager"
    )
 
-(eclipse-defsystem (:eclipse :depends-on (:clx-ext :eclipse-lib))
+(eclipse-defsystem (:eclipse :depends-on (:clx-ext :eclipse-lib :sm-lib))
    "config.lisp"
    "programmed-tasks"
    "package"

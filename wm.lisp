@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.27 2003/12/02 21:59:29 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.28 2004/01/06 17:02:06 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -757,6 +757,8 @@
 		(with-slots (event-window) event
 		  (event-process event (lookup-widget event-window))))
 	      (when pt:preprogrammed-tasks (pt:execute-preprogrammed-tasks))
+	      (with-slots (sm-conn) *root*
+		(when sm-conn (handle-session-manager-request sm-conn *root*)))
 	      (case exit
 		(1 (when *close-display-p*
 		     (loop for val being each hash-value in *widget-table*

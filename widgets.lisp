@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.24 2003/12/04 16:12:42 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.25 2004/01/12 10:57:58 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -139,7 +139,8 @@
    (menu3 :initform nil)
    (window-menu :initform nil)
    (client-list :initform (make-hash-table))
-   (desktop :initform nil :accessor root-desktop)))
+   (desktop :initform nil :accessor root-desktop)
+   (sm-conn :initform nil :accessor root-sm-conn)))
 
 (defmethod root-manager ((root root))
   (slot-value root 'properties-manager-window))
@@ -167,6 +168,15 @@
 	    resize-status nil
 	    current-active-decoration nil)
       (xlib:ungrab-pointer *display*))))
+
+(defun close-sm-connection (root)
+  (with-slots (sm-conn) root
+    (ice-lib:post-request :connection-closed sm-conn)
+    (ice-lib:ice-flush sm-conn)
+    (close (ice-lib:connection-stream sm-conn))
+    (setf sm-conn nil)
+    (setf *close-display-p* nil)
+    (error 'exit-eclipse)))
 
 ;;;; Application
 
