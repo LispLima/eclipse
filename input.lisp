@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.9 2003/08/28 14:50:35 hatchond Exp $
+;;; $Id: input.lisp,v 1.10 2003/09/07 01:37:34 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -274,7 +274,7 @@
 ;;; Events for an application
 
 (defmethod event-process ((event visibility-notify) (application application))
-  (with-slots (wants-focus-p unobscured-p input-model window) application
+  (with-slots (wants-focus-p input-model window) application
     (when (and (eq (event-state event) :unobscured) wants-focus-p)
       (set-focus input-model window 0)
       (setf wants-focus-p nil))))
