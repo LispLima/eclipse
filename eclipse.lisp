@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: $
+;;; $Id: eclipse.lisp,v 1.1 2002/11/07 14:54:26 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -19,6 +19,11 @@
 ;;; Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 
 (in-package :ECLIPSE-INTERNALS)
+
+(defun load-config-file (pathname)
+  (multiple-value-bind (loaded-p error)
+      (ignore-errors (load pathname :if-does-not-exist nil :verbose nil))
+    (or loaded-p (format *error-output* "error: ~A~%" error))))
 
 ;;; Initializations and Main.
 
@@ -53,10 +58,10 @@
       (init-gnome-compliance display)
       (keyboard:init-keyboard display)
       (ppm:initialize colormap)
-      (unless (load (home-subdirectory ".eclipse") :if-does-not-exist nil)
-	(format *error-output* "No file: $HOME/.eclipse~%")
-	(unless (load (eclipse-path ".eclipse") :if-does-not-exist nil)
-	  (format *error-output* "No file: ~A~%" (eclipse-path ".eclipse"))))
+      ;; load personal configuration file, or the default one.
+      (or (load-config-file (home-subdirectory ".eclipse"))
+	  (load-config-file (eclipse-path ".eclipse"))
+	  (%quit%))
       ;; Eclipse globals vars.
       (setf *black* (xlib:screen-black-pixel screen)
 	    *white* (xlib:screen-white-pixel screen)
