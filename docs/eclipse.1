@@ -1,5 +1,5 @@
 .TH Eclipse 1 "(c) 2001 Iban HATCHONDO"
-.\"$Id: eclipse.1,v 1.3 2002/07/02 14:54:39 hatchond Exp $
+.\"$Id: eclipse.1,v 1.4 2002/11/07 14:54:27 hatchond Exp $
 
 .SH NAME
 eclipse - a window manager in Common Lisp
@@ -80,12 +80,12 @@ as the DISPLAY environment variable. Use eclipse gandalf:2.0 for example
 buttons on the root-window.
 
 \-button1\ : a customizable application menu, that permits you to
-lunch your favorite applications.
+launch your favorite applications.
 
-\-button2\ : a recapitulation of the current running applications (if
-not iconified) sorted by workspace. Selecting any application is this
-menu will change the stacking order of that application to be on top
-of the others and will change your current desktop if necessary.
+\-button2\ : a recapitulation of the current running applications
+(even if iconified) sorted by workspace. Selecting any application is
+this menu will change the stacking order of that application to be on
+top of the others and will change your current desktop if necessary. 
 
 \-button3\ : four functions for managing windows : move, re-size, close,
 destroy.
@@ -114,13 +114,16 @@ the session, but you can \fBeasily\fP test some modifications that you
 want to add in your config file, change in the code, or that you want
 to send me for correcting bugs and/or add new features.
 
-.SH VARIABLES
+.SH VARIABLES & FUNCTIONS
 Here are some variables that can be changed (either in the config file
 or in the telnet session) :
 
 .TP
-.B\-*nb-vscreen*\ \fIinteger\fP 
-Indicate the number of virtual screens do you want.
+.B\-*change-desktop-message-active-p*\ \fIboolean\fP (or t nil) 
+If you want to be notified when the desktop changes this value should
+be \fIt\fP. In that case, a change will display a small window with
+the number or the name (if sets)  of the new desktop. If the value is
+\fInil\fP, nothing will happen.
 .TP
 .B\-*move-mode*\ \fIkeyword\fP (or \fB:box :opaque\fP) 
 As usual :box will draw a 3x3 grid to show you the window move ;
@@ -132,6 +135,32 @@ As usual :box will draw a 3x3 grid to show you the window resizing ;
 :opaque resizes the window directly. (The box mode looks good on
 laptops).
 .TP
+.B\-*verbose-move*\ \fIboolean\fP
+If you want to have a small window that presents you the coordinates
+of the the uper left corner of the window you are moving set it to
+\fIt\fP otherwise \fInil\fP. The default value is \fIt\fP.
+.TP
+.B\-*verbose-resize*\ \fIboolean\fP
+If you want to have a small window that presents you the sizes
+of the window you are resizing set it to \fIt\fP otherwise
+\fInil\fP. The default value is \fIt\fP.
+.TP
+.B\-*warp-pointer-when-cycle*\ \fIboolean\fP
+If set to \fIt\fP, the mouse pointer is warped around the upper-left
+corner of the window that is virtually pointed to.  Otherwise, nothing 
+happens. Useful when you work on a desktop with no overlapping
+windows. The default value is \fIt\fP. 
+.TP
+.B\-*focus-when-window-cycle*\ \fIboolean\fP
+If set to \fIt\fP the next window will be focused. Otherwise nothing 
+happens. Useful when you work on a desktop with no overlapping
+windows. The default value is \fIt\fP. 
+.TP
+.B\-*focus-new-mapped-window*\ \fIboolean\fP
+If set to \fIt\fP newly mapped windows (or window comming from
+iconified state) will ask for the focus. Otherwise nothing
+happens. The default value is \fIt\fP.
+.TP
 .B\-*focus-type*\ \fIkeyword\fP (or \fB:none :on-click :when-switch\fP).
 
  \fB:none\fP focus change when enter/exit a window.
@@ -139,117 +168,243 @@ laptops).
  \fB:when-switch\fP focus change when circulating window.
 
 .TP
-.B\-*theme*\ \fIstring\fP
-Change the theme. There's only one theme available at the moment. In
-general, for a list of all the themes that come with \fIeclipse\fP,
-look in the directory called \fIthemes\fP. To use any one of those
-present in that directory: just set the \fB*theme*\fP to the directory
-name of the theme you want. ("microGUI" for example).
+.B\-(setf decoration-theme) name &key free-old-theme-p\ \fIstring\fP
+Change the theme. In general, for a list of all the themes that come
+with \fIeclipse\fP, look in the directory called \fIthemes\fP. To use
+any one of those present in that directory: just do \fB(setf
+(decoration-theme) theme-name-string\fP. ("microGUI" for example).
 But if the theme you want is not in the themes directory (because you
-created it). Set \fB*theme*\fP to the complete path-name directory
-("<$HOME>/tmp/my-new-theme").
-Also, note that if you change the theme during the execution, the older
-windows will not have their decorations changed. (I have to correct
-that too).
+created it). Use the absolute pathname as the theme-name-string
+argument of the \fB(setf decoration-theme)\fP for example:
+"<$HOME>/tmp/my-new-theme".
 .TP
-.B\-*change-desktop-message-active-p*\ \fIboolean\fP (or t nil) 
-If you want to be notified when the desktop changes this value should
-be \fIt\fP. In that case, a change will display a small window with
-the number of the new desktop. If the value is \fInil\fP, nothing will
-happen.
-
+.B\-(setf number-of-virtual-screens) value\ \fIinteger\fP 
+Indicate the number of virtual screens do you want.
+.TP
+.B\-(setf workspace-names) value\ \fIstring list\fP
+To set the names of your workspaces. The length of the list of strings 
+is suposed to be equal to the number of virtual screens.
+.TP
+.B\-(setf font-name) font-name-string\ \fIstring\fP
+Sets the font used in title bar to display the application title.
 
 .SH THEMES
-The theme part is not very sophisticated. The image file format is
-\fBpnm P6\fP.
+The image file format is \fBpnm P6\fP.
 Here is a a decomposition of \fIeclipse\fP decorations :
-  ________________________________
- |TL|        CENTER      I M C |TR|
- |__|__________________________|__|
- |  |                          |  |
- |  |                          |  |
- |  |                          |  |
- |  |                          |  |
- |L |                          |R |
- |E |                          |I |
- |F |                          |G |
- |T |                          |H |
- |  |                          |T |
- |  |                          |  |
- |  |                          |  |
- |  |                          |  |
- |  |                          |  |
- |__|__________________________|__|
- |BL|          BOTTOM          |BR|
- |__|__________________________|__|
 
+       ________________________________
+      |TL|MB         TOP       I M C|TR|
+      |__|__________________________|__|
+  __   ________________________________   __
+ |TL| |TL|           TOP            |TR| |TR|
+ |__| |__|__________________________|__| |__|
+ |I | |  |                          |  | |I |
+ |M | |  |                          |  | |M |
+ |C | |  |                          |  | |C |
+ |  | |  |                          |  | |  |
+ |  | |  |                          |  | |  |
+ |L | |L |                          |R | |R |
+ |E | |E |                          |I | |I |
+ |F | |F |                          |G | |G |
+ |T | |T |                          |H | |H |
+ |  | |  |                          |T | |T |
+ |  | |  |                          |  | |  |
+ |  | |  |                          |  | |  |
+ |MB| |  |                          |  | |MB|
+ |__| |__|__________________________|__| |__|
+ |BL| |BL|          BOTTOM          |BR| |BR|
+ |__| |__|__________________________|__| |__|
+       ________________________________
+      |BL|MB        BOTTOM     I M C|BR|
+      |__|__________________________|__|
 
-Only the center, I (iconify button), M ((un)maximize button) and C
-(close button) are required. All the others are optional. Note that
-if LEFT is given, you should also provide RIGHT and vice versa.
+All part are optional.
 
-Concerning the highlighted parts, only the I, M, C buttons can be
-highlighted for the moment. This implies, that if you want to make
-a distinction between focused window and unfocused window, you should
-give two files for each buttons.
+Everything can be hilighted to reflect the focused state. You just
+have to provide all necessary pnm files. For the push buttons MB menu
+button, I iconify, M maximize, and C close, you can give four images
+to reflect the button states: normal, focused, normal click and
+focused click in that order.
+The sizes of the buttons is not restricted. But they will be
+considered as having the same height if your title bar is horizontal
+(if vertical they will be considered as if they have the same width). 
 .TP
 .B\-size requirements\ 
 TL height  = CENTER height = TR height
 .br
-LEFT width = RIGHT width
-.br
 BL height  = BOTTOM height = BR height
-.br
-I, M, C are square.
 
 .TP
 .B\-naming conventions\ 
 Here is the corresponding table between file names and decoration parts: 
 
 
- part   |  file-name           |  required
+ part   |  file-name                     |  required
 
- TL        top_left.pnm           no
- TR        top_right.pnm          no
- BL        bottom_left.pnm        no
- BR        bottom_right.pnm       no
- CENTER    center.pnm             yes
- BOTTOM    bottom.pnm             no
- LEFT      left.pnm               no
- RIGHT     right.pnm              no
+ TL        top-left.pnm                      no
+ TR        top-right.pnm                     no
+ BL        bottom-left.pnm                   no
+ BR        bottom-right.pnm                  no
+ TOP       top.pnm                           no
+ BOTTOM    bottom.pnm                        no
+ LEFT      left.pnm                          no
+ RIGHT     right.pnm                         no
 
- I         iconify_normal.pnm     yes 
-           iconify_active.pnm     recommended
+ I         iconify-normal.pnm                no 
+           iconify-active.pnm                no
+           iconify-normal-clicked.pnm        no
+           iconify-active-clicked.pnm        no
 
- M         maximize_normal.pnm    yes
-           maximize_active.pnm    recommended
+ M         maximize-normal.pnm               no
+           maximize-active.pnm               no
+           maximize-normal-clicked.pnm       no
+           maximize-active-clicked.pnm       no
 
- C         close_normal.pnm       yes
-           close_active.pnm       recommended
+ C         close-normal.pnm                  no
+           close-active.pnm                  no
+           close-normal-clicked.pnm          no
+           close-active-clicked.pnm          no
 
-If you do not respect the recommendations above, there is no
-guarantee of the resulting look and feel.
+MB         menu-button-normal.pnm            no
+           menu-button-active.pnm            no
+           menu-button-normal-clicked.pnm    no
+           menu-button-active-clicked.pnm    no
 
-.SH KEYSTROKES
+.P
+If you do not respect the recommendations above, there is no guarantee
+concerning the resulting look and feel. 
 
-All customisations and definitions takes place in the config file.
+.TP
+.B\- Theme implemention notes\ 
+
+.P
+Themes are supposed to be defined in their own packages in a file
+named theme.lisp.
+
+Theme package definition must be supplied.
+
+The naming convention for themes packages is:
+<theme-name>-ECLIPSE-THEME. 
+.br
+
+Typically a theme package will export at least two symbols:
+ - INITIALIZE-FRAME
+ - REPAINT
+
+Here is an example of how to define a theme (see our predefined
+themes for more): 
+
+.in +2
+;;; -*- Mode: Lisp; Package: FOO-ECLIPSE-THEME -*-
+.br
+;;; GPL Disclaimer for example.
+.br
+;;; file theme.lisp
+.br
+
+(common-lisp:in-package :common-lisp-user)
+
+(defpackage "FOO-ECLIPSE-THEME"
+  (:use eclipse clx-ext common-lisp)
+  (:size 10)
+  (:export repaint initialize-frame)
+  (:documentation
+    "Foo theme decoration for the eclipse window manager. Written by ...")
+  )
+
+(in-package "FOO-ECLIPSE-THEME")
+
+(define-theme "Foo"
+.in +2
+.br
+((:default-style
+.br
+.in +3
+(:title-bar-position :right)
+.br
+(:parts-to-redraw-on-focus (:close :top-left))
+.br
+(:top ("top"))
+.br
+(:close ("close-normal"
+.br
+.in +9
+"close-active"
+.br
+"close-normal-clicked"
+.br
+"close-active-clicked"))
+.br
+.in -9
+(:top-left ("top-left-inactive" "top-left-active"))
+.br
+(:top-right ("top-right"))
+.br
+(:bottom ("bottom"))
+.br
+(:bottom-right ("bottom-right"))
+.br
+(:bottom-left ("bottom-left"))
+.br
+(:right ("right"))
+.br
+(:left ("left")))
+.br
+.in -2
+(:transient-style
+.in +2
+.br
+;; the rest of the definition
+.br
+)))
+.in -5
+
+(defmethod repaint ((widget title-bar) (name (eql "Foo")) (focus t))
+  "handle repaint WHEN focused."
+  ;; do some stuff
+  )
+
+(defmethod repaint ((widget title-bar) (name (eql "Foo")) (focus null))
+  "handle repaint WHEN NOT focused."
+  ;; do some stuff
+  )
+
+(defun bar ()
+  ;; do what you want
+  )
+
+;;; end of theme.lisp
+.in -2
+
+.SH KEYSTROKES & MOUSESTROKES
+
+All customisations and definitions take place in the config file.
 To define a keyboard shortcut, use the macro \fBdefine-key-combo\fP.
+You can define as well some mouse shortcut. To do so use the macro
+\fBdefine-mouse-combo\fP. 
 
 \fBdefine-key-combo\fP keystroke-name \fB&key\fP key modifiers
 (default-modifiers-p t) fun 
 
+\fBdefine-mouse-combo\fP mousestroke-name \fB&key\fP button modifiers 
+(default-modifiers-p t) fun 
+
 .TP
-.B\-keystroke-name\ \fIkeyword\fP 
-a keyword that names your keystroke.
+.B\-{key, mouse}stroke-name\ \fIkeyword\fP 
+a keyword that names your stroke.
 
 .TP
 .B\-keys\ \fIkeyword\fP \fIlist\fP
 a keyword list representing the keyboard key. (see \fIkeysymdef.lisp\fP)
 
 .TP
+.B\-button\ \fI(or number :any)\fP
+a mouse button number or :any to indicate all buttons.
+
+.TP
 .B\-modifiers\ \fIkeyword\fP \fIlist\fP
 a keyword list representing the keyword key, or a modifier-mask
-(unsigned-byte 8). If it is a list, it can be of two differents form:
+(unsigned-byte 8). If it is a list, it can be of two differents forms:
 
 .in +2
 - '(:and :mod1 :mod2 ...)
@@ -274,14 +429,14 @@ without \fB:CAPS-LOCK\fP and \fB:NUM-LOCK\fP.
 .TP
 .B\-fun\ \fIfunction\fP
 a designator for a function or method of one argument. Its argument
-will be the keyboard event that occured. (i.e. key-press key-release
-type) You can also use the macro \fBaction\fP to produce your function:
+will be the keyboard event that occurred. (i.e. key-press key-release
+type) You can also use the macro \fBaction\fP to create your function:
 
 .in +2
 \fBaction\fP (\fB&rest\fP forms1) (\fB&rest\fP forms2)
 
 It simply checks for keywords \fB:press\fP or \fB:release\fP to be the
-\fIcar\fP of the forms and produces function as follows:
+\fIcar\fP of the forms and creates function as follows:
 
 .in +4
 (action (:press form1 form2) ())
@@ -346,6 +501,14 @@ There exist some predefined keystrokes:
     :middle-click
     :right-click
 
+There exist some predefined mousestrokes:
+
+  - resize a window 
+    :resize-window
+
+  - move a window
+    :move-window
+
 \fBKeystroke customisation example\fP:
 
 \fB- predifined keystrokes:\fP
@@ -374,7 +537,7 @@ There exist some predefined keystrokes:
   :fun (action 
 .br
 .in +9
-(:press (put-on-top (event-child event)))
+(:press (put-on-top (lookup-windget (event-child event))))
 .br
 ()))
 .in -9
@@ -391,14 +554,25 @@ or
 (when (typep event 'key-press)
 .in +2
 .br
-(put-on-top (event-child event)))))
+(put-on-top (lookup-windget (event-child event))))))
 .in -13
 .in -1
 
-.SH BUGS
-Sometimes when you move a window with the box type, the grid will fail
-to redraw on itself because of exposure events somewhere.
+\fBMousestroke customisation example\fP:
 
+The interface is exactly the same as for the keystrokes definitions so 
+we'll only present an example of predefined mouse stroke.
+
+(define-mouse-combo :move-window
+.br
+.in +2
+:button 2
+.br
+:modifiers '(:SHIFT-LEFT :SHIFT-RIGHT))
+.br
+.in -2
+
+.SH BUGS
 The exit part is in progress so it does not work as expected.
 
 Finally I have to write something to be fully gnome compliant: the
@@ -419,7 +593,7 @@ Iban HATCHONDO <hatchond@yahoo.fr>
 
 
 .SH COPYRIGHT
-Copyright (C) 2000,2001,2002 Iban HATCHONDO <hatchond@yahoo.fr>
+Copyright (C) 2000,2001,2002,2003 Iban HATCHONDO <hatchond@yahoo.fr>
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
