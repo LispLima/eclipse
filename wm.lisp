@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: wm.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
+;;; $Id: wm.lisp,v 1.3 2002/07/02 14:53:59 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -1588,7 +1588,8 @@
 	    (values (aref new-sizes 2) (aref new-sizes 3))))))
 
 (defmethod event-process ((event button-release) (max-b maximize-button))
-  (maximize-window (button-master max-b) (event-code event)))
+  (when (< (event-code event) 4)
+    (maximize-window (button-master max-b) (event-code event))))
 
 ;; Move (happen after a click on the title bar)
 ;; set of methods and functions for moving.
