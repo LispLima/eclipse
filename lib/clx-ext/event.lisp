@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: event.lisp,v 1.4 2004/01/13 15:01:15 ihatchondo Exp $
+;;; $Id: event.lisp,v 1.5 2004/01/14 11:23:52 ihatchondo Exp $
 ;;;
 ;;; Add on for CLX to have some CLOS events.
 ;;; This file is part of Eclipse.
@@ -28,6 +28,8 @@
 
 ;;;; Creation of all event's classes
 ;;; Standard generic class for all event
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
 
 (defclass event ()
   ((event-window :initarg :event-window :reader event-event-window)
@@ -167,6 +169,8 @@
    (property :initarg :property :reader event-property)))
 (defclass selection-request (selection-notify)
   ((requestor :initarg :requestor :reader event-requestor)))
+
+) ;; End eval-when.
 
 ;;; 
 
