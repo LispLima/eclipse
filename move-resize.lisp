@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: $
+;;; $Id: move-resize.lisp,v 1.1 2002/11/07 14:54:27 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -23,6 +23,9 @@
 ;;;; Functions for displaying window sizes/positions in a box-button object.
 
 (defparameter *geometry-info-box* nil)
+
+(deftypedparameter (signed-byte 16) *delta-x* 0)
+(deftypedparameter (signed-byte 16) *delta-y* 0)
 
 (defun undraw-geometry-info-box ()
   (xlib:unmap-window (widget-window *geometry-info-box*)))
@@ -98,7 +101,9 @@
 
 (defun where-is-pointer (widget)
   (declare (optimize (speed 3) (safety 0)))
-  (setf *card-point*
+  (setf *delta-x* 0
+	*delta-y* 0
+	*card-point*
 	(typecase widget
 	  (top :north)
 	  (top-left :nw)
@@ -109,6 +114,21 @@
 	  (right :east)
 	  (top-right :ne)
 	  (t :se))))
+
+(defun find-corner (root-x root-y window)  
+  (declare (optimize (speed 3) (safety 0))
+	   (type xlib:int16 root-x root-y))
+  (multiple-value-bind (x y w h) (window-geometry window)
+    (declare (type xlib:int16 x y)
+	     (type xlib:card16 w h))
+    (when (>= root-x (+ x (floor w 2))) (incf x w))
+    (when (>= root-y (+ y (floor h 2))) (incf y h))
+    (setf *delta-x* (- root-x x)
+	  *delta-y* (- root-y y)
+	  *card-point*
+	  (if (>= *delta-x* 0)
+	      (if (>= *delta-y* 0) :nw :sw)
+	      (if (>= *delta-y* 0) :ne :se)))))
 
 (defun check-size (size base inc min-size max-size)
   (declare (optimize (speed 3) (safety 0))
@@ -161,6 +181,8 @@
 	 (root-x (event-root-x motion-notify-event))
 	 (root-y (event-root-y motion-notify-event)))
     (declare (type xlib:int16 root-x root-y))
+    (decf root-x *delta-x*)
+    (decf root-y *delta-y*)
     (multiple-value-bind (x y width height) (window-geometry master-win)
       (declare (type xlib:int16 x y)
 	       (type xlib:card16 width height))
@@ -211,9 +233,6 @@
   (setf *card-point* nil))
 
 ;;;; Move.
-
-(deftypedparameter (unsigned-byte 16) *delta-x* 0)
-(deftypedparameter (unsigned-byte 16) *delta-y* 0)
 	  
 (defmethod initialize-move ((widget base-widget) (event button-press))
   (with-slots (window active-p) widget
