@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.3 2003/08/28 14:40:34 hatchond Exp $
+;;; $Id: netwm-manager.lisp,v 1.4 2003/11/13 00:03:50 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -450,11 +450,7 @@ In order to use it, you should first call intern-atoms to be sure all
 ;; list indicate actions that are not supported for this window.
 
 (defun net-wm-allowed-actions (window)
-  (get-property
-      window
-      :_NET_WM_ALLOWED_ACTIONS
-      :transform #'(lambda (id)
-		     (xlib:atom-name (xlib:drawable-display window) id))))
+  (get-atoms-property window :_NET_WM_ALLOWED_ACTIONS t))
 
 (defsetf net-wm-allowed-actions (window &key (mode :replace)) (actions)
   `(set-atoms-property ,window ,actions :_NET_WM_ALLOWED_ACTIONS :mode ,mode))
