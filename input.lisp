@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.18 2003/10/01 18:26:35 hatchond Exp $
+;;; $Id: input.lisp,v 1.18 2003/10/06 17:57:26 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -75,7 +75,8 @@
     ;; Acording to the ICCCM we should send a synthetic configure-notify,
     ;; when we move a window but without resizing it.
     (unless (or (logbitp 2 value-mask) (logbitp 3 value-mask))
-      (send-configuration-notify window))
+      (when (application-p (lookup-widget window))
+	(send-configuration-notify window)))
     ))
 
 (defmethod event-process :after ((event destroy-notify) (widget base-widget))
@@ -222,12 +223,13 @@
   (when (application-p (lookup-widget (event-window event)))
     (with-slots ((master-win event-window) (app-window window) x y) event
       (with-slots (left-margin top-margin) (decoration-frame-style master)
-	(multiple-value-bind (old-x old-y) (window-position app-window)
-	  (when (eql (decoration-application-gravity master) :static)
-	    (decf x left-margin) (decf y top-margin))
-	  (unless (= old-x left-margin) (setf (xlib:drawable-x master-win) x))
-	  (unless (= old-y top-margin) (setf (xlib:drawable-y master-win) y)))
-	  (resize-from (lookup-widget app-window))
+	(if (eql (decoration-application-gravity master) :static)
+	    (setf (window-position master-win) (values (- x left-margin)
+						       (- y top-margin)))
+	    (multiple-value-bind (ax ay) (window-position app-window)
+	      (unless (= ax left-margin) (setf (xlib:drawable-x master-win) x))
+	      (unless (= ay top-margin) (setf (xlib:drawable-y master-win) y))))
+	(resize-from (lookup-widget app-window))
 	(with-event-mask (master-win)
 	  (update-edges-geometry master)
 	  (setf (window-position app-window) (values left-margin top-margin))
