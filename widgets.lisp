@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.12 2003/09/12 01:17:53 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.13 2003/09/12 16:03:15 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -131,7 +131,7 @@ the extended window manager specification."))
 
 (defun dismiss-move-resize (root)
   (with-slots (resize-status move-status current-active-decoration) root
-    (when *verbose-move* (undraw-geometry-info-box))
+    (when (or *verbose-move* *verbose-resize*) (undraw-geometry-info-box))
     (when (or (and (eql *move-mode* :opaque) move-status)
 	      (and (eql *resize-mode* :opaque) resize-status))
       (setf move-status nil
