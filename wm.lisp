@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.41 2004/03/02 19:16:48 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.42 2004/03/09 19:26:27 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -650,15 +650,17 @@
   (let* ((app (get-child master :application))
 	 (appw (widget-window app))
 	 (net-wm-state (netwm:net-wm-state appw))
-	 (client-message (make-event :client-message :type :_net_wm_desktop))
+	 (data (make-array 1 :element-type 'xlib:card32))
+	 (xc-msg (make-event :client-message :data data :type :_net_wm_desktop))
 	 (shade-str (if (shaded-p app) "Un-shade" "Shade"))
 	 (max-str (if (or (member :_net_wm_state_maximized_vert net-wm-state)
 			  (member :_net_wm_state_maximized_horz net-wm-state))
 		      "Un-maximize" "Maximize")))
+    (declare (type (simple-array xlib:card32 (1)) data))
     (flet ((send-message (n)
 	     (lambda ()
-	       (setf (slot-value client-message 'data) (vector n))
-	       (event-process client-message app))))
+	       (setf (aref data 0) n)
+	       (event-process xc-msg app))))
       (make-pop-up
           *root*
 	  (cons "Send to" (make-desktop-menu *root* #'send-message))
