@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.24 2003/11/24 16:57:46 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.25 2003/11/28 10:13:47 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -50,6 +50,8 @@
   '(:substructure-notify :visibility-change :enter-window :owner-grab-button))
 
 (defmethod get-child ((master decoration) label &key window)
+  "Return the child widget/window labeled `label' or nil if no such
+  child exists. label is a keyword."
   (let ((widget (getf (decoration-children master) label)))
     (if (and widget window) (widget-window widget) widget)))
 
@@ -149,6 +151,46 @@
 
 (defun title-bar-horizontal-p (master)
   (eq :horizontal (style-title-bar-direction (decoration-frame-style master))))
+
+(defun recompute-wm-normal-hints (window hmargin vmargin)
+  (let ((hints (or (ignore-errors (xlib:wm-normal-hints window))
+		   (xlib:make-wm-size-hints)))
+	(max-ww (screen-width))
+	(max-hh (screen-height)))
+    (symbol-macrolet ((min-w (xlib:wm-size-hints-min-width hints))
+		      (min-h (xlib:wm-size-hints-min-height hints))
+		      (max-w (xlib:wm-size-hints-max-width hints))
+		      (max-h (xlib:wm-size-hints-max-height hints))
+		      (inc-w (xlib:wm-size-hints-width-inc hints))
+		      (inc-h (xlib:wm-size-hints-height-inc hints))
+		      (base-w (xlib:wm-size-hints-base-width hints))
+		      (base-h (xlib:wm-size-hints-base-height hints))
+		      (g (xlib:wm-size-hints-win-gravity hints)))
+       (unless (eq g :static)
+	 (decf max-ww hmargin)
+	 (decf max-hh vmargin))
+       (setf min-w (max (or (or min-w base-w) 1) 1)
+	     min-h (max (or (or min-h base-h) 1) 1)
+	     base-w (max (or (or base-w min-w) 1) 1)
+	     base-h (max (or (or base-h min-h) 1) 1)
+	     inc-w (or inc-w 1) 
+	     inc-h (or inc-h 1))
+      (setf max-ww (- max-ww (mod (- max-ww base-w) inc-w))
+	    max-hh (- max-hh (mod (- max-hh base-h) inc-h)))
+      (unless (and max-w (<= min-w max-w max-ww)) (setf max-w max-ww))
+      (unless (and max-h (<= min-h max-h max-hh)) (setf max-h max-hh))
+      (setf min-w (min min-w max-w)
+	    min-h (min min-h max-h)
+	    base-w (min base-w max-w)
+	    base-h (min base-h max-h))
+      (multiple-value-bind (w h) (drawable-sizes window)
+	(unless (<= min-w w max-w) 
+	  (setf (xlib:drawable-width window) (min (max min-w w) max-w)))
+	(unless (<= min-h h max-h) 
+	  (setf (xlib:drawable-height window) (min (max min-h h) max-h))))
+      (values (vector min-w min-h max-w max-h inc-w inc-h base-w base-h) g))))
+
+;;;; Decoration creation tools.
 
 (defun make-menu-button (master parent-window)
   (with-slots (children frame-style) master
@@ -295,6 +337,8 @@
 				  :width w :height h
 				  :cursor cursor)))))
 
+;; Public.
+
 (defun update-edges-geometry (master)
   (declare (optimize (speed 3) (safety 0))
 	   (inline update-edges-geometry))
@@ -325,44 +369,6 @@
 	(setf (drawable-sizes window)
 	      (values (- width hmargin) (- height vmargin)))))))
 
-(defun recompute-wm-normal-hints (window hmargin vmargin)
-  (let ((hints (or (ignore-errors (xlib:wm-normal-hints window))
-		   (xlib:make-wm-size-hints)))
-	(max-ww (screen-width))
-	(max-hh (screen-height)))
-    (symbol-macrolet ((min-w (xlib:wm-size-hints-min-width hints))
-		      (min-h (xlib:wm-size-hints-min-height hints))
-		      (max-w (xlib:wm-size-hints-max-width hints))
-		      (max-h (xlib:wm-size-hints-max-height hints))
-		      (inc-w (xlib:wm-size-hints-width-inc hints))
-		      (inc-h (xlib:wm-size-hints-height-inc hints))
-		      (base-w (xlib:wm-size-hints-base-width hints))
-		      (base-h (xlib:wm-size-hints-base-height hints))
-		      (g (xlib:wm-size-hints-win-gravity hints)))
-       (unless (eq g :static)
-	 (decf max-ww hmargin)
-	 (decf max-hh vmargin))
-       (setf min-w (max (or (or min-w base-w) 1) 1)
-	     min-h (max (or (or min-h base-h) 1) 1)
-	     base-w (max (or (or base-w min-w) 1) 1)
-	     base-h (max (or (or base-h min-h) 1) 1)
-	     inc-w (or inc-w 1) 
-	     inc-h (or inc-h 1))
-      (setf max-ww (- max-ww (mod (- max-ww base-w) inc-w))
-	    max-hh (- max-hh (mod (- max-hh base-h) inc-h)))
-      (unless (and max-w (<= min-w max-w max-ww)) (setf max-w max-ww))
-      (unless (and max-h (<= min-h max-h max-hh)) (setf max-h max-hh))
-      (setf min-w (min min-w max-w)
-	    min-h (min min-h max-h)
-	    base-w (min base-w max-w)
-	    base-h (min base-h max-h))
-      (multiple-value-bind (w h) (drawable-sizes window)
-	(unless (<= min-w w max-w) 
-	  (setf (xlib:drawable-width window) (min (max min-w w) max-w)))
-	(unless (<= min-h h max-h) 
-	  (setf (xlib:drawable-height window) (min (max min-h h) max-h))))
-      (values (vector min-w min-h max-w max-h inc-w inc-h base-w base-h) g))))
-
 (defun make-decoration (application-window application)
   (let* ((theme (root-decoration-theme *root*))
 	 (style (find-decoration-frame-style theme application-window)))
@@ -392,24 +398,29 @@
 	    (make-corner master (+ width hmargin) (+ height vmargin))
 	    (make-title-bar master (wm-name application-window))
 	    (update-edges-geometry master)
+	    (with-slots (icon) application
+	      (setf (getf (decoration-children master) :icon) icon
+		    (slot-value icon 'master) master
+		    (slot-value application 'master) master
+		    (xlib:drawable-border-width window) 0))
 	    master))))))
 
 (defun decore-application (window application &key (map t))
+  "Decore an application and map the resulting decoration as indicated
+  by the :map keyword argument. (default value is T).
+  Return the newly created decoration."
   (let* ((master (make-decoration window application))
 	 (master-window (widget-window master))
 	 (left-margin (style-left-margin (decoration-frame-style master)))
 	 (top-margin (style-top-margin (decoration-frame-style master))))
-    (with-slots (icon) application
-      (setf (getf (decoration-children master) :icon) icon
-	    (slot-value icon 'master) master
-	    (slot-value application 'master) master
-	    (xlib:drawable-border-width window) 0))
     (with-event-mask (master-window)
       (xlib:map-subwindows master-window))
     (with-event-mask (master-window (when map +decoration-event-mask+))
       (xlib:reparent-window window master-window left-margin top-margin))
     (when map (xlib:map-window window))
     master))
+
+;;;; Maximization tools.
 
 (defun find-max-geometry (application direction fill-p &key x y w h)
   (multiple-value-bind (ulx uly lrx lry)
@@ -452,6 +463,8 @@
 	(3 (if horz-p
 	       (make-geometry :x ix :y y :w iw :h h)
 	       (find-max-geometry application direction fill-p :y y :h h)))))))
+
+;; Public.
 
 (defun maximize-window (application code &key (fill-p *maximize-fill*))
   (with-slots ((app-window window) initial-geometry full-geometry master)
@@ -626,8 +639,6 @@
 	  (cons "Destroy" (lambda () (kill-client-window appw)))
 	  (cons "Iconify" (lambda () (iconify app)))))))
 
-;; This is for updating the root properties
-;; win_client_list, net_client_list(_stacking).
 (defun update-lists (app state root)
   "Update root properties win_client_list, net_client_list(_stacking), 
   by adjoining or removing the given application depending of state."
@@ -656,6 +667,10 @@
 	  finally (setf (netwm:net-client-list-stacking window) wins))))
 
 (defun window-not-decorable-p (window)
+  "Return T if a window `should' not be decorated. Typically splash screen, 
+  a desktop (e.g. nautilus) or a dock (e.g. gnome panels) will be assumed as
+  non-decorable windows. Such as windows holding the motif_wm_hints with the
+  flag `no decoration at all'."
   (let ((netwm-type (netwm:net-wm-window-type window)))
     (or (eql (motif-wm-decoration window) :OFF)
 	(member :_net_wm_window_type_splash netwm-type)
@@ -663,6 +678,7 @@
 	(member :_net_wm_window_type_dock netwm-type))))
 
 (defun procede-decoration (window)
+  "Decore, if necessary, add/update properties, map or not, etc a window."
   (let ((scr-num (current-desk))
 	(application (create-application window nil))
 	(win-workspace (or (window-desktop-num window) +any-desktop+))
