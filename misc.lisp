@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.16 2004/01/06 17:02:06 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.17 2004/01/17 18:22:34 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -193,13 +193,12 @@
 	    (:south (values (ash w -1) h))
 	    (:south-west (values 0 (ash h -1)))
 	    (:center (values (ash w -1) (ash h -1)))
+	    (:static (values left-margin top-margin))
 	    (t (values 0 0))))
       ;; update coordinates.
       (xlib:with-state ((or parent win))
-	(when x (setf (xlib:drawable-x (or parent win)) 
-		      (- (if (eq g :static) (- x left-margin) x) delta-x)))
-	(when y (setf (xlib:drawable-y (or parent win))
-		      (- (if (eq g :static) (- y top-margin) y) delta-y))))
+	(when x (setf (xlib:drawable-x (or parent win)) (- x delta-x)))
+	(when y (setf (xlib:drawable-y (or parent win)) (- y delta-y))))
       ;; update sizes.
       (when (or width height)
 	(with-event-mask ((or parent win))
@@ -284,6 +283,22 @@
       :confine-to confine-to
       :cursor (or cursor (root-default-cursor *root*))
       :owner-p owner-p))
+
+(defun update-workarea-property (root)
+  "computes and sets the _net_workarea property for the root-window."
+  (with-slots (window) root
+    (loop for i from 0 below (number-of-virtual-screens window)
+	  nconc (multiple-value-bind (ulx uly llx lly)
+		    (multiple-value-bind (w h) (drawable-sizes window)
+		      (rectangle-coordinates
+		          (car (find-empty-rectangles
+				   (make-rectangle :lrx w :lry h)
+				   (find-all-panel-rectangles i)
+				   #'rectangle-surface>=))))
+		  (list ulx uly (- llx ulx) (- lly uly)))
+	  into workareas
+	  finally (xlib:change-property
+		      window :_net_workarea workareas :CARDINAL 32))))
 
 (defun query-application-tree (root-window)
   "Returns the children of the specified root-window as if all applications
