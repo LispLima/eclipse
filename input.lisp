@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.27 2004/01/12 10:57:58 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.28 2004/01/15 15:35:34 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -64,25 +64,20 @@
 	    (let ((e (make-event :enter-notify :kind :inferior :mode :normal)))
 	      (event-process e (or (lookup-widget child) *root*))))))))
 
+(defmethod event-process ((ev configure-request) (widget base-widget))
+  (declare (ignorable widget))
+  (with-slots (window value-mask x y width height above-sibling stack-mode) ev
+    (configure-window window
+      :x (and (logbitp 0 value-mask) x)
+      :y (and (logbitp 1 value-mask) y)
+      :width (and (logbitp 2 value-mask) width)
+      :height (and (logbitp 3 value-mask) height)
+      :stack-mode (and (logbitp 6 value-mask) stack-mode)
+      :sibling above-sibling)))
+
 ;; Specialized ones.
 
 ;;; Events for the root window
-
-(defmethod event-process ((ev configure-request) (root root))
-  (declare (ignorable root))
-  (with-slots (window x y width height stack-mode value-mask above-sibling) ev
-    (xlib:with-state (window)
-      (when (logbitp 0 value-mask) (setf (xlib:drawable-x window) x))
-      (when (logbitp 1 value-mask) (setf (xlib:drawable-y window) y))
-      (when (logbitp 2 value-mask) (setf (xlib:drawable-width window) width))
-      (when (logbitp 3 value-mask) (setf (xlib:drawable-height window) height))
-      (when (logbitp 6 value-mask)
-	(setf (window-priority window above-sibling) stack-mode)))
-    (when (< 0 (logand value-mask #x0F) 4)
-      ;; Acording to the ICCCM: send a synthetic configure-notify,
-      ;; when we moved a application window without resizing it.
-      (when (application-p (lookup-widget window))
-	(send-configuration-notify window)))))
 
 (defmethod event-process ((event map-request) (root root))
   (if (lookup-widget (event-window event))
@@ -208,36 +203,12 @@
 
 ;;; Events for master (type: decoration)
 
-(defmethod event-process ((event configure-request) (master decoration))
-  (with-slots (window (parent event-window) (mask value-mask)
-	       x y width height above-sibling stack-mode) event
-    (when (application-p (lookup-widget window))
-      (xlib:with-state (parent)
-	;; update coordinates.
-	(with-slots (left-margin top-margin) (decoration-frame-style master)
-	  (let ((static (eq (decoration-application-gravity master) :static)))
-	    (when (logbitp 0 mask)
-	      (setf (xlib:drawable-x parent) (if static (- x left-margin) x)))
-	    (when (logbitp 1 mask)
-	      (setf (xlib:drawable-y parent) (if static (- y top-margin) y)))))
-	;; update sizes.
-	(xlib:with-state (window)
-	  (when (logbitp 2 mask) (setf (xlib:drawable-width window) width))
-	  (when (logbitp 3 mask) (setf (xlib:drawable-height window) height)))
-	;; restack.
-	(when (logbitp 6 mask)
-	  (let ((tmp (lookup-widget above-sibling)))
-	    (when (and (application-p tmp) (application-master tmp))
-	      (setf above-sibling (widget-window (application-master tmp)))))
-	  (setf (window-priority parent above-sibling) stack-mode)))
-      ;; Acording to the ICCCM: send a synthetic configure-notify,
-      ;; when we moved a applicaiton window without resizing it.
-      (when (< 0 (logand mask #x0F) 4) (send-configuration-notify window)))))
-
 (defmethod event-process ((event configure-notify) (master decoration))
   (with-slots ((master-window event-window) (app-window window)) event
-    (when (application-p (lookup-widget app-window))   
-      (resize-from (lookup-widget app-window))
+    (when (application-p (lookup-widget app-window))
+      (with-window-gravity 
+	  (master-window (decoration-application-gravity master))
+	(resize-from (lookup-widget app-window)))
       (with-event-mask (master-window)
 	(update-edges-geometry master)))))
 
@@ -398,11 +369,21 @@
 	       (when (and focused-p (eq *focus-type* :on-click))
 		 (give-focus-to-next-widget-in-desktop))
 	       (setf (application-wants-focus-p application) nil)))))
-	(:_NET_CLOSE_WINDOW (close-widget application))
 	(:_NET_ACTIVE_WINDOW
 	 (cond ((shaded-p application) (shade application))
 	       (iconic-p (uniconify icon)))
 	 (focus-widget application nil))
+	(:_NET_MOVERESIZE_WINDOW
+	 (let ((value-mask (logand #x0F (ash (aref data 0) -8)))
+	       (gravity (logand #xFF (aref data 0))))
+	   (configure-window window
+	     :x (when (logbitp 0 value-mask) (aref data 1))
+	     :y (when (logbitp 1 value-mask) (aref data 2))
+	     :width (when (logbitp 2 value-mask) (aref data 3))
+	     :height (when (logbitp 3 value-mask) (aref data 4))
+	     :gravity (unless (zerop gravity)
+			(svref xlib::*win-gravity-vector* gravity)))))
+	(:_NET_CLOSE_WINDOW (close-widget application))
 	(:WM_CHANGE_STATE
 	 (when (= 3 (aref data 0)) (iconify application)))))))
 
