@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PPM -*-
-;;; $Id: image-reader.lisp,v 1.5 2003/08/28 14:40:34 hatchond Exp $
+;;; $Id: image-reader.lisp,v 1.6 2004/03/01 14:54:02 ihatchondo Exp $
 ;;;
 ;;; This a ppm image reader for CLX
 ;;; This file is part of Eclipse
@@ -66,7 +66,7 @@
 
 ;;; Protocol class
 (defclass picture ()
-  ((width :initarg :width :type picture-size :accessor picture-width)
+  ((width :initarg :width :type picture-size :writer (setf picture-width))
    (height :initarg :height :type picture-size :accessor picture-height)
    (max :initarg :max :type card-8 :accessor picture-max)
    (data :initarg :data :accessor picture-data)))

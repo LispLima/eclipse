@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: MANAGER-COMMONS -*-
-;;; $Id: manager-commons.lisp,v 1.2 2003/11/13 00:03:50 ihatchondo Exp $
+;;; $Id: manager-commons.lisp,v 1.3 2004/03/01 14:54:02 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -160,6 +160,7 @@
 (defun get-text-property (window property-atom)
   (multiple-value-bind (data type format)
       (get-property window property-atom :result-type 'vector)
+    (declare (type (member 8 16 32) format))
     (when (and (= format 8) data) ;; is that true ??
       (case type
 	(:string (decode-names data))
