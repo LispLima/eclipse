@@ -1,5 +1,5 @@
 -*- Mode: Text; Syntax: ANSI-English; Package: CL-USER; Base: 10. -*-
-$Id: README,v 1.5 2004/03/16 18:20:35 ihatchondo Exp $
+$Id: README,v 1.6 2004/03/17 13:38:07 ihatchondo Exp $
 
 				    ECLIPSE
 
@@ -20,10 +20,11 @@ details.
 I would love to receive feedback/coments/idea/bugreports, so feel free
 to send me any comments you might have.
 
-Finally, I only compiled and tested Eclipse with CMUCL/SBCL. It should
+Finally, I only compiled and tested Eclipse with CMUCL/SBCL/CLISp. It should
 work for other ANSI CL implementations, but the Makefile may have to
 be modified, I guess. 
-(I have test it under x86 and Sparc ultra 1 with solaris).
+I have test it under x86 and Sparc ultra 1 with solaris, XFree86, Xorg, and
+XFree86 under Cygwin.
 
 
 
@@ -35,8 +36,10 @@ machine :
  - Common Lisp (see the <http://www.cons.org/cmucl> for a free implementation)
  - Loop (it usually comes with the standard, at least for CMUCL and ACL)
  - CLX library (AINSI CL implementation of the Xlib)
- - MK-Defsystem library (<http://sourceforge.net/projects/clocc/>)
- - GNOME (optional)
+ - One of the following System Definition Facility:
+   - MK-Defsystem library (<http://sourceforge.net/projects/clocc/>)
+   - ASDF (Another System Definition Facility) (<http://www.cliki.net/asdf>)
+ - GNOME/KDE (optional)
 
 You can find all the Lisp parts in the Debian CMU CL packages
 (<http://www.debian.org/distrib/packages>), I recommand them.
@@ -53,7 +56,7 @@ shell $ ./configure
 shell $ make
 shell $ make install
 
-should work. (at least for CMUCL and SBCL)
+should work. (at least for CMUCL, SBCL and CLISP)
 
 See ./configure --help for options that can be used.
 
@@ -107,7 +110,8 @@ Core creation :
 In order to run Eclipse, you need a Lisp core file that contains:
 
    - CLX, the Common Lisp interface to the X Window System
-   - mk:defsystem, the portable, free defsystem facility
+   - mk:defsystem, the portable, free defsystem facility or asdf, 
+     the "Another System Definition Facility".
 
 
 1. For CMU CL:
