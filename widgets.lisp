@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.19 2003/11/08 19:54:13 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.20 2003/11/24 13:12:02 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -557,33 +557,37 @@
 (defclass icon (push-button)
   ((desiconify-p :initform nil :accessor icon-desiconify-p)
    (creation-time :initform (get-universal-time) :accessor icon-creation-time)
-   (application :initarg :application :reader icon-application)))
+   (application :initarg :application :reader icon-application)
+   (pixmap-to-free :initform nil :reader icon-pixmap-to-free)))
 
 (defun icon-p (widget)
   (typep widget 'icon))
 
 (defun create-icon (application master &optional (bg-color *black*))
   (with-slots (window icon gcontext) application
-    (let ((background (clx-ext::wm-hints-icon-pixmap window))
-	  (width 45) (height 20))
+    (let* ((bkgrd (decode-netwm-icon-pixmap window (netwm:net-wm-icon window)))
+	   (width 45) (height 20) (pixmap-to-free bkgrd))
+      (unless bkgrd 
+	(setf bkgrd (ignore-errors (clx-ext::wm-hints-icon-pixmap window))))
       (ignore-errors
-	(if (typep background 'xlib:pixmap)
-	    (multiple-value-setq (width height) (drawable-sizes background))
-	    (setf background nil)))
+	(if (typep bkgrd 'xlib:pixmap)
+	    (multiple-value-setq (width height) (drawable-sizes bkgrd))
+	    (setf bkgrd nil)))
       (ignore-errors
-	(when (and background (= 1 (xlib:drawable-depth background)))
+	(when (and bkgrd (= 1 (xlib:drawable-depth bkgrd)))
 	  (let ((pix (xlib:create-pixmap
 		        :drawable window :width width :height height
 			:depth (xlib:drawable-depth window))))
-	    (xlib:copy-plane background gcontext 1 0 0 width height pix 0 0)
-	    (setf background pix))))
+	    (xlib:copy-plane bkgrd gcontext 1 0 0 width height pix 0 0)
+	    (setf bkgrd pix))))
       (setf icon (create-button
 		    'icon
 		    :parent *root-window* :master master
 		    :x 0 :y 0 :width width :height height
-		    :item (unless background (wm-icon-name window))
-		    :background (or background bg-color))
-	    (slot-value icon 'application) application)
+		    :item (unless bkgrd (wm-icon-name window))
+		    :background (or bkgrd bg-color)))
+      (setf (slot-value icon 'pixmap-to-free) pixmap-to-free)
+      (setf (slot-value icon 'application) application)
       icon)))
 
 (defun icon-sort-creation-order (icon1 icon2)
@@ -651,6 +655,11 @@
 	      (xlib:with-state (icon-window)
 		(setf (window-position icon-window) (values basex basey)))))
 	    (setq prev-icon-window icon-window)))))))
+
+(defmethod remove-widget :after ((widget icon))
+  (with-slots (pixmap-to-free) widget
+    (when pixmap-to-free
+      (xlib:free-pixmap pixmap-to-free))))
 
 (defmethod repaint ((widget icon) theme-name focus)
   (declare (ignorable theme-name focus))

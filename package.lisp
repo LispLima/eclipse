@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.10 2003/10/09 11:40:38 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.11 2003/11/24 16:57:46 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -80,6 +80,7 @@
    "CREATE-ICON"			  ;function
    "CREATE-MESSAGE-BOX"			  ;function
    "CURRENT-VSCREEN"                      ;function
+   "DECODE-NETWM-ICON-PIXMAP"             ;function
    "DECORATION-P"			  ;function
    "DECORATION-THEME"			  ;setf function
    "DECORE-APPLICATION"			  ;function

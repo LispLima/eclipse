@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.23 2003/11/19 10:29:08 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.24 2003/11/24 16:57:46 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -592,11 +592,13 @@
 	     (1 (change-vscreen root :n index))
 	     (3 (uniconify (slot-value (lookup-widget window) 'icon))))
 	   (put-on-top (lookup-widget window))))
-       (make-desktop-entries (index)
-	 (loop for w in (screen-content index :iconify-p t)
+       (make-desktop-entries (i)
+	 (loop for w in (screen-content i :iconify-p t)
 	       for state = (= 1 (first (wm-state w)))
-	       collect (cons (format nil "~:[[ ~A ]~;~A~]" state (wm-name w))
-			     (raise w index)))))
+	       for name = (format nil "~:[[ ~A ]~;~A~]" state (wm-name w))
+	       collect (cons name (raise w i)) into entries
+	       finally
+	        (return (or entries (lambda () (change-vscreen root :n i)))))))
     (make-desktop-menu root #'make-desktop-entries :realize t)))
 
 (defun make-menu-button-menu (master)

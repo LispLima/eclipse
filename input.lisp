@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.22 2003/11/24 13:12:01 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.23 2003/11/24 13:44:50 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -374,16 +374,16 @@
 	 (let* ((cur-desk (window-desktop-num window))
 		(new-desk (aref data 0))
 		(master-window (and master (widget-window master)))
-		(unmap-p (/= new-desk +any-desktop+ (current-desk))))
+		(unmap-p (/= new-desk +any-desktop+ (current-desk)))
+		(operation (if unmap-p #'xlib:unmap-window #'xlib:map-window)))
 	   (unless (= cur-desk new-desk)
 	     (when (shaded-p application) (shade application))
 	     (setf (window-desktop-num window) new-desk)
-	     (let ((operation (if unmap-p #'xlib:unmap-window #'xlib:map-window)))
-	       (with-event-mask (*root-window*)
-		 (funcall operation (or master-window window))
-		 (when master-window
-		   (with-event-mask (master-window)
-		     (funcall operation window)))))
+	     (with-event-mask (*root-window*)
+	       (funcall operation (or master-window window))
+	       (when master-window
+		 (with-event-mask (master-window)
+		   (funcall operation window))))
 	     (when unmap-p
 	       (xlib:set-input-focus *display* :pointer-root :pointer-root)))))
 	(:_NET_CLOSE_WINDOW (close-widget application))

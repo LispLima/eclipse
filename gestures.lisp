@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.10 2003/11/13 11:12:28 ihatchondo Exp $
+;;; $Id: gestures.lisp,v 1.11 2003/11/19 10:29:08 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -255,7 +255,7 @@
 			          (default-modifiers-p t)
 				  (modifiers :any)
 				  fun)
-" modifiers can be:
+  " modifiers can be:
   - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
   - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
   - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)"
@@ -276,7 +276,7 @@
 				     (default-modifiers-p t)
 				     (modifiers :any)
 				     fun)
-" modifiers can be:
+  " modifiers can be:
   - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
   - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
   - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)"
@@ -386,9 +386,10 @@
 	 (when (eq direction :below) (incf depth-aux))
 	 (rotatef (nth 0 *windows*) (nth depth-aux *windows*)))))
     (when (and *verbose-window-cycling* (car *windows*))
-      (with-slots (window) (lookup-widget (car *windows*))
+      (with-slots (window icon) (lookup-widget (car *windows*))
 	(setf (message-pixmap *current-widget-info*)
-	      (clx-ext::wm-hints-icon-pixmap window))
+	      (or (icon-pixmap-to-free icon)
+		  (clx-ext::wm-hints-icon-pixmap window)))
 	(setf (button-item-to-draw *current-widget-info*) (wm-name window)))
       (with-slots (window) *current-widget-info*	  
 	(xlib:map-window window)
