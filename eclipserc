@@ -87,7 +87,7 @@
       *focus-type* :none
       *verbose-move* nil
       *verbose-resize* nil
-      *wrap-pointer-when-cycle* nil
+      *warp-pointer-when-cycle* nil
       *focus-new-mapped-window* t
       *change-desktop-message-active-p* nil
       (decoration-theme) "microGUI")
