@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp -*-
-;;; $Id: clx-patch.lisp,v 1.4 2003/09/09 13:49:41 hatchond Exp $
+;;; $Id: clx-patch.lisp,v 1.5 2003/12/05 13:41:54 ihatchondo Exp $
 ;;;
 ;;; This file contains the patch fixing a bug in CLX as distributed
 ;;; with vanilla CMUCL versions up to 18d.
@@ -15,6 +15,8 @@
   (xlib:int16 x y)
   (xlib:card16 width height border-width value-mask))
 
+(defconstant _x_getinputfocus_ 43)
+
 #|
 
 This patch is also buggy: trying to find a window returns unexisting window
@@ -24,11 +26,10 @@ structure at X server level. But as already said
 (xlib::or-get 8 (member :none :pointer-root) window) doesn't work.
 Indeed O or 1 are inappropriated ID's.
 
-(defun xlib:input-focus (display) 
-  (declare (type xlib:display display)) 
+(defun xlib:input-focus (dpy) 
+  (declare (type xlib:display dpy)) 
   (declare (xlib::clx-values focus revert-to)) 
-  (xlib::with-buffer-request-and-reply
-      (display xlib::*x-getinputfocus* 16 :sizes (8 32)) 
+  (xlib::with-buffer-request-and-reply (dpy _x_getinputfocus_ 16 :sizes (8 32))
     () 
     (values 
       (xlib::or-get 8 window (member :none :pointer-root)) 
@@ -36,11 +37,10 @@ Indeed O or 1 are inappropriated ID's.
 
 |#
 
-(defun xlib:input-focus (display) 
-  (declare (type xlib:display display)) 
+(defun xlib:input-focus (dpy) 
+  (declare (type xlib:display dpy)) 
   (declare (xlib::clx-values focus revert-to)) 
-  (xlib::with-buffer-request-and-reply
-      (display xlib::*x-getinputfocus* 16 :sizes (8 32)) 
+  (xlib::with-buffer-request-and-reply (dpy _x_getinputfocus_ 16 :sizes (8 32))
     ()     
     (values 
       (let ((id (xlib::card29-get 8)))
@@ -48,7 +48,7 @@ Indeed O or 1 are inappropriated ID's.
 	(case id 
 	  (0 :none)
 	  (1 :pointer-root)
-	  (t (xlib::lookup-window display id))))
+	  (t (xlib::lookup-window dpy id))))
       (xlib::member8-get 1 :none :pointer-root :parent))))
 
 ;; It seems that sometimes some id are still present in the clx display
