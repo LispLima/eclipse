@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.12 2003/12/02 19:07:06 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.13 2003/12/03 14:34:34 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -72,7 +72,7 @@
 	      '(:substructure-redirect :button-press :button-release
 		:focus-change :key-release :substructure-notify
 		:owner-grab-button :key-press :enter-window :leave-window))
-      (xlib:display-finish-output display)))
+	(xlib:display-finish-output display)))
 
     ;; Notify all the other X clients of the new manager.
     (xlib:send-event root-window

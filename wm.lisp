@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.26 2003/12/02 14:30:41 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.27 2003/12/02 21:59:29 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -709,9 +709,11 @@
 
 ;;;; The main loop.
 
+(define-condition exit-eclipse (error) ())
+
 (defun eclipse-internal-loop ()
-  (let ((exit 0)
-	(time))
+  (let* ((exit 0)
+	 (time))
 
     ;; Sets the root window pop-up menu
     (when *menu-1-exit-p*
@@ -749,19 +751,20 @@
     ;; Main loop
     (loop
       (catch 'general-error
-	(handler-bind ((end-of-file #'handle-end-of-file-condition)
-		       (already-handled-xerror 
-		       #'handle-already-handled-xerror-condition)
-		       (error #'handle-general-error-condition))
-	  (let ((event (get-next-event *display* :discard-p t :timeout 2)))
-	    (when event
-	      (with-slots (event-window) event
-		(event-process event (lookup-widget event-window)))))
-	  (when pt:preprogrammed-tasks (pt:execute-preprogrammed-tasks))
-	  (case exit
-	    (1 (when *close-display-p*
-		 (loop for val being each hash-value in *widget-table*
-		       do (close-widget val)))
-	       (setf time 10 exit 2))
-	    (2 (return))))))
-    (format t "Main loop exited~%")))
+	(handler-case
+	    (let ((event (get-next-event *display* :discard-p t :timeout 2)))
+	      (when event
+		(with-slots (event-window) event
+		  (event-process event (lookup-widget event-window))))
+	      (when pt:preprogrammed-tasks (pt:execute-preprogrammed-tasks))
+	      (case exit
+		(1 (when *close-display-p*
+		     (loop for val being each hash-value in *widget-table*
+			   do (close-widget val)))
+		   (setf time 10 exit 2))
+		(2 (return))))
+	  (exit-eclipse () (setf exit 1))
+	  (end-of-file (c) (handle-end-of-file-condition c))
+	  (already-handled-xerror () nil)
+	  (error (c) (handle-error-condition c)))))
+    (format t "~%Main loop exited~%")))

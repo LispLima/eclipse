@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.14 2003/11/19 10:29:08 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.15 2003/11/28 10:13:47 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -64,12 +64,8 @@
 	  (finish-output *stderr*)))
      ,(unless return `(throw ',(or throw type) ,@(or body '(nil))))))
 
-(make-error-handler (already-handled-xerror :verbose nil :throw general-error))
-(make-error-handler (general-error))
-(make-error-handler (invalid-wm-property))
+(make-error-handler (error :return t))
 (make-error-handler (end-of-file :throw end))
-(make-error-handler (wrong-name :verbose nil)
-  (timed-message-box *root-window* "Wrong application name"))
 
 ;;;; Property readers.
 ;; They are not defined in the clx-ext package, because we customize them
@@ -256,9 +252,10 @@
   run the program named `program' with arguments `arguments'. If the 
   invocation failed a pop-up window will appear reporting the error."
   (lambda ()
-    (catch 'wrong-name
-      (handler-bind ((error #'handle-wrong-name-condition))
-	(%run-program% program arguments)))))
+    (handler-case (%run-program% program arguments)
+      (error (c) 
+	(declare (ignore c))
+	(timed-message-box *root-window* "Wrong application name")))))
 
 (defun make-viewport-property (n)
   (make-list (* 2 n) :initial-element 0))
