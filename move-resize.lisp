@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.10 2003/11/24 13:44:50 ihatchondo Exp $
+;;; $Id: move-resize.lisp,v 1.11 2003/12/08 15:01:02 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -168,36 +168,40 @@
 (defun where-is-pointer (widget)
   "Initialize the resize process when activated from one the decoration edge." 
   (declare (optimize (speed 3) (safety 0)))
-  (setf *delta-x* 0
-	*delta-y* 0
-	*card-point*
-	(typecase widget
-	  (top :north)
-	  (top-left :nw)
-	  (left :west)
-	  (bottom-left :sw)
-	  (bottom :south)
-	  (bottom-right :se)
-	  (right :east)
-	  (top-right :ne)
-	  (t :se))))
+  (setf (values *delta-x* *delta-y*) (values 0 0)
+	*card-point* (typecase widget
+		       (top :north)
+		       (top-left :nw)
+		       (left :west)
+		       (bottom-left :sw)
+		       (bottom :south)
+		       (bottom-right :se)
+		       (right :east)
+		       (top-right :ne)
+		       (t :se))))
 
 (defun find-corner (root-x root-y window)
   "Initialize the resize process when activated from somewhere else 
   than a decoration edge."
-  (declare (optimize (speed 3) (safety 0))
-	   (type xlib:int16 root-x root-y))
-  (multiple-value-bind (x y w h) (window-geometry window)
-    (declare (type xlib:int16 x y)
-	     (type xlib:card16 w h))
-    (when (>= root-x (+ x (floor w 2))) (incf x w))
-    (when (>= root-y (+ y (floor h 2))) (incf y h))
-    (setf *delta-x* (- root-x x)
-	  *delta-y* (- root-y y)
-	  *card-point*
-	  (if (>= *delta-x* 0)
-	      (if (>= *delta-y* 0) :nw :sw)
-	      (if (>= *delta-y* 0) :ne :se)))))
+  (multiple-value-bind (x y width height) (window-geometry window)
+    (let ((corners '#(#.'#(:nw :north :nw :west) #.'#(:north :ne :east :ne)
+		      #.'#(:se :east :se :south) #.'#(:west :sw :south :sw))))
+      (labels ((find (x y rx ry w h)
+		 (if (<= x rx (+ x (floor w 2)))
+		     (if (<= y ry (+ y (floor h 2))) 0 3)
+		     (if (<= y ry (+ y (floor h 2))) 1 2)))
+	       (get-card (x y rx ry w h)
+		 (let ((corner (find x y rx ry w h)))
+		   (setf w (floor w 2))
+		   (setf h (floor h 2))
+		   (when (or (= corner 1) (= corner 2)) (incf x w))
+		   (when (or (= corner 2) (= corner 3)) (incf y h))
+		   (aref (aref corners corner) (find x y rx ry w h)))))
+	(setf *card-point* (get-card x y root-x root-y width height))
+	(when (>= root-x (+ x (* 3 (floor width 4)))) (incf x width))
+	(when (>= root-y (+ y (* 3 (floor height 4)))) (incf y height))
+	(setf *delta-x* (- root-x x)
+	      *delta-y* (- root-y y))))))
 
 (defun check-size (size base inc min-size max-size)
   "If the given size respects all the given constraints, then return size. 
