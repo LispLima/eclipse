@@ -1,5 +1,5 @@
 # -*- Mode: Makefile -*-
-# $Id: Makefile.in,v 1.2 2002/06/24 07:33:44 james Exp $
+# $Id: Makefile.in,v 1.3 2002/11/07 14:54:26 hatchond Exp $
 #
 # Makefile for Eclipse window manager.
 
@@ -56,7 +56,7 @@ themes:
 clean:
 	/bin/rm -f load-eclipse.lisp
 	/bin/rm -f eclipse
-	/bin/rm -f *.err
+	/bin/rm -f *.err lib/*.err lib/clx-ext/*.err
 	@$(LISP) $(CORE) ${load_switch} system.lisp ${eval_form}\
 	 "(progn\
 	    (operate-on-system :eclipse :clean)\
