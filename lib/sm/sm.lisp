@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: SM-LIB; -*-
-;;; $Id:$
+;;; $Id: sm.lisp,v 1.1 2004/01/12 11:10:52 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -431,3 +431,17 @@
       ;; Reset the error handler and Returns the sm-connection instance.
       (setf (ice-error-handler sm-conn) error-handler) 
       sm-conn)))
+
+(defun close-sm-connection (sm-conn &key reason)
+  "Close a connection with a session manager."
+  (declare (type sm-connection sm-conn))
+  (declare (type (or null string) reason))
+  (ice-lib:post-request :want-to-close sm-conn)
+  (ice-lib:post-request :connection-closed sm-conn :reason reason)
+  (ice-flush sm-conn)
+  (setf (sm-release sm-conn) nil)
+  (setf (sm-vendor sm-conn) nil)
+  (setf (ice-release sm-conn) nil)
+  (setf (ice-vendor sm-conn) nil)
+  (setf (ice-connection-string sm-conn) nil)
+  (close (ice-lib:connection-stream sm-conn)))

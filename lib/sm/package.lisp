@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: COMMON-LISP; -*-
-;;; $Id:$
+;;; $Id: package.lisp,v 1.1 2004/01/12 11:10:52 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -189,6 +189,7 @@
    "PROPERTY-VALUES"
    "MAKE-ARRAY8"
 
+   "CLOSE-SM-CONNECTION"
    "CONNECTION-CLOSED-REASON"
    "OPEN-SM-CONNECTION"   
    "SESSION-MANAGER-UNAVAILABLE-REASON"
