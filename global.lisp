@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.19 2004/02/02 09:43:58 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.20 2004/02/12 23:30:22 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -176,6 +176,7 @@
 	      (format nil "~A~@[ ~{~A~^ ~}~]" program arguments))
   #+KCL (system (format nil "~A~@[ ~{~A~^ ~}~]" program arguments))
   #+:cmu (extensions:run-program program arguments :wait nil)
+  #+:sbcl (sb-ext:run-program program arguments :wait nil :search t)
   #+:lispworks (foreign:call-system-showing-output
 		(format nil "~A~@[ ~{~A~^ ~}~]" program arguments))
   #+clisp (lisp:run-program program :arguments arguments)
