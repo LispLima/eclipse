@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.18 2003/09/16 14:24:41 hatchond Exp $
+;;; $Id: wm.lisp,v 1.19 2003/09/30 12:18:36 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -584,16 +584,18 @@ For more information on the input-model sementic see ICCCM 4.1.7"))
 
 (defun make-running-menu (root)
   "Realize the root pop-up menu that shows all applications ordered by desktop."
-  (flet ((make-desktop-entries (index)
-	   (loop for w in (get-screen-content index :iconify-p t)
-		 for widget = (lookup-widget w)
-		 for state = (= 1 (first (wm-state w)))
-		 collect (cons (format nil "~:[[ ~A ]~;~A~]" state (wm-name w))
-			       (lambda ()
-				 (case (first (wm-state w))
-				   (1 (change-vscreen root :n index))
-				   (3 (uniconify (slot-value widget 'icon))))
-				 (put-on-top widget))))))
+  (labels
+      ((raise (window index)
+	 (lambda ()
+	   (case (first (wm-state window))
+	     (1 (change-vscreen root :n index))
+	     (3 (uniconify (slot-value (lookup-widget window) 'icon))))
+	   (put-on-top (lookup-widget window))))
+       (make-desktop-entries (index)
+	 (loop for w in (get-screen-content index :iconify-p t)
+	       for state = (= 1 (first (wm-state w)))
+	       collect (cons (format nil "~:[[ ~A ]~;~A~]" state (wm-name w))
+			     (raise w index)))))
     (make-desktop-menu root #'make-desktop-entries :realize t)))
 
 (defun make-menu-button-menu (master)
