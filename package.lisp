@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.14 2004/01/15 15:35:34 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.15 2004/02/12 23:30:22 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -280,7 +280,6 @@
    "ROOT-DECORATION-THEME"		  ;generic function
    "ROOT-DEFAULT-CURSOR"		  ;generic function
    "ROOT-DESKTOP"			  ;generic function
-   "ROOT-MANAGER"			  ;generic function
    "ROOT-MOVE-STATUS"			  ;generic function
    "ROOT-RESIZE-STATUS"			  ;generic function
    "SET-FOCUS"				  ;generic function

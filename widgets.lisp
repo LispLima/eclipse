@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.33 2004/01/23 15:38:16 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.34 2004/02/12 23:30:22 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -74,11 +74,6 @@
   (:documentation "Returns T if one of the state :win_state_fixed_position
    :_net_wm_state_sticky is set for the widget."))
 
-(defgeneric root-manager (widget)
-  (:documentation
-   "Returns the root-window child that is the place holder for indicating that
-   a netwm manager is present."))
-
 (defgeneric repaint (widget theme-name focus)
   (:documentation
    "This method is dedicated to widget repaint such as every buttons, icons,
@@ -104,15 +99,11 @@
   (define-null-method close-widget widget)
   (define-null-method focus-widget widget timestamp)
   (define-null-method repaint widget theme-name focus)
-  (define-null-method root-manager widget)
   (define-null-method shaded-p widget)
   (define-null-method widget-position-fix-p widget))
 
 (defmethod remove-widget ((widget base-widget))
   (remhash (widget-window widget) *widget-table*))
-
-(defmethod root-manager ((widget base-widget))
-  (root-manager (lookup-widget (xlib:drawable-root (widget-window widget)))))
 
 (defmethod put-on-top ((widget base-widget))
   (setf (xlib:window-priority (widget-window widget)) :above))
@@ -130,6 +121,8 @@
 
 (declaim (inline lookup-widget))
 
+(defclass standard-property-holder (base-widget) ())
+
 ;;;; The ROOT
 
 (defclass root (base-widget)
@@ -138,7 +131,6 @@
    (default-cursor :initform nil :accessor root-default-cursor)
    (current-active-widget :initform nil)
    (decoration-theme :initform nil :accessor root-decoration-theme)
-   (properties-manager-window :initarg :manager :reader root-manager)
    (menu1 :initform nil)
    (menu2 :initform nil)
    (menu3 :initform nil)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.31 2004/01/20 21:38:11 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.32 2004/02/12 23:30:22 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -46,14 +46,6 @@
 	 (register-all-mouse-strokes)))
       (:pointer nil))))
 
-(defmethod event-process ((event selection-clear) null-widget)
-  ;; handle the selection clear to stop window managing (see ICCCM 2.8).
-  (declare (ignorable null-widget))
-  (with-slots (event-window selection) event
-    (and (xlib:window-equal event-window (root-manager *root*))
-	 (string= selection +xa-wm+)
-	 (error 'exit-eclipse))))
-
 (defmethod event-process ((ev configure-request) (widget base-widget))
   (declare (ignorable widget))
   (with-slots (window value-mask x y width height above-sibling stack-mode) ev
@@ -81,6 +73,12 @@
 	      (event-process e (or (lookup-widget child) *root*))))))))
 
 ;; Specialized ones.
+
+(defmethod event-process ((e selection-clear) (w standard-property-holder))
+  ;; handle the selection clear to stop window managing (see ICCCM 2.8).
+  (declare (ignorable w))
+  (when (string= (event-selection e) +xa-wm+)
+    (error 'exit-eclipse)))
 
 ;;; Events for the root window
 

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.16 2004/01/12 12:56:11 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.17 2004/01/15 15:35:34 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -123,6 +123,7 @@
       :data (list managing-since 
 		  (xlib:find-atom display +xa-wm+)
 		  (xlib:window-id manager)))
+    (make-instance 'standard-property-holder :window manager)
     manager))
 
 (defun init-gnome-compliance (display window manager)
@@ -160,11 +161,11 @@
       ;; Specific for X display
       (setf (xlib:display-error-handler display) #'default-handler
 	    (xlib:display-after-function display) #'xlib:display-force-output)
-      (setf *root* (make-instance 'root :window root-window :manager manager)
+      (setf *root* (make-instance 'root :window root-window)
 	    *root-window* root-window
 	    (root-default-cursor *root*) (get-x-cursor *display* :xc_left_ptr)
-	    (root-sm-conn *root*)
-	    (connect-to-session-manager display-specification sm-client-id))
+	    (root-sm-conn *root*) (connect-to-session-manager
+				      display-specification sm-client-id))
       ;; init all gnome properties on root.
       (init-gnome-compliance display root-window manager)
       (ppm:initialize colormap)

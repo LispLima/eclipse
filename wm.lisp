@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.36 2004/02/13 18:23:16 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.37 2004/02/16 11:01:24 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -823,7 +823,8 @@
 		     (close-sm-connection *root* :exit-p nil))
 		   (xlib:display-finish-output *display*)
 		   (setf (xlib:window-event-mask *root-window*) '())
-		   (xlib:destroy-window (root-manager *root*))
+		   (let ((win (netwm:net-supporting-wm-check *root-window*)))
+		     (xlib:destroy-window win))
 		   (xlib:display-finish-output *display*)
 		   (return))))
 	  (exit-eclipse (c)
