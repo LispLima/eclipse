@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: MANAGER-COMMONS -*-
-;;; $Id: manager-commons.lisp,v 1.5 2004/05/10 22:20:56 ihatchondo Exp $
+;;; $Id: manager-commons.lisp,v 1.6 2005/01/07 15:13:37 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -88,16 +88,16 @@
     32))
 
 (defun get-atoms-property (window property-atom atom-list-p)
-  "Returns a list of atom-id (if atom-list-p is t) otherwise returns a list 
-  of atom-name."
+  "Returns a list of atom-name (if atom-list-p is t) otherwise returns
+   a list of atom-id."
   (get-property window property-atom
     :transform (when atom-list-p
 		 (lambda (id)
 		   (xlib:atom-name (xlib:drawable-display window) id)))))
 
 (defun get-window-property (window property-atom window-list-p)
-  "Returns a list of window-id (if window-list-p is t) otherwise returns
-  a list of window."
+  "Returns a list of window (if window-list-p is t) otherwise returns
+   a list of window-id."
   (get-property window property-atom
     :transform (when window-list-p
 		 (lambda (id)
@@ -105,7 +105,7 @@
 
 (defun utf8->strings (data)
   "Converts a vector of (unsigned-byte 8) that represents utf8 string(s) into
-  into a list of strings."
+   into a list of strings."
   (declare (type simple-vector data))
   (loop with aux = nil
 	with length of-type card-16 = (1- (array-dimension data 0))
@@ -140,10 +140,10 @@
 
 (defun encode-mask (key-vector key-list key-type)
   "Converts a keyword list mask into its integer value mask.
-  - KEY-VECTOR is a vector containg bit-position keywords. The position of the
-    keyword in the vector indicates its bit position in the resulting mask
-  - KEY-LIST is either a mask or a list of KEY-TYPE.
-  Returns NIL when KEY-LIST is not a list or mask."
+   - KEY-VECTOR is a vector containg bit-position keywords. The position of
+   the keyword in the vector indicates its bit position in the resulting mask
+   - KEY-LIST is either a mask or a list of KEY-TYPE.
+   Returns NIL when KEY-LIST is not a list or mask."
   (declare (type (simple-array keyword (*)) key-vector))
   (declare (type (or card-16 list) key-list))
   (typecase key-list
@@ -166,7 +166,7 @@
 
 (defun encode-strings (&rest strings)
   "Converts a list of string into a vector of ISO Latin-1 characters, otherwise
-  said (unsigned-byte 8). Each string are ended with the null character."
+   said (unsigned-byte 8). Each string are ended with the null character."
   (loop for string in strings
 	for car = (map '(vector card-8) #'xlib:char->card8 (string string))
 	collect (concatenate '(vector card-8) car #(0)) into vector
@@ -174,8 +174,8 @@
 
 (defun decode-strings (chars)
   "Converts a vector of ISO Latin-1 characters, - e.g: (unsigned-byte 8) -,
-  into a list of strings. If the vector contains more than one string then
-  string are null terminated."
+   into a list of strings. If the vector contains more than one string then
+   string are null terminated."
   (declare (type simple-vector chars))
   (loop with name = nil
 	with length of-type card-16 = (1- (array-dimension chars 0))
@@ -208,12 +208,12 @@
 
 (defun set-multiple-text-property (window strings type mode property-atom)
   "Sets a multiple string text property designates by `property-atom'.
-  - STRINGS a simpla string or a list of string.
-  - TYPE is one of :string :utf8_string
-  - MODE is one of :replace :remove :append.
-    :replace : replace the value of the property by the given strings.
-    :remove  : removes the given strings from the property.
-    :append  : append the given strings to the property."
+   - STRINGS a simpla string or a list of string.
+   - TYPE is one of :string :utf8_string
+   - MODE is one of :replace :remove :append.
+     :replace : replace the value of the property by the given strings.
+     :remove  : removes the given strings from the property.
+     :append  : append the given strings to the property."
   (let ((text-prop (get-text-property window property-atom)))
     (unless (eq mode :replace)
       (when (eq mode :remove)
@@ -232,7 +232,7 @@
 
 (defun set-atoms-property (window atoms property-atom &key (mode :replace))
   "Sets the property designates by `property-atom'. ATOMS is a list of atom-id
-  or a list of keyword atom-names."
+   or a list of keyword atom-names."
   (change-property window property-atom atoms :ATOM 32 
     :mode mode
     :transform (unless (integerp (car atoms))
@@ -245,7 +245,7 @@
   "Generates window list based properties accessors: 
    - `name' [ function ] window &key window-list
      returns the value of the property named `property-atom' as a list of
-     window-id if window-list is true, otherwise as a list of window.
+     window if window-list is T, otherwise as a list of window-id.
    - (setf `name') (window &key window-id) (window-designator)
      to sets the property value.
    
@@ -263,7 +263,8 @@
 	 `(when ,win
 	    (change-property ,window ,',property-atom
 	      (cond ((eq ,mode :remove)
-		     (remove ,win (,',reader ,window :window-list ,window-id)))
+		     (remove ,win
+		         (,',reader ,window :window-list (not ,window-id))))
 		    ((listp ,win) ,win)
 		    (t (list ,win)))
 	      ,',data-type
