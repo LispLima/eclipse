@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-request.lisp,v 1.6 2004/03/17 13:38:12 ihatchondo Exp $
+;;; $Id: ICE-request.lisp,v 1.7 2004/03/18 17:22:05 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -38,7 +38,7 @@
   (:documentation "returns a newly allocated instance of class designed 
    by the request-key-name."))
 
-(defgeneric decode-request (request-key ice-connection buffer byte-order)
+(defgeneric decode-request (request-key ice-connection buffer)
   (:documentation "returns a instance of request that represent the one
    in the input buffer."))
 
@@ -100,16 +100,16 @@
   ByteOrder) on startup. Versions gives an array of version (array card16 (2)),
   in decreasing order of preference, of the protocol versions this party is
   capable of speaking. The specification specifies major version 1, minor
-  version 0. If must-authenticate is True, the initiating party demands
+  version 0. If must-authenticate-p is T, the initiating party demands
   authentication; the accepting party must pick an authentication scheme and
   use it. In this case, the only valid response is AuthenticationRequired.
-   If must-authenticate is False, the accepting party may choose an
+   If must-authenticate-p is NIL, the accepting party may choose an
   authentication mechanism, use a host-address-based authentication scheme,
-  or skip authentication. When must-authenticate is False, ConnectionReply and
-  AuthenticationRequired are both valid responses. If a host-address-based
-  authentication scheme is used, AuthenticationRejected and
-  AuthenticationFailed errors are possible. Authentication-protocol-names
-  specifies a (possibly NIL, if must-authenticate is False) array of
+  or skip authentication. When must-authenticate-p is NIL, connection-reply
+  and authentication-required are both valid responses. If a 
+  host-address-based authentication scheme is used, authentication-rejected
+  and authentication-failed errors are possible. authentication-protocol-names
+  specifies a (possibly NIL, if must-authenticate-p is NIL) array of
   authentication protocols names the party is willing to perform.
    If must-authenticate is True, presumably the party will offer only
   authentication mechanisms allowing mutual authentication. Vendor gives the
@@ -120,8 +120,8 @@
   ((authentication-protocol-index :type card8 :pad-size 1)
    (length-of-authentication-data :type card16 :pad-size 6)
    (data :type data :length length-of-authentication-data))
-  (:documentation "This message is sent in response to a ConnectionSetup or
-  ProtocolSetup message to specify that authentication is to be done and what
+  (:documentation "This message is sent in response to a connection-setup or
+  protocol-setup message to specify that authentication is to be done and what
   authentication mechanism is to be used. The authentication protocol is
   specified by a 0-based index into the array of names given in the
   ConnectionSetup or ProtocolSetup. Any protocol-specific data that might be
@@ -131,17 +131,17 @@
   ((minor-opcode :type card8 :pad-size 2)
    (length-of-authentication-data :type card16 :pad-size 6)
    (data :type data :length length-of-authentication-data))
-  (:documentation "This message is sent in response to an AuthenticationRequired
-  or AuthenticationNextPhase message, to supply authentication data as defined
-  by the authentication protocol being used.
+  (:documentation "This message is sent in response to an 
+  authentication-required or authentication-next-phase message, to supply
+  authentication data as defined by the authentication protocol being used.
   Note that this message is sent by the party that initiated the current
-  negotiation (the party that sent the ConnectionSetup or ProtocolSetup
+  negotiation (the party that sent the connection-setup or protocol-setup
   message).
-   AuthenticationNextPhase indicates that more is to be done to complete the
-  authentication. If the authentication is complete, ConnectionReply is
+   authentication-next-phase indicates that more is to be done to complete
+  the authentication. If the authentication is complete, connection-reply is
   appropriate if the current authentication handshake is the result of a
-  ConnectionSetup, and a ProtocolReply is appropriate if it is the result of a
-  ProtocolSetup."))
+  connection-setup, and a protocol-reply is appropriate if it is the result
+  of a protocol-setup."))
 
 (declare-request authentication-next-phase (request)
   ((minor-opcode :type card8 :pad-size 2)
@@ -155,9 +155,9 @@
   ((version-index :type card8 :pad-size 1)
    (vendor-name :type string)
    (release-name :type string))
-  (:documentation "This message is sent in response to a ConnectionSetup or
-  AuthenticationReply message to indicate that the authentication handshake is
-  complete.
+  (:documentation "This message is sent in response to a connection-setup or
+  authentication-reply message to indicate that the authentication handshake
+  is complete.
   - version-index gives a 0-based index into the array of versions offered in
   the ConnectionSetup message; it specifies the version of the ICE protocol
   that both parties should speak for the duration of the connection.
@@ -188,29 +188,29 @@
   is willing to perform. If must-authenticate is True, presumably the party
   will offer only authentication mechanisms allowing mutual authentication.
 
-   If must-authenticate is True, the initiating party demands authentication;
+   If must-authenticate-p is T, the initiating party demands authentication;
   the accepting party must pick an authentication scheme and use it. In this
-  case, the only valid response is AuthenticationRequired.
-   If must-authenticate is False, the accepting party may choose an
+  case, the only valid response is authentication-required.
+   If must-authenticate-p is NIL, the accepting party may choose an
   authentication mechanism, use a host-address-based authentication scheme, or
-  skip authentication. When must-authenticate is False, ProtocolReply and
-  AuthenticationRequired are both valid responses. If a host-address-based
-  authentication scheme is used, AuthenticationRejected and AuthenticationFailed
-  errors are possible."))
+  skip authentication. When must-authenticate-p is NIL, protocol-reply and
+  authentication-required are both valid responses. If a host-address-based
+  authentication scheme is used, authentication-rejected and
+  authentication-failed errors are possible."))
 
 (declare-request protocol-reply (request)
   ((version-index :type card8)
    (protocol-major-opcode :type card8)
    (vendor-name :type string)
    (release-name :type string))
-  (:documentation "This message is sent in response to a ProtocolSetup or
-  AuthenticationReply message to indicate that the authentication handshake is
-  complete.
+  (:documentation "This message is sent in response to a protocol-setup or
+  authentication-reply message to indicate that the authentication handshake
+  is complete.
   - major-opcode gives the opcode that this party will use in messages that it
   sends.
   - version-index gives a 0-based index into the array of versions offered in
-  the ProtocolSetup message; it specifies the version of the protocol that both
-  parties should speak for the duration of the connection.
+  the protocol-setup message; it specifies the version of the protocol that
+  both parties should speak for the duration of the connection.
   - vendor-name and release-name are identification strings with semantics
   defined by the specific protocol being negotiated."))
 
@@ -230,25 +230,25 @@
   connection. The sending party has noticed that, as a result of mechanisms
   specific to each protocol, there are no active protocols left. There are
   four possible scenarios arising from this request:
-   (1) The receiving side noticed too, and has already sent a WantToClose. 
-       On receiving a WantToClose while already attempting to shut down, each
-       party should simply close the connection.
+   (1) The receiving side noticed too, and has already sent a want-to-close. 
+       On receiving a want-to-close while already attempting to shut down,
+       each party should simply close the connection.
    (2) The receiving side hasn't noticed, but agrees. It closes the connection.
-   (3) The receiving side has a ProtocolSetup ``in flight,'' in which case it
-       is to ignore WantToClose and the party sending WantToClose is to abandon
-       the shutdown attempt when it receives the ProtocolSetup.
+   (3) The receiving side has a protocol-setup ``in flight,'' in which case it
+       is to ignore want-to-close and the party sending WantToClose is to
+       abandon the shutdown attempt when it receives the protocol-setup.
    (4) The receiving side wants the connection kept open for some reason not
-       specified by the ICE protocol, in which case it sends NoClose.
+       specified by the ICE protocol, in which case it sends no-close.
   
   See the state transition diagram in the ICE protocol document for additional
   information."))
 
 (declare-request no-close (request)
   ((minor-opcode :type card8 :pad-size 2))
-  (:documentation "This message is sent in response to a WantToClose message to
-  indicate that the responding party does not want the connection closed at
+  (:documentation "This message is sent in response to a want-to-close message
+  to indicate that the responding party does not want the connection closed at
   this time. The receiving party should not close the connection. Either party
-  may again initiate WantToClose at some future time."))
+  may again initiate want-to-close at some future time."))
 
 ;;;; Errors.
 
@@ -269,17 +269,20 @@
   is minor-opcode zero in every protocol. The minor opcode of the message that
   caused the error is reported, as well as the sequence number of that message.
   The severity indicates the sender's behavior following the identification of
-  the error. CanContinue indicates the sender is willing to accept additional
-  messages for this protocol. FatalToProcotol indicates the sender is unwilling
-  to accept further messages for this protocol but that messages for other
-  protocols may be accepted. FatalToConnection indicates the sender is unwilling
-  to accept any further messages for any protocols on the connection. The sender
-  is required to conform to specified severity conditions for generic and ICE
-  (major opcode 0) errors; see Sections 6.1 and 6.2. The class defines the
-  generic class of error. Classes are specified separately for each protocol
-  (numeric values can mean different things in different protocols). The error
-  values, if any, and their types vary with the specific error class for the
-  protocol."))
+  the error. Severity can be:
+   - :can-continue indicates the sender is willing to accept additional
+   messages for this protocol.
+   - :fatal-to-procotol indicates the sender is unwilling to accept further
+   messages for this protocol but that messages for other protocols may be
+   accepted.
+   - :fatal-to-connection indicates the sender is unwilling to accept any
+   further messages for any protocols on the connection.
+  The sender is required to conform to specified severity
+  conditions for generic and ICE (major opcode 0) errors; see Sections 6.1 and
+  6.2. The class defines the generic class of error. Classes are specified
+  separately for each protocol (numeric values can mean different things in
+  different protocols). The error values, if any, and their types vary with
+  the specific error class for the protocol."))
 
 (defgeneric request-error-handler (request-error)
   (:documentation "Default ice error handler: signal an error: <error-CLASS>."))
@@ -299,12 +302,21 @@
   ((request-error :initarg :request-error :reader ice-error-request-error))
   (:report report-ice-error))
 
-(defmethod decode-request ((key (eql :request-error)) ice-conn buff byte-order)
+(defun get-error-class (error-buffer)
+  "Returns the error class of the given error-buffer without modifying the 
+  current position of the buffer index."
+  (declare (type buffer error-buffer))
+  (let ((buff-pos (buffer-index error-buffer)))
+    (declare (type fixnum buff-pos))
+    (setf (buffer-index error-buffer) 2)
+    (prog1 (buffer-read-card16 error-buffer)
+      (setf (buffer-index error-buffer) buff-pos))))
+
+(defmethod decode-request ((key (eql :request-error)) ice-conn buff)
   (declare (type buffer buff))
-  (let* ((index 2)
-	 (handler (ice-error-handler ice-conn))
-	 (class (buffer-read-card16 byte-order buff index))
-	 (err (decode-request (decode-error class) ice-conn buff byte-order))
+  (let* ((handler (ice-error-handler ice-conn))
+	 (class (get-error-class buff))
+	 (err (decode-request (decode-error class) ice-conn buff))
 	 (severity (request-error-severity err)))
     (declare (type error-handler handler))
     (declare (type card16 class))
@@ -402,10 +414,10 @@
 
 (declare-error authentication-failed
   ((values :type string))
-  (:documentation "Authentication failed. AuthenticationFailed does not imply
-  that the authentication was rejected, as AuthenticationRejected does. Instead
-  it means that the sender was unable to complete the authentication for some
-  other reason. (For instance, it may have been unable to contact an
+  (:documentation "Authentication failed. authentication-failed does not imply
+  that the authentication was rejected, as authentication-rejected does.
+  Instead it means that the sender was unable to complete the authentication
+  for some other reason. (For instance, it may have been unable to contact an
   authentication server.) The reason field will give a human-interpretable
   message providing further detail.")
   (:report (lambda (condition stream)
@@ -417,7 +429,7 @@
 (declare-error protocol-duplicate
   ((values :type string))
   (:documentation "The protocol name was already registered. This is fatal to
-  the ``new'' protocol being set up by ProtocolSetup, but it does not affect
+  the ``new'' protocol being set up by protocol-setup, but it does not affect
   the existing registration.")
   (:report (lambda (condition stream)
 	     (report-ice-error condition stream)

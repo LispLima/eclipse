@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-buffer.lisp,v 1.2 2004/03/05 16:18:27 ihatchondo Exp $
+;;; $Id: ICE-buffer.lisp,v 1.3 2004/03/08 17:50:23 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -19,6 +19,40 @@
 ;;;
 
 (in-package :ICE-LIB)
+
+;;;; Buffer definition.
+
+(deftype bbuf () '(simple-array card8 (*)))
+
+(defstruct (buffer (:constructor make-ice-buffer))
+  (bbuf (make-array 1 :element-type 'card8) :type bbuf)
+  (index 0 :type fixnum)
+  (byte-order :LSBFirst :type ice-byte-order))
+
+(defun make-buffer (size &optional (byte-order :LSBFirst))
+  (declare (type ice-byte-order byte-order))
+  (declare (type fixnum size))
+  (make-ice-buffer
+      :bbuf (make-array size :element-type 'card8)
+      :byte-order byte-order))
+
+(defun buffer-size (buffer)
+  (declare (type buffer buffer))
+  (array-dimension (buffer-bbuf buffer) 0))
+
+(defun buffer-read-sequence (buffer stream &key (start 0) end)
+  (read-sequence (buffer-bbuf buffer) stream :start start :end end))
+
+(defun buffer-write-sequence (buffer stream &key (start 0) end)
+  (write-sequence (buffer-bbuf buffer) stream :start start :end end))
+
+(defmacro index+ (buffer &optional (value 1))
+  `(incf (buffer-index ,buffer) ,value))
+
+(defmacro baref (buffer index)
+  `(aref (buffer-bbuf ,buffer) ,index))
+
+;;;;
 
 (defun pad-length (message-byte-length &optional (modulo 8))
   "returns the number of bytes that should be add to a message of length
@@ -47,34 +81,27 @@
 
 (defmacro define-member8-accessor (type vector)
   `(define-accessor ,type 
-     ((byte-order buffer index)
-      `(aref ,',vector (buffer-read-card8 ,byte-order ,buffer ,index)))
-     ((value byte-order buffer index)
-      (declare (ignore byte-order))
-      `(setf (aref ,buffer (1- (incf ,index))) (vpos ,value ,',vector)))))
+     ((buffer) `(aref ,',vector (buffer-read-card8 ,buffer)))
+     ((value buffer) `(buffer-write-card8 (vpos ,value ,',vector) ,buffer))))
 
 (defmacro define-member16-accessor (type vector)
   `(define-accessor ,type 
-     ((byte-order buffer index)
-      `(aref ,',vector (buffer-read-card16 ,byte-order ,buffer ,index)))
-     ((value byte-order buffer index)
-      `(buffer-write-card16
-	(vpos ,value ,',vector)
-	,byte-order ,buffer ,index))))
+     ((buffer) `(aref ,',vector (buffer-read-card16 ,buffer)))
+     ((value buffer) `(buffer-write-card16 (vpos ,value ,',vector) ,buffer))))
 
 (defmacro define-array-accessor (type element-type)
   (let ((read (sintern (format nil "BUFFER-READ-~a" element-type)))
 	(write (sintern (format nil "BUFFER-WRITE-~a" element-type))))
     `(define-accessor ,type 
-       ((byte-order buffer index length)
+       ((buffer length)
 	`(loop with size = ,length
 	       with v = (make-array size :element-type ',',element-type)
 	       for i from 0 below size
-	       do (setf (aref v i) (,',read ,byte-order ,buffer ,index))
+	       do (setf (aref v i) (,',read ,buffer))
                finally (return v)))
-       ((array byte-order buffer index)
+       ((array buffer)
 	`(loop for elem across (the ,',type ,array)
-	       do (,',write elem ,byte-order ,buffer ,index))))))
+	       do (,',write elem ,buffer))))))
 
 ;;;; buffer-{read,write}-<type> macros.
 
@@ -84,114 +111,107 @@
   '#(:can-continue :fatal-to-protocol :fatal-to-connection))
 
 (define-accessor card8
-  ((byte-order buffer index)
-   (declare (ignore byte-order))
-   `(aref (the buffer ,buffer) (1- (incf ,index))))
-  ((value byte-order buffer index)
-   (declare (ignore byte-order))
-   `(setf (aref (the buffer ,buffer) (1- (incf ,index))) ,value)))
+  ((buffer)
+   (with-gensym (buff)
+     `(let ((,buff ,buffer))
+	(baref ,buff (1- (index+ ,buff))))))
+  ((value buffer)
+   (with-gensym (buff val)
+     `(multiple-value-bind (,buff ,val) (values ,buffer ,value)
+        (setf (baref ,buff (1- (index+ ,buff))) ,val)))))
 
 (define-accessor boolean
-  ((byte-order buffer index)
-   `(= 1 (buffer-read-card8 ,byte-order ,buffer ,index)))
-  ((value byte-order buffer index)
-   `(buffer-write-card8 (if ,value 1 0) ,byte-order ,buffer ,index)))
+  ((buffer) `(= 1 (buffer-read-card8 ,buffer)))
+  ((value buffer) `(buffer-write-card8 (if ,value 1 0) ,buffer)))
 
 (define-accessor card16
-  ((byte-order buffer index)
-   (with-gensym (w1 w2 bo buff)
-     `(multiple-value-bind (,bo ,buff) (values ,byte-order ,buffer)
+  ((buffer)
+   (with-gensym (w1 w2 buff)
+     `(let* ((,buff ,buffer)
+	     (,w1 (buffer-read-card8 ,buff))
+	     (,w2 (buffer-read-card8 ,buff)))
         (declare (type buffer ,buff))
-        (let ((,w1 (buffer-read-card8 ,bo ,buff ,index))
-	      (,w2 (buffer-read-card8 ,bo ,buff ,index)))
-	  (ecase ,bo
-	    (:MSBFirst (logior (ash ,w1 8) ,w2))
-	    (:LSBFirst (logior (ash ,w2 8) ,w1)))))))
-  ((value byte-order buffer index)
-   (with-gensym (w1 w2 bo buff val)
-     `(multiple-value-bind (,bo ,buff ,val)
-          (values ,byte-order ,buffer ,value)
+	(ecase (buffer-byte-order ,buff)
+	  (:MSBFirst (logior (ash ,w1 8) ,w2))
+	  (:LSBFirst (logior (ash ,w2 8) ,w1))))))
+  ((value buffer)
+   (with-gensym (w1 w2 buff val)
+     `(multiple-value-bind (,buff ,val) (values ,buffer ,value)
         (declare (type buffer ,buff))
-        (let ((,w1 (ldb (byte 16 8) ,val))
+        (let ((,w1 (ldb (byte 8 8) ,val))
 	      (,w2 (ldb (byte 8 0) ,val)))
-	  (ecase ,bo
+	  (ecase (buffer-byte-order ,buff)
 	    (:MSBFirst 
-	     (buffer-write-card8 ,w1 ,bo ,buff ,index)
-	     (buffer-write-card8 ,w2 ,bo ,buff ,index))
+	     (buffer-write-card8 ,w1 ,buff)
+	     (buffer-write-card8 ,w2 ,buff))
 	    (:LSBFirst 
-	     (buffer-write-card8 ,w2 ,bo ,buff ,index)
-	     (buffer-write-card8 ,w1 ,bo ,buff ,index))))))))
+	     (buffer-write-card8 ,w2 ,buff)
+	     (buffer-write-card8 ,w1 ,buff))))))))
 
 (define-accessor card32
-  ((byte-order buffer index)
-   (with-gensym (w1 w2 w3 w4 bo buff)
-     `(multiple-value-bind (,bo ,buff) (values ,byte-order ,buffer)
+  ((buffer)
+   (with-gensym (w1 w2 w3 w4 buff)
+     `(let* ((,buff ,buffer)
+	     (,w1 (buffer-read-card8 ,buff))
+	     (,w2 (buffer-read-card8 ,buff))
+	     (,w3 (buffer-read-card8 ,buff))
+	     (,w4 (buffer-read-card8 ,buff)))
+	(declare (type buffer ,buff))
+	(ecase (buffer-byte-order ,buff)
+	  (:MSBFirst (logior (ash ,w1 24) (ash ,w2 16) (ash ,w3 8) ,w4))
+	  (:LSBFirst (logior (ash ,w4 24) (ash ,w3 16) (ash ,w2 8) ,w1))))))
+  ((value buffer)
+   (with-gensym (w1 w2 w3 w4 buff val)
+     `(multiple-value-bind (,buff ,val) (values ,buffer ,value)
         (declare (type buffer ,buff))
-        (let ((,w1 (buffer-read-card8 ,bo ,buff ,index))
-	      (,w2 (buffer-read-card8 ,bo ,buff ,index))
-	      (,w3 (buffer-read-card8 ,bo ,buff ,index))
-	      (,w4 (buffer-read-card8 ,bo ,buff ,index)))
-	  (ecase ,bo
-	    (:MSBFirst (logior (ash ,w1 24) (ash ,w2 16) (ash ,w3 8) ,w4))
-	    (:LSBFirst (logior (ash ,w4 24) (ash ,w3 16) (ash ,w2 8) ,w1)))))))
-  ((value byte-order buffer index)
-   (with-gensym (w1 w2 w3 w4 bo buff val)
-     `(multiple-value-bind (,bo ,buff ,val)
-          (values ,byte-order ,buffer ,value)
-        (declare (type buffer ,buff))
-        (let ((,w1 (ldb (byte 32 24) ,val))
-	      (,w2 (ldb (byte 24 16) ,val))
-	      (,w3 (ldb (byte 16 8) ,val))
+        (let ((,w1 (ldb (byte 8 24) ,val))
+	      (,w2 (ldb (byte 8 16) ,val))
+	      (,w3 (ldb (byte 8 8) ,val))
 	      (,w4 (ldb (byte 8 0) ,val)))
-	  (ecase ,bo
+	  (ecase (buffer-byte-order ,buff)
 	    (:MSBFirst 
-	     (buffer-write-card8 ,w1 ,bo ,buff ,index)
-	     (buffer-write-card8 ,w2 ,bo ,buff ,index)
-	     (buffer-write-card8 ,w3 ,bo ,buff ,index)
-	     (buffer-write-card8 ,w4 ,bo ,buff ,index))
+	     (buffer-write-card8 ,w1 ,buff)
+	     (buffer-write-card8 ,w2 ,buff)
+	     (buffer-write-card8 ,w3 ,buff)
+	     (buffer-write-card8 ,w4 ,buff))
 	    (:LSBFirst 
-	     (buffer-write-card8 ,w4 ,bo ,buff ,index)
-	     (buffer-write-card8 ,w3 ,bo ,buff ,index)
-	     (buffer-write-card8 ,w2 ,bo ,buff ,index)
-	     (buffer-write-card8 ,w1 ,bo ,buff ,index))))))))
+	     (buffer-write-card8 ,w4 ,buff)
+	     (buffer-write-card8 ,w3 ,buff)
+	     (buffer-write-card8 ,w2 ,buff)
+	     (buffer-write-card8 ,w1 ,buff))))))))
 
 (define-array-accessor data card8)
 
 (define-accessor version
-  ((byte-order buffer index)
-   (with-gensym (bo buff) 
-     `(multiple-value-bind (,bo ,buff) (values ,byte-order ,buffer)
+  ((buffer)
+   (with-gensym (buff) 
+     `(let ((,buff ,buffer))
         (declare (type buffer ,buff))
-        (make-version (buffer-read-card16 ,bo ,buff ,index)
-	              (buffer-read-card16 ,bo ,buff ,index)))))
-  ((version byte-order buffer index)
-   (with-gensym (bo buff ver) 
-     `(multiple-value-bind (,bo ,buff ,ver)
-          (values ,byte-order ,buffer ,version)
+        (make-version (buffer-read-card16 ,buff) (buffer-read-card16 ,buff)))))
+  ((version buffer)
+   (with-gensym (buff ver) 
+     `(multiple-value-bind (,buff ,ver) (values ,buffer ,version)
         (declare (type buffer ,buff))
         (declare (type version ,ver))
-        (buffer-write-card16 (aref ,ver 0) ,bo ,buff ,index)
-        (buffer-write-card16 (aref ,ver 1) ,bo ,buff ,index)))))
+        (buffer-write-card16 (aref ,ver 0) ,buff)
+        (buffer-write-card16 (aref ,ver 1) ,buff)))))
 
 (define-accessor string
-  ((byte-order buffer index)
-   (with-gensym (vector bo buff) 
-     `(multiple-value-bind (,bo ,buff) (values ,byte-order ,buffer)     
-        (declare (type buffer ,buff))
-        (let ((,vector (buffer-read-data
-			,bo ,buff ,index 
-			(buffer-read-card16 ,bo ,buff ,index))))
-	  (incf ,index (pad-length (+ (length ,vector) 2) 4))
-	  (map 'string #'code-char ,vector)))))
-  ((string byte-order buffer index)
-   (with-gensym (length bo buff s)
-     `(multiple-value-bind (,bo ,buff ,s)
-          (values ,byte-order ,buffer ,string)
+  ((buffer)
+   (with-gensym (vector buff) 
+     `(let* ((,buff (values ,buffer))
+	     (,vector (buffer-read-data ,buff (buffer-read-card16 ,buff))))
+	(declare (type buffer ,buff))
+	(index+ ,buff (pad-length (+ (length ,vector) 2) 4))
+	(map 'string #'code-char ,vector))))
+  ((string buffer)
+   (with-gensym (length buff s)
+     `(multiple-value-bind (,buff ,s) (values ,buffer ,string)
         (declare (type buffer ,buff))
         (let ((,length (length ,s)))
-	  (buffer-write-card16 ,length ,bo ,buff ,index)
-	  (buffer-write-data (map 'data #'char-code ,s) ,bo ,buff ,index)
-	  (incf ,index (pad-length (+ 2 ,length) 4)))))))
+	  (buffer-write-card16 ,length ,buff)
+	  (buffer-write-data (map 'data #'char-code ,s) ,buff)
+	  (index+ ,buff (pad-length (+ 2 ,length) 4)))))))
 
 ;; sequence type.
 
@@ -201,18 +221,6 @@
 
 ;;;; special readers.
 
-(defmacro read-minor-opcode (buffer) `(aref (the buffer ,buffer) 1))
+(defmacro read-minor-opcode (buffer) `(baref ,buffer 1))
 
-(defmacro read-major-opcode (buffer) `(aref (the buffer ,buffer) 0))
-
-;;;;
-
-(deftype buffer () '(simple-array card8 (*)))
-
-(defun buffer-size (buffer)
-  (declare (type buffer buffer))
-  (array-dimension buffer 0))
-
-(defun make-buffer (size)
-  (make-array size :element-type 'card8))
-
+(defmacro read-major-opcode (buffer) `(baref ,buffer 0))

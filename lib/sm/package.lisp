@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: COMMON-LISP; -*-
-;;; $Id: package.lisp,v 1.4 2004/03/16 16:56:54 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.5 2004/04/08 21:19:12 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -84,7 +84,7 @@
     #:protocol-major-opcode
     #:major-opcode #:offending-minor-opcode
     #:version-index #:vendor-name #:release-name
-    #:sintern
+    #:sintern #:index+
     )
   (:shadow
     #:get-properties

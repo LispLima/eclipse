@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-lib.lisp,v 1.6 2004/03/17 13:38:12 ihatchondo Exp $
+;;; $Id: ICE-lib.lisp,v 1.7 2004/07/12 21:22:56 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -90,34 +90,34 @@
   (with-slots (output-buffer output-byte-order) conn
     (declare (type buffer output-buffer))
     (decode-request
-     (decode-ice-minor-opcode 
-      (read-minor-opcode output-buffer)
-      (read-major-opcode output-buffer))
-     conn output-buffer output-byte-order)))
+        (decode-ice-minor-opcode 
+	    (read-minor-opcode output-buffer)
+	    (read-major-opcode output-buffer))
+	conn output-buffer)))
 
 (defmethod last-received-message ((conn ice-connection))
   (with-slots (input-buffer input-byte-order) conn
     (declare (type buffer input-buffer))
     (decode-request
-     (decode-ice-minor-opcode 
-      (read-minor-opcode input-buffer)
-      (read-major-opcode input-buffer))
-     conn input-buffer input-byte-order)))
+        (decode-ice-minor-opcode 
+	    (read-minor-opcode input-buffer)
+	    (read-major-opcode input-buffer))
+	conn input-buffer)))
 
 (defmethod read-request ((ice-connection ice-connection))
   (with-slots (input-buffer input-byte-order stream) ice-connection
     (declare (type (or null buffer) input-buffer))
-    (setf input-buffer (make-buffer 4096))
-    (read-sequence input-buffer stream :start 0 :end 8)
-    (let* ((index 4)
-	   (length (buffer-read-card32 input-byte-order input-buffer index)))
-      (declare (type fixnum index length))
-      (read-sequence input-buffer stream :start 8 :end (* 8 (1+ length))))
+    (setf input-buffer (make-buffer 4096 input-byte-order))
+    (buffer-read-sequence input-buffer stream :start 0 :end 8)
+    (setf (buffer-index input-buffer) 4)
+    (let ((length (buffer-read-card32 input-buffer)))
+      (declare (type fixnum length))
+      (buffer-read-sequence input-buffer stream :start 8 :end (* 8 (1+ length))))
     (decode-request
-       (decode-ice-minor-opcode 
-	   (read-minor-opcode input-buffer)
-	   (read-major-opcode input-buffer))
-       ice-connection input-buffer input-byte-order)))
+        (decode-ice-minor-opcode 
+	    (read-minor-opcode input-buffer)
+	    (read-major-opcode input-buffer))
+	ice-connection input-buffer)))
 
 (defun process-request (ice-connection &key timeout handler (ice-flush-p t))
   "Invokes handler on each queued request until handler returns non-nil. If

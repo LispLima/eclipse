@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-macros.lisp,v 1.1 2004/03/16 16:56:53 ihatchondo Exp $
+;;; $Id: ICE-macros.lisp,v 1.2 2004/03/17 13:38:12 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -24,45 +24,48 @@
   `(destructuring-bind (&key ,@key-args &allow-other-keys) (cdr ,slot-decl)
      ,@body))
 
-(defmacro with-reply-buffer ((buffer input-byte-order) &rest slots)
+(defmacro with-reply-buffer ((buffer) &rest slots)
   (flet ((type-reader (type) (format nil "BUFFER-READ-~a" (symbol-name type))))
-    (with-gensym (index buff ibo length)
-      `(let* ((,buff ,buffer) (,ibo ,input-byte-order)
-	      (,index 4)
-	      (,length (buffer-read-card32 ,ibo ,buff ,index)))
+    (with-gensym (buff length)
+      `(let ((,buff ,buffer) ,length)
 	 (declare (type buffer ,buff))
-	 (declare (ignorable ,length))
-	 (loop for i from 0 to 3 do (setf (aref ,buff (+ i 4)) (aref ,buff i)))
-	 (setf ,index 4)
+	 (setf (buffer-index ,buff) 0)
+	 (let ((int (buffer-read-card32 ,buff)))
+	   (setf ,length (buffer-read-card32 ,buff))
+	   (setf (buffer-index ,buff) 4)
+	   (buffer-write-card32 int ,buff)
+	   (setf (buffer-index ,buff) 4))
 	 ,@(unless (member 'MAJOR-OPCODE slots :key #'car)
-	     `((setf major-opcode (buffer-read-card8 ,ibo ,buff ,index))))
+	     `((setf major-opcode (buffer-read-card8 ,buff))))
 	 ,@(loop for slot-description in slots
 		 for name = (car slot-description) collect	       
 		 (with-slot-key-args ((type 'card8) (pad-size 0) length)
 		     slot-description
 		   `(setf ,(intern (symbol-name name))
-		          (,(sintern (type-reader type)) ,ibo ,buff ,index
+		          (,(sintern (type-reader type)) ,buff
 		          ,@(when length `(,(intern (symbol-name length)))))
 		          ,@(unless (zerop pad-size)
-			      `(,index (+ ,index ,pad-size))))))))))
+			      `((buffer-index ,buff)
+				(+ (buffer-index ,buff) ,pad-size))))))))))
 
-(defmacro with-request-buffer ((buffer output-byte-order length) &rest slots)
+(defmacro with-request-buffer ((buffer length) &rest slots)
   (flet ((type-writer (type) (format nil "BUFFER-WRITE-~a" (symbol-name type))))
-    (with-gensym (index buff obo)
-      `(let ((,buff ,buffer) (,obo ,output-byte-order)
-	     (,index 4))
+    (with-gensym (buff size)
+      `(multiple-value-bind (,buff ,size) (values ,buffer ,length)
 	 (declare (type buffer ,buff))
+	 (setf (buffer-index ,buff) 4)
 	 ,@(unless (member 'MAJOR-OPCODE slots :key #'car)
-	     `((buffer-write-card8 major-opcode ,obo ,buff ,index)))
+	     `((buffer-write-card8 major-opcode ,buff)))
 	 ,@(loop for slot-desc in slots 
 		 for name = (intern (symbol-name (car slot-desc))) collect
 		 (with-slot-key-args ((type 'card8) (pad-size 0)) slot-desc
-		   `(prog1
-		        (,(sintern (type-writer type)) ,name ,obo ,buff ,index)
-		      ,@(unless (zerop pad-size) `((incf ,index ,pad-size))))))
-	 (loop for i from 0 to 3 do (setf (aref ,buff i) (aref ,buff (+ i 4))))
-	 (setf ,index 4)
-	 (buffer-write-card32 ,length ,obo ,buff ,index)))))
+		   `(prog1 (,(sintern (type-writer type)) ,name ,buff)
+		      ,@(unless (zerop pad-size) `((index+ ,buff ,pad-size))))))
+	 (setf (buffer-index ,buff) 4)
+	 (let ((int (buffer-read-card32 ,buff)))
+	   (setf (buffer-index ,buff) 0)
+	   (buffer-write-card32 int ,buff)
+	   (buffer-write-card32 ,size ,buff))))))
 
 (defun make-request-length (slots &optional nb-bytes)
   (let ((minor (car (member 'MINOR-OPCODE slots :key #'car))))
@@ -187,22 +190,22 @@
 		     (declare (type fixnum length))
 		     (+ length (mod (- length) 8)))))
 	    (let* ((request-length (rlength))
-		   (buffer (make-buffer request-length))
+		   (buffer (make-buffer request-length output-byte-order))
 		   (length (1- (/ request-length 8))))
 	      (declare (type buffer buffer))
-	      (with-request-buffer (buffer output-byte-order length)
+	      (with-request-buffer (buffer length)
 		,@slots)
 	      (setf (connection-output-buffer ice-connection) buffer)
-	      (write-sequence buffer stream)
+	      (buffer-write-sequence buffer stream)
 	      (finish-output stream)))))
       ;; Generate request decoder.
       (defmethod decode-request
-	  ((name (eql ,class-key-name)) ice-connection buffer input-byte-order)
+	  ((name (eql ,class-key-name)) ice-connection buffer)
 	(declare (ignorable ice-connection))
 	(declare (type buffer buffer))
 	(let ((request (make-instance ',name)))
 	  (with-slots (,@slot-names) request
-	    (with-reply-buffer (buffer input-byte-order)
+	    (with-reply-buffer (buffer)
 	      ,@slots))
 	  request)))))
 

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: SM-LIB; -*-
-;;; $Id: sm.lisp,v 1.7 2004/03/17 13:38:14 ihatchondo Exp $
+;;; $Id: sm.lisp,v 1.8 2004/07/12 21:22:55 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -138,22 +138,20 @@
   (let ((read (sintern (format nil "BUFFER-READ-~a" element-type)))
 	(write (sintern (format nil "BUFFER-WRITE-~a" element-type))))
     `(define-accessor ,type
-       ((byte-order buffer index)
+       ((buffer)
 	(with-gensym (count buff)
-	  `(let* ((,buff ,buffer)
-		  (,count (buffer-read-card32 ,byte-order ,buffer ,index)))
+	  `(multiple-value-bind (,buff ,count)
+	       (values ,buffer (buffer-read-card32 ,buffer))
 	     (declare (type buffer ,buff))
-	     (incf ,index 4)
-	     (loop for i from 0 below ,count
-	           collect (,',read ,byte-order ,buff ,index)))))
-       ((sequence byte-order buffer index)
+	     (index+ ,buff 4)
+	     (loop for i from 0 below ,count collect (,',read ,buff)))))
+       ((sequence buffer)
 	(with-gensym (seq buff)	
 	  `(let ((,seq ,sequence) (,buff ,buffer))
 	     (declare (type buffer ,buff))
-	     (buffer-write-card32 (length ,seq) ,byte-order ,buff ,index)
-	     (incf ,index 4)
-	     (loop for e in ,seq
-	           do (,',write e ,byte-order ,buff ,index))))))))
+	     (buffer-write-card32 (length ,seq) ,buff)
+	     (index+ ,buff 4)
+	     (loop for e in ,seq do (,',write e ,buff))))))))
 
 ;; <type>-{writer,reader} macros
 
@@ -164,57 +162,52 @@
 (define-member8-accessor save-type '#(:global :local :both))
 
 (define-accessor array8
-  ((byte-order buffer index)
-   (with-gensym (length array buff)
+  ((buffer)
+   (with-gensym (length buff)
      `(let* ((,buff ,buffer)
-	     (,length (buffer-read-card32 ,byte-order ,buff ,index))
-	     (,array (buffer-read-data ,byte-order ,buff ,index ,length)))
+	     (,length (buffer-read-card32 ,buff)))
         (declare (type buffer ,buff))
-	(incf ,index (mod (- (+ 4 ,length)) 8))
-	,array)))
-  ((array byte-order buffer index)
+	(prog1 (buffer-read-data ,buff ,length)
+	  (index+ ,buff (mod (- (+ 4 ,length)) 8))))))
+  ((array buffer)
    (with-gensym (length buff)
      `(let ((,length (if (null ,array) 0 (length ,array)))
 	    (,buff ,buffer))
         (declare (type buffer ,buff))
-        (buffer-write-card32 ,length ,byte-order ,buff ,index)
-        (buffer-write-data ,array ,byte-order ,buff ,index)
-        (incf ,index (mod (- (+ 4 ,length)) 8))))))
+        (buffer-write-card32 ,length ,buff)
+        (buffer-write-data ,array ,buff)
+        (index+ ,buff (mod (- (+ 4 ,length)) 8))))))
 
 (define-accessor string
-  ((byte-order buffer index)
-   `(map 'string #'code-char (buffer-read-array8 ,byte-order ,buffer ,index)))
-  ((string byte-order buffer index)
-   `(buffer-write-array8
-     (map 'array8 #'char-code ,string) ,byte-order ,buffer ,index)))
+  ((buffer)
+   `(map 'string #'code-char (buffer-read-array8 ,buffer)))
+  ((string buffer)
+   `(buffer-write-array8 (map 'array8 #'char-code ,string) ,buffer)))
 
 (define-sequence-accessor strings string)
 
 (define-sequence-accessor array8s array8)
 
 (define-accessor client-id
-  ((byte-order buffer index)
-   `(buffer-read-string ,byte-order ,buffer ,index))
-  ((id byte-order buffer index)
-   `(buffer-write-string ,id ,byte-order ,buffer ,index)))
+  ((buffer) `(buffer-read-string ,buffer))
+  ((id buffer) `(buffer-write-string ,id ,buffer)))
 
 (define-accessor property 
-  ((byte-order buffer index)
+  ((buffer)
    (with-gensym (buff)
      `(let ((,buff ,buffer))
         (declare (type buffer ,buff))
         (make-property
-	 :name (buffer-read-string ,byte-order ,buff ,index)
-	 :type (buffer-read-string ,byte-order ,buff ,index)
-	 :values (buffer-read-array8s ,byte-order ,buff ,index)))))
-  ((property byte-order buffer index)
+	    :name (buffer-read-string ,buff)
+	    :type (buffer-read-string ,buff)
+	    :values (buffer-read-array8s ,buff)))))
+  ((property buffer)
    (with-gensym (prop buff)
      `(multiple-value-bind (,prop ,buff) (values ,property ,buffer)
         (declare (type buffer ,buff))
-        (buffer-write-string (property-name ,prop) ,byte-order ,buff ,index)
-        (buffer-write-string (property-type ,prop) ,byte-order ,buff ,index)
-        (buffer-write-array8s
-         (property-values ,prop) ,byte-order ,buff ,index)))))
+        (buffer-write-string (property-name ,prop) ,buff)
+        (buffer-write-string (property-type ,prop) ,buff)
+        (buffer-write-array8s (property-values ,prop) ,buff)))))
 
 (define-sequence-accessor properties property)
 
@@ -249,7 +242,7 @@
   session. For new clients, previous-ID should be NIL or the empty string. If
   previous-ID is not valid, the SM will send a BadValue error message to the
   client. At this point the SM reverts to the register state and waits for
-  another RegisterClient. The client should then send a Register-Client with
+  another register-client. The client should then send a register-client with
   a NIL previous-ID field."))
 
 (declare-request register-client-reply (request)
@@ -258,15 +251,15 @@
    (client-id :type client-id))
   (:documentation "The client-id specifies a unique identification string for
   this client. If the client had specified an id in the previous-ID field of
-  the RegisterClient message, client-ID will be identical to the previously
+  the register-client message, client-ID will be identical to the previously
   specified id. 
    If previous-id was NIL, client-id will be a unique id freshly generated by
   the SM. The client-id format is specified in section 6 of xsmp specification.
-   If the client didn't supply a previous-id field to the RegisterClient
-  message, the SM must send a SaveYourself message with 
+   If the client didn't supply a previous-id field to the register-client
+  message, the SM must send a save-yourself message with 
   type = :local, shutdown-p = NIL, interact-style = :none, and fast-p = NIL
-  immediately after the RegisterClientReply. The client should respond to this
-  like any other SaveYourself message."))
+  immediately after the register-client-reply. The client should respond to
+  this like any other save-yourself message."))
 
 (declare-request save-yourself (request)
   ((major-opcode :initform *xsmp* :type card8)
@@ -277,32 +270,32 @@
    (fast-p :type boolean :pad-size 4))
   (:documentation "The SM sends this message to a client to ask it to save its
   state. The client writes a state file, if necessary, and, if necessary, uses
-  SetProperties to inform the SM of how to restart it and how to discard the
+  set-properties to inform the SM of how to restart it and how to discard the
   saved state. During this process it can, if allowed by interact-style,
-  request permission to interact with the user by sending an InteractRequest
+  request permission to interact with the user by sending an interact-request
   message. After the state has been saved, or if it cannot be successfully
   saved, and the properties are appropriately set, the client sends a
-  SaveYourselfDone message. 
+  save-yourself-done message. 
    If the client wants to save additional information after all the other
   clients have finished changing their own state, the client should send
-  SaveYourselfPhase2Request instead of SaveYourselfDone. The client must then
-  freeze interaction with the user and wait until it receives a SaveComplete,
-  Die, or a ShutdownCancelled message.
+  save-yourself-phase2-request instead of SaveYourselfDone. The client must
+  then freeze interaction with the user and wait until it receives a
+  save-complete, die, or a shutdown-cancelled message.
    If interact-style is :none, the client must not interact with the user while
   saving state. If the interact-style is :errors, the client may interact with
   the user only if an error condition arises. 
    If interact-style is :any, then the client may interact with the user for
-  any purpose. This is done by sending an InteractRequest message. The SM will
-  send an Interact message to each client that sent an InteractRequest. 
+  any purpose. This is done by sending an interact-request message. The SM will
+  send an Interact message to each client that sent an interact-request. 
 
-  When a client receives SaveYourself and has not yet responded
-  SaveYourselfDone to a previous SaveYourself, it must send a SaveYourselfDone
-  and may then begin responding as appropriate to the newly received
-  SaveYourself.
+  When a client receives save-yourself and has not yet responded
+  save-yourself-done to a previous save-yourself, it must send a
+  save-yourself-done and may then begin responding as appropriate
+  to the newly received save-yourself.
 
    The type slot specifies the type of information that should be saved: 
     :local  indicates that the application must update the properties to
-            reflect its current state, send a SaveYourselfDone and continue.
+            reflect its current state, send a save-yourself-done and continue.
             Specifically it should save enough information to restore the state
             as seen by the user of this client. It should not affect the state
             as seen by other users.
@@ -327,12 +320,12 @@
    (fast-p :type boolean)
    (global-p :type boolean :pad-size 3))
   (:documentation "An application sends this to the SM to request a checkpoint.
-  When the SM receives this request it may generate a SaveYourself message in
-  response and it may leave the slots intact. 
-   If global-p is set True, then the resulting SaveYourself should be sent to
+  When the SM receives this request it may generate a save-yourself message in
+  response and it may leave the slots intact.
+   If global-p is set True, then the resulting save-yourself should be sent to
   all applications. 
-   If global-p is NIL, then the resulting SaveYourself should be sent to the
-  application that sent the SaveYourselfRequest."))
+   If global-p is NIL, then the resulting save-yourself should be sent to the
+  application that sent the save-yourself-request."))
 
 (declare-request interact-request (request)
   ((major-opcode :initform *xsmp* :type card8)
@@ -340,8 +333,8 @@
    (dialog-type :type dialog-type :pad-size 5))
   (:documentation "During a checkpoint or session-save operation, only one
   client at a time might be granted the privilege of interacting with the user.
-  The InteractRequest message causes the SM to emit an Interact message at some
-  later time if the shutdown is not cancelled by another client first.
+  The interact-request message causes the SM to emit an Interact message at
+  some later time if the shutdown is not cancelled by another client first.
    The dialog-type slot is one of :error :normal, indicating that the client
   wants to start an error dialog or normal, meaning the client wishes to start
   a non-error dialog."))
@@ -351,7 +344,7 @@
    (minor-opcode :type card8 :pad-size 2))
   (:documentation "This message grants the client the privilege of interacting
   with the user. When the client is done interacting with the user it must send
-  an InteractDone message to the SM unless a shutdown cancel is received."))
+  an interact-done message to the SM unless a shutdown cancel is received."))
 
 (declare-request interact-done (request)
   ((major-opcode :initform *xsmp* :type card8)
@@ -359,10 +352,10 @@
    (cancel-shutdown-p :type boolean :pad-size 1))
   (:documentation "This message is used by a client to notify the SM that it is
   done interacting. Setting the cancel-shutdown-p to True indicates that the
-  user has requested that the entire shutdown be cancelled. Cancel-shutdown-p
-  may only be True if the corresponding SaveYourself message specified True in
-  the shutdown-p slot and :any or :errors in the interact-style slot. Otherwise,
-  cancel-shutdown-p must be NIL."))
+  user has requested that the entire shutdown be cancelled. cancel-shutdown-p
+  may only be True if the corresponding save-yourself message specified True in
+  the shutdown-p slot and :any or :errors in the interact-style slot.
+  Otherwise, cancel-shutdown-p must be NIL."))
 
 (declare-request save-yourself-done (request)
   ((major-opcode :initform *xsmp* :type card8)
@@ -370,16 +363,16 @@
    (success-p :type boolean :pad-size 1))
   (:documentation "This message is sent by a client to indicate that all of the
   properties representing its state have been updated. After sending
-  SaveYourselfDone the client must wait for a SaveComplete, ShutdownCancelled,
-  or Die message before changing its state. If the SaveYourself operation was
-  successful, then the client should set the success-p slot to True; otherwise
-  the client should set it to False."))
+  save-yourself-done the client must wait for a save-complete,
+  shutdown-cancelled, or die message before changing its state. If the
+  save-yourself operation was successful, then the client should set the
+  success-p slot to T; otherwise the client should set it to NIL."))
 
 (declare-request die (request)
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8 :pad-size 2))
   (:documentation "When the SM wants a client to die it sends a Die message.
-  Before the client dies it responds by sending a ConnectionClosed message
+  Before the client dies it responds by sending a connection-closed message
   and may then close its connection to the SM at any time."))
 
 (declare-request shutdown-cancelled (request)
@@ -387,10 +380,10 @@
    (minor-opcode :type card8 :pad-size 2))
   (:documentation "The shutdown currently in process has been aborted. The
   client can now continue as if the shutdown had never happened. If the client
-  has not sent SaveYourselfDone yet, the client can either abort the save and
-  send SaveYourselfDone with the success-p slot set to Nil, or it can continue
-  with the save and send a SaveYourselfDone with the success-p slot set to
-  reflect the outcome of the save."))
+  has not sent save-yourself-done yet, the client can either abort the save and
+  send save-yourself-Done with the success-p slot set to Nil, or it can
+  continue with the save and send a SaveYourselfDone with the success-p slot
+  set to reflect the outcome of the save."))
 
 (declare-request connection-closed (request)
   ((major-opcode :initform *xsmp* :type card8)
@@ -438,7 +431,7 @@
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8 :pad-size 2)
    (properties :type properties))
-  (:documentation "This message is sent in reply to a GetProperties message
+  (:documentation "This message is sent in reply to a get-properties message
   and includes the values of all the properties."))
 
 (declare-request save-yourself-phase2-request (request)
@@ -452,22 +445,22 @@
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8 :pad-size 2))
   (:documentation "The SM sends this message to a client that has previously
-  sent a SaveYourselfPhase2Request message. This message informs the client
+  sent a save-yourself-phase2-request message. This message informs the client
   that all other clients are in a fixed state and this client can save state
   that is associated with other clients.
    The client writes a state file, if necessary, and, if necessary, uses
-  SetProperties to inform the SM of how to restart it and how to discard the
+  set-properties to inform the SM of how to restart it and how to discard the
   saved state. During this process it can request permission to interact with
-  the user by sending an InteractRequest message. This should only be done if
+  the user by sending an interact-request message. This should only be done if
   an error occurs that requires user interaction to resolve. After the state
   has been saved, or if it cannot be successfully saved, and the properties
-  are appropriately set, the client sends a SaveYourselfDone message."))
+  are appropriately set, the client sends a save-yourself-done message."))
 
 (declare-request save-complete (request)
   ((major-opcode :initform *xsmp* :type card8)
    (minor-opcode :type card8 :pad-size 2))
   (:documentation "When the SM is done with a checkpoint, it will send each
-  of the clients a SaveComplete message. The client is then free to change
+  of the clients a save-complete message. The client is then free to change
   its state."))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
