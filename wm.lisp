@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.43 2004/03/10 15:58:17 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.44 2004/03/15 00:00:22 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -334,7 +334,7 @@
 		   (widget-window ,edge))
 	          (with-slots (,@frame-style-slots-size) frame-style
 		    (declare (type xlib:card16 ,@frame-style-slots-size))
-		    (- ,size ,@frame-style-slots-size))))))
+		    (max 1 (- ,size ,@frame-style-slots-size)))))))
     (with-slots (frame-style window) master
       (multiple-value-bind (width height) (drawable-sizes window)
 	(declare (type xlib:card16 width height))
@@ -347,12 +347,12 @@
 (defun update-title-bar-sizes (title-bar)
   (declare (optimize (speed 3) (safety 0)))
   (when title-bar
-    (with-slots (parent vmargin hmargin window) title-bar
-      (declare (type xlib:card16 hmargin vmargin))
+    (with-slots (parent window (vm vmargin) (hm hmargin)) title-bar
+      (declare (type xlib:card16 vm hm))
       (multiple-value-bind (width height) (drawable-sizes parent)
 	(declare (type xlib:card16 width height))
 	(setf (drawable-sizes window)
-	      (values (- width hmargin) (- height vmargin)))))))
+	      (values (max 1 (- width hm)) (max 1 (- height vm))))))))
 
 (defun initial-coordinates (app-window frame-style)
   "Returns as multiple values the decoration initial coordinates."
