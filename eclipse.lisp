@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.1 2002/11/07 14:54:26 hatchond Exp $
+;;; $Id: eclipse.lisp,v 1.2 2002/11/12 17:01:58 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -22,8 +22,8 @@
 
 (defun load-config-file (pathname)
   (multiple-value-bind (loaded-p error)
-      (ignore-errors (load pathname :if-does-not-exist nil :verbose nil))
-    (or loaded-p (format *error-output* "error: ~A~%" error))))
+      (ignore-errors (load pathname :verbose t))
+    (or loaded-p (format *error-output* "~A~%" error))))
 
 ;;; Initializations and Main.
 
@@ -61,6 +61,7 @@
       ;; load personal configuration file, or the default one.
       (or (load-config-file (home-subdirectory ".eclipse"))
 	  (load-config-file (eclipse-path ".eclipse"))
+	  (format *error-output* "Unable to read a configuration file.~%")
 	  (%quit%))
       ;; Eclipse globals vars.
       (setf *black* (xlib:screen-black-pixel screen)
