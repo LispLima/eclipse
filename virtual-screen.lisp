@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.15 2003/12/04 14:52:48 ihatchondo Exp $
+;;; $Id: virtual-screen.lisp,v 1.16 2003/12/04 16:12:42 ihatchondo Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -51,7 +51,7 @@
 		       (eq (car (wm-state window)) 1))
 	      (let ((mwindow (when master (widget-window master))))
 		(funcall fun (or mwindow window))
-		(when mwindow
+		(when (and mwindow (not (shaded-p widget)))
 		  (with-event-mask (mwindow)
 		    (funcall fun window))))))))
 
