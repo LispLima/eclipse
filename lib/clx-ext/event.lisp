@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: event.lisp,v 1.3 2003/08/28 14:44:40 hatchond Exp $
+;;; $Id: event.lisp,v 1.4 2004/01/13 15:01:15 ihatchondo Exp $
 ;;;
 ;;; Add on for CLX to have some CLOS events.
 ;;; This file is part of Eclipse.
@@ -200,11 +200,11 @@
   (:documentation "re-initialize the event of type given by event-key"))
 
 (defmethod make-event (event-key &rest args)
-  (declare (ignorable args))
+  (declare (ignorable event-key args))
   (values))
 
 (defmethod re-initialize-event (event-key &rest args)
-  (declare (ignorable args))
+  (declare (ignorable event-key args))
   (values))
 
 ;;; Macro constructor
