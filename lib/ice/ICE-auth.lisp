@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-auth.lisp,v 1.1 2004/01/12 11:10:51 ihatchondo Exp $
+;;; $Id: ICE-auth.lisp,v 1.2 2004/03/08 17:50:23 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -27,7 +27,7 @@
    (protocol-data :initarg :protocol-data :type string)
    (network-id :initarg :network-id :type string)
    (auth-name :initarg :auth-name :type string)
-   (auth-data :initarg :auth-data :type string)))
+   (auth-data :initarg :auth-data)))
 
 (defun parse-ICEauthority-file (file-pathname &key filter)
   "returns the list of entries contained in an ICEauthority file."

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: SM-LIB; -*-
-;;; $Id: sm.lisp,v 1.6 2004/03/16 16:56:54 ihatchondo Exp $
+;;; $Id: sm.lisp,v 1.7 2004/03/17 13:38:14 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -478,19 +478,19 @@
 
 (defclass sm-connection (ice-connection)
   ((client-id 
-     :initform nil :initarg :client-id :type client-id
+     :initarg :client-id :type client-id
      :accessor sm-client-id)
    (sm-release
-     :initform nil :initarg :sm-release :type string 
+     :initarg :sm-release :type string
      :accessor sm-release)
    (sm-vendor
-     :initform nil :initarg :sm-vendor :type string
+     :initarg :sm-vendor :type string
      :accessor sm-vendor)
    (sm-protocol-version
-     :initform nil :initarg :sm-protocol-version :type card16
+     :initarg :sm-protocol-version :type card16
      :accessor sm-protocol-version)
    (sm-protocol-revision
-     :initform nil :initarg :sm-protocol-revision :type card16
+     :initarg :sm-protocol-revision :type card16
      :accessor sm-protocol-revision)))
 
 (defun register-xsmp-protocol (opcode)

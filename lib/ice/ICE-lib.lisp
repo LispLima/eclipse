@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-lib.lisp,v 1.5 2004/03/16 16:56:53 ihatchondo Exp $
+;;; $Id: ICE-lib.lisp,v 1.6 2004/03/17 13:38:12 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -24,10 +24,10 @@
 
 (defclass ice-connection () 
   ((input-buffer 
-    :initform nil :initarg :input-buffer :type buffer
+    :initarg :input-buffer :type buffer
     :accessor connection-input-buffer)
    (output-buffer
-    :initform nil :initarg :output-buffer :type buffer
+    :initarg :output-buffer :type buffer
     :accessor connection-output-buffer)
    (input-byte-order
     :initform :MSBFirst :type ice-byte-order
@@ -36,26 +36,26 @@
     :initform :MSBFirst :type ice-byte-order
     :accessor connection-output-byte-order)
    (ice-vendor
-     :initform nil :initarg :ice-vendor :type string
+     :initarg :ice-vendor :type string
      :accessor ice-vendor)
    (ice-release
-     :initform nil :initarg :ice-release :type string
+     :initarg :ice-release :type string
      :accessor ice-release)
    (connection-string 
      :initarg :connection-string :type string
      :accessor ice-connection-string)
    (protocol-version
-     :initform nil :initarg :protocol-version :type card16
+     :initarg :protocol-version :type card16
      :accessor ice-protocol-version)
    (protocol-revision
-     :initform nil :initarg :protocol-revision :type card16
+     :initarg :protocol-revision :type card16
      :accessor ice-protocol-revision)
    (error-handler
      :initform #'request-error-handler :initarg :error-handler
      :type error-handler
      :accessor ice-error-handler)
    (stream 
-     :initform nil :initarg :stream :type stream
+     :initarg :stream :type stream
      :accessor connection-stream)
    ))
 ) ;; End eval-when.
