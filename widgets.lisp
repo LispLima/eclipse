@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.10 2003/09/08 13:05:32 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.11 2003/09/09 13:51:56 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -145,6 +145,9 @@ the extended window manager specification."))
   '(:property-change :enter-window :visibility-change))
 (defconstant +focusable-mask+ '(:focus-change . #.+unfocusable-mask+))
 
+(defconstant +properties-to-delete-on-withdrawn+
+  '(:_net_wm_state :_net_wm_desktop :_win_workspace))
+  
 (defclass application (base-widget)
   ((master :initarg :master :reader application-master)
    (input-model :initform nil :initarg :input :reader application-input-model)
@@ -251,7 +254,10 @@ the extended window manager specification."))
 	    (incf y (style-top-margin frame-style))
 	    (xlib:reparent-window window *root-window* x y)))
         (event-process (make-event :destroy-notify :window window) *root*))
-    (when state (setf (wm-state window) state))))
+    (when state
+      (setf (wm-state window) state)
+      (when (= state 0)
+	(delete-properties window +properties-to-delete-on-withdrawn+)))))
 
 (defun find-input-model (window)
   (let* ((hint (ignore-errors (xlib:get-property window :WM_HINTS)))
