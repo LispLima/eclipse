@@ -8,7 +8,9 @@
 
 (in-package "BRUSHED-METAL-ECLIPSE-THEME")
 
-(define-theme ("brushed-metal")
+(defconstant +brushed-metal+ "brushed-metal")
+
+(define-theme (+brushed-metal+)
   ((:default-style
      (:parts-to-redraw-on-focus :all)
      ((:top ("top-i" "top-a"))
@@ -89,14 +91,14 @@
       (multiple-value-bind (width height) (drawable-sizes window)
 	(xlib:draw-rectangle window gcontext 0 0 width height t)))))
 
-(defmethod repaint ((widget title-bar) (name (eql "brushed-metal")) (focus t))
+(defmethod repaint ((widget title-bar) (name (eql +brushed-metal+)) (focus t))
   (declare (ignorable name focus))
   (with-slots (frame-style) (button-master widget)
     (typecase frame-style
       (default-style (default-draw-on-focus-in widget frame-style))
       (transient-style (transient-draw-on-focus-in widget frame-style)))))
 
-(defmethod repaint ((wget title-bar) (name (eql "brushed-metal")) (focus null))
+(defmethod repaint ((wget title-bar) (name (eql +brushed-metal+)) (focus null))
   (declare (ignorable name focus))
   (with-slots (frame-style) (button-master wget)
     (typecase frame-style

@@ -8,7 +8,9 @@
 
 (in-package "STEP-ECLIPSE-THEME")
 
-(define-theme ("Step")
+(defconstant +Step+ "Step")
+
+(define-theme (+Step+)
   ((:default-style
      (:parts-to-redraw-on-focus (:close :title-bar :menu-button))
      ((:top ("top-inactive" "top-active"))
@@ -39,7 +41,7 @@
       (:right ("side"))
       (:left ("side"))))))
 
-(defmethod repaint ((widget title-bar) (name (eql "Step")) (focus t))
+(defmethod repaint ((widget title-bar) (name (eql +Step+)) (focus t))
   (declare (ignorable name focus))
   (with-slots ((window eclipse::window)
 	       (item-to-draw eclipse::item-to-draw)
@@ -52,7 +54,7 @@
 	    (xlib:draw-rectangle window gcontext 0 0 width height t)))))
     (draw-centered-text window gcontext item-to-draw :color *white*)))
 
-(defmethod repaint ((widget title-bar) (name (eql "Step")) (focus null))
+(defmethod repaint ((widget title-bar) (name (eql +Step+)) (focus null))
   (declare (ignorable name focus))
   (with-slots ((window eclipse::window)
 	       (item-to-draw eclipse::item-to-draw)

@@ -8,7 +8,9 @@
 
 (in-package "MICROGUI-ECLIPSE-THEME")
 
-(eclipse:define-theme ("microGUI")
+(defconstant +microGUI+ "microGUI")
+
+(eclipse:define-theme (+microGUI+)
   ((:default-style
      (:parts-to-redraw-on-focus 
       (:close :icon-b :maximize :title-bar :top-left :menu-button))
@@ -71,7 +73,7 @@
 	(xlib:draw-rectangle window gcontext w 0 pix-w h t))
       (draw-centered-text window gcontext item-to-draw :color *white* :x 5))))
 
-(defmethod repaint ((widget title-bar) (name (eql "microGUI")) (focus t))
+(defmethod repaint ((widget title-bar) (name (eql +microGUI+)) (focus t))
   (declare (ignorable name focus))
   (with-slots ((frame-style eclipse::frame-style)) (button-master widget)
     (when (default-style-p frame-style)
@@ -79,7 +81,7 @@
 			(get-pixmap frame-style :top-blue)
 			(get-pixmap frame-style :top-curves)))))
 
-(defmethod repaint ((widget title-bar) (name (eql "microGUI")) (focus null))
+(defmethod repaint ((widget title-bar) (name (eql +microGUI+)) (focus null))
   (declare (ignorable name focus))
   (with-slots ((frame-style eclipse::frame-style)) (button-master widget)
     (when (default-style-p frame-style)    

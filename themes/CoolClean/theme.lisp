@@ -8,7 +8,9 @@
 
 (in-package "COOLCLEAN-ECLIPSE-THEME")
 
-(define-theme ("CoolClean")
+(defconstant +CoolClean+ "CoolClean")
+
+(define-theme (+CoolClean+)
   ((:default-style
      (:parts-to-redraw-on-focus (:title-bar))
      ((:top ("top-inactive" "top-active"))
@@ -46,7 +48,7 @@
       (:right ("right"))
       (:left ("left"))))))
 
-(defmethod repaint ((widget title-bar) (name (eql "CoolClean")) (focus t))
+(defmethod repaint ((widget title-bar) (name (eql +CoolClean+)) (focus t))
   (declare (ignorable name focus))
   (with-slots ((window eclipse::window)
 	       (item-to-draw eclipse::item-to-draw)
@@ -59,7 +61,7 @@
 	    (xlib:draw-rectangle window gcontext 0 0 width height t)))))
     (draw-centered-text window gcontext item-to-draw :color *white* :x 5)))
 
-(defmethod repaint ((widget title-bar) (name (eql "CoolClean")) (focus null))
+(defmethod repaint ((widget title-bar) (name (eql +CoolClean+)) (focus null))
   (declare (ignorable name focus))
   (with-slots ((window eclipse::window)
 	       (item-to-draw eclipse::item-to-draw)
