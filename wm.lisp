@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.7 2003/03/16 01:10:07 hatchond Exp $
+;;; $Id: wm.lisp,v 1.8 2003/03/17 11:13:17 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -451,9 +451,10 @@
 	     (multiple-value-bind (w h) (drawable-sizes app-window)
 	       (setf (initial-geometry ,master) (values x y w h)))
 	     (setf application-gravity :static)
-	     (setf (window-position app-window) (values 0 0))
-	     (setf (drawable-sizes app-window) 
-		   (values (screen-width) (screen-height))))
+	     (xlib:with-state (app-window)
+	       (setf (window-position app-window) (values 0 0))
+	       (setf (drawable-sizes app-window) 
+		     (values (screen-width) (screen-height)))))
 	   (setf (drawable-sizes app-window)
 		 (values (initial-width ,master) (initial-height ,master))
 		 (window-position window)
