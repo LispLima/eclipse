@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.8 2003/11/20 23:48:54 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.9 2003/11/21 00:04:08 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -415,10 +415,12 @@ In order to use it, you should first call intern-atoms to be sure all
 
 ;; _NET_WM_ICON
 
-;; FIXME:
 (defun net-wm-icon (window)
-  (declare (ignore window))
-  (values))
+  "Returnsa vector of possible icons for the client. This is an vector of
+  (unsigned-byte 32) ARGB with high byte being A, low byte being B. The
+  first two cardinals are width, height. Data is in rows, left to right
+  and top to bottom."
+  (get-property window :_NET_WM_ICON :result-type 'vector))
 
 ;; _NET_WM_HANDLED_ICONS
 
