@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: clx-extensions.lisp,v 1.1 2002/11/07 14:22:42 hatchond Exp $
+;;; $Id: clx-extensions.lisp,v 1.2 2003/08/28 14:44:40 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -50,6 +50,22 @@
 	      (setf (xlib:window-event-mask ,window) ,ev-mask)
 	      ,@body)
 	 (setf (xlib:window-event-mask ,window) ,original-mask)))))
+
+(defmacro with-pointer-grabbed
+    ((window pointer-event-mask &key confine-to cursor owner-p) &body body)
+  "Grabs the display pointer only within the dynamic extent of the body. 
+   Ungrab-pointer is automatically called upon exit from the body. 
+   Arguments and values are exactly those described in grab-pointer."
+  `(unwind-protect
+	(progn      
+	  (xlib:grab-pointer 
+	      ,window
+	      ,pointer-event-mask
+	      :confine-to ,confine-to
+	      :cursor ,cursor
+	      :owner-p ,owner-p)
+	  ,@body)
+     (xlib:ungrab-pointer (xlib:drawable-display ,window))))
 
 (defun get-environment-variable (&optional (string "DISPLAY"))
   ;; Add some other system.
