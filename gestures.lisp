@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.5 2003/08/28 14:50:35 hatchond Exp $
+;;; $Id: gestures.lisp,v 1.6 2003/09/16 21:32:53 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -135,15 +135,16 @@
 
 ;;;;
 
-(defun translate-modifiers (display modifiers)
+(defun translate-modifiers (dpy modifiers)
   (cond ((keywordp modifiers) 
-	 (list (kb:modifier->modifier-mask display modifiers)))
+	 (list (kb:modifier->modifier-mask dpy modifiers)))
 	((numberp modifiers) 
 	 (list modifiers))
 	((eq (car modifiers) :and)
 	 (list (loop for mod in (cdr modifiers)
-		     sum (kb:modifier->modifier-mask display mod))))
-	(t (mapcar #'kb:modifier->modifier-mask display modifiers))))
+		     sum (kb:modifier->modifier-mask dpy mod))))
+	(t 
+	 (mapcar #'(lambda (m) (kb:modifier->modifier-mask dpy m)) modifiers))))
 
 (defmacro action ((&rest f1) (&rest f2))
   (when (or (eq (car f1) :release) (eq (car f2) :press)) (rotatef f1 f2))

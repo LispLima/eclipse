@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: clx-extensions.lisp,v 1.3 2003/09/10 23:54:20 hatchond Exp $
+;;; $Id: clx-extensions.lisp,v 1.4 2003/09/16 21:32:53 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -194,7 +194,7 @@
    sequence which are used. The second value returned is  nil if all elements
    of the sequence were successfully translated; otherwise the index of the
    first untranslated element is returned."
-  (xlib:text-width font seq :start start :end end :translate #'translate))
+  (xlib:text-width font sequence :start start :end end :translate translate))
 
 (defun draw-centered-text (window gctxt seq &key color x y)
   "Draw the filled text characters represented by the given sequence `seq'.
