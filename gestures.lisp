@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.1 2002/11/07 14:54:26 hatchond Exp $
+;;; $Id: gestures.lisp,v 1.2 2003/03/16 00:38:55 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -280,7 +280,7 @@
       (let ((ms (make-mouse-stroke 
 		    name button modifiers default-modifiers-p fun)))
 	(when (stroke-equal ms (gethash name *mousestrokes*))
-	  (undefine-combo-internal ms *root-window*) :mouse-p t)
+	  (undefine-combo-internal ms *root-window* :mouse-p t))
 	(define-combo-internal ms *root-window* :mouse-p t)
 	(setf (gethash name *mousestrokes*) ms)))))
 
@@ -309,7 +309,8 @@
   (let ((widget (lookup-widget (event-child event))))
     (unless (decoration-p widget)
       (return-from mouse-stroke-for-move-and-resize nil))
+    (when (eq *focus-type* :on-click)
+      (focus-widget widget 0))
     (xlib:grab-pointer (event-child event) +pointer-event-mask+)
     (menu-3-process event widget :key action)
-    (funcall (define-menu-3 action))
-    (focus-widget widget 0)))
+    (funcall (define-menu-3 action))))

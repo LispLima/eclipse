@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.6 2003/02/03 08:06:32 hatchond Exp $
+;;; $Id: wm.lisp,v 1.7 2003/03/16 01:10:07 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -487,17 +487,14 @@
 (defgeneric menu-3-process (event widget &rest rest))
 
 (defmethod menu-3-process (event widget &rest rest)
-  (declare (ignorable event widget rest)))
+  (declare (ignorable rest))
+  (event-process event widget)
+  nil)
 
 (defmethod menu-3-process ((event pointer-event) (w base-widget) &rest rest)
   (declare (ignore rest))
   (xlib:ungrab-pointer *display*)
   t)
-
-(defmethod menu-3-process ((event exposure) (widget base-widget) &rest rest)
-  (declare (ignore rest))
-  (event-process event widget)
-  nil)
 
 (defmethod menu-3-process ((ev motion-notify) (master decoration) &key key)
   (when (decoration-active-p master)
