@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: $
+;;; $Id: netwm-manager.lisp,v 1.1 2002/11/07 14:23:31 hatchond Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -51,6 +51,7 @@
    net-wm-state              net-wm-strut
    net-wm-icon-geometry      net-wm-icon
    net-wm-pid                net-wm-handled-icons
+   net-wm-allowed-actions
 
    intern-atoms)
   (:documentation
