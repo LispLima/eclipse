@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: system.lisp,v 1.9 2004/01/12 11:22:05 ihatchondo Exp $
+;;; $Id: system.lisp,v 1.10 2004/02/26 16:23:52 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -69,29 +69,29 @@
   )
 
 (eclipse-defsystem (:eclipse-lib)
-   "lib/image-reader"
-   "lib/manager-commons"
-   "lib/netwm-manager"
-   "lib/gnome-manager"
-   )
+  "lib/image-reader"
+  "lib/manager-commons"
+  "lib/netwm-manager"
+  "lib/gnome-manager"
+  )
 
 (eclipse-defsystem (:eclipse :depends-on (:clx-ext :eclipse-lib :sm-lib))
-   "config.lisp"
-   "programmed-tasks"
-   "package"
-   "global"
-   "misc"
-   "themer"
-   "menu"
-   "gestures"
-   "widgets"
-   "virtual-screen"
-   "rectangles"
-   "wm"
-   "input"
-   "move-resize"
-   "eclipse"
-   )
+  "config.lisp"
+  "programmed-tasks"
+  "package"
+  "global"
+  "misc"
+  "themer"
+  "menu"
+  "gestures"
+  "widgets"
+  "virtual-screen"
+  "rectangles"
+  "wm"
+  "input"
+  "move-resize"
+  "eclipse"
+  )
 
 (defun compile-themes (&rest directory-theme-names)
   (operate-on-system :eclipse :load)

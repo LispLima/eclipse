@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: themer.lisp,v 1.6 2003/09/30 12:18:36 hatchond Exp $
+;;; $Id: themer.lisp,v 1.7 2004/01/21 17:48:35 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -380,7 +380,7 @@
 		   (or background :parent-relative)
 		   (if (eq parts-to-redraw-on-focus :all)
 		       (loop for (key nil) in items
-			     when (eq key title-bar-position) 
+			     when (eq key (or title-bar-position :top))
 			     do (setq key :title-bar) end
 			     unless (eq key :custom) collect key)
 		       parts-to-redraw-on-focus)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.16 2004/02/17 12:48:39 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.17 2004/02/17 22:30:50 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -26,347 +26,346 @@
   (:size 500)
   (:documentation "")
   (:export 
-   "APPLICATION"			  ;class
-   "BASE-WIDGET"			  ;class
-   "BOTTOM"				  ;class
-   "BOTTOM-LEFT"			  ;class
-   "BOTTOM-RIGHT"			  ;class
-   "BOX-BUTTON"				  ;class
-   "BUTTON"				  ;class
-   "CLOSE-BUTTON"			  ;class
-   "DECORATION"				  ;class
-   "DEFAULT-STYLE"			  ;class
-   "ECLIPSE-SCREENS"			  ;class
-   "EDGE"				  ;class
-   "FRAME-STYLE"			  ;class
-   "GEOMETRY"				  ;class
-   "ICON"				  ;class
-   "ICONIFY-BUTTON"			  ;class
-   "KEYSTROKE"				  ;class
-   "LEFT"				  ;class
-   "MAXIMIZE-BUTTON"			  ;class
-   "MENU-BUTTON"			  ;class
-   "MENU-ITEM"				  ;class
-   "MENU-LEAF-ITEM"			  ;class
-   "MENU-WIDGET"			  ;class
-   "MOUSE-STROKE"			  ;class
-   "POP-UP-MENU"			  ;class
-   "PUSH-BUTTON"			  ;class
-   "RIGHT"				  ;class
-   "STROKE"				  ;class
-   "SUB-MENU"				  ;class
-   "THEME"				  ;class
-   "TITLE-BAR"				  ;class
-   "TOP"				  ;class
-   "TOP-LEFT"				  ;class
-   "TOP-RIGHT"				  ;class
-   "TRANSIENT-STYLE"			  ;class
+   #:application 			  ;class
+   #:base-widget 			  ;class
+   #:bottom 				  ;class
+   #:bottom-left 			  ;class
+   #:bottom-right 			  ;class
+   #:box-button				  ;class
+   #:button 				  ;class
+   #:close-button 			  ;class
+   #:decoration				  ;class
+   #:default-style 			  ;class
+   #:eclipse-screens 			  ;class
+   #:edge 				  ;class
+   #:frame-style 			  ;class
+   #:geometry 				  ;class
+   #:icon 				  ;class
+   #:iconify-button 			  ;class
+   #:keystroke 				  ;class
+   #:left 				  ;class
+   #:maximize-button 			  ;class
+   #:menu-button 			  ;class
+   #:menu-item 				  ;class
+   #:menu-leaf-item 			  ;class
+   #:menu-widget 			  ;class
+   #:mouse-stroke 			  ;class
+   #:pop-up-menu 			  ;class
+   #:push-button 			  ;class
+   #:right 				  ;class
+   #:stroke 				  ;class
+   #:sub-menu 				  ;class
+   #:theme 				  ;class
+   #:title-bar 				  ;class
+   #:top 				  ;class
+   #:top-left 				  ;class
+   #:top-right 				  ;class
+   #:transient-style 			  ;class
 
-   "ACTIVATE-MOVE-RESIZE"                 ;function
-   "APPLICATION-CLASS"			  ;function
-   "APPLICATION-CLASS-NAME"		  ;function
-   "APPLICATION-CLASS-TYPE"		  ;function
-   "APPLICATION-FIND"			  ;function
-   "APPLICATION-LIST"			  ;function
-   "APPLICATION-NAME"			  ;function
-   "APPLICATION-P"			  ;function
-   "BASE-WIDGET-P"			  ;function
-   "BUTTON-P"				  ;function
-   "CHECK-SIZE"				  ;function
-   "CIRCULATE-WINDOW-UP-AND-DOWN"	  ;function
-   "COPY-GEOMETRY"			  ;function
-   "CREATE-APPLICATION"			  ;function
-   "CREATE-BUTTON"			  ;function
-   "CREATE-ICON"			  ;function
-   "CREATE-MESSAGE-BOX"			  ;function
-   "CURRENT-VSCREEN"                      ;function
-   "DECODE-NETWM-ICON-PIXMAP"             ;function
-   "DECORATION-P"			  ;function
-   "DECORATION-THEME"			  ;setf function
-   "DECORE-APPLICATION"			  ;function
-   "DEFAULT-HANDLER"			  ;function
-   "DEFAULT-STYLE-P"			  ;function
-   "DEFINE-KEY-COMBO"			  ;function
-   "DEFINE-MENU-3"			  ;function
-   "DEFINE-MOUSE-COMBO"			  ;function
-   "DELETE-PROPERTIES"		          ;function
-   "DISMISS-MOVE-RESIZE"		  ;function
-   "DISPLAY-COORDINATES"		  ;function
-   "DISPLAY-GEOMETRY"			  ;function
-   "DISPLAY-INFOS"			  ;function
-   "DRAW-FOCUSED-DECORATION"		  ;function
-   "DRAW-UNFOCUSED-DECORATION"		  ;function
-   "DRAW-WINDOW-GRID"			  ;function
-   "ECLIPSE"				  ;function
-   "ECLIPSE-PATH"			  ;function
-   "EDGE-POSITION"			  ;function
-   "ENSURE-THEME-DIRECTORY-EXISTS"	  ;function
-   "FIND-CORNER"			  ;function
-   "FIND-DECORATION-FRAME-STYLE"	  ;function
-   "FIND-INPUT-MODEL"			  ;function
-   "FINISH-MOVE"			  ;function
-   "FINISH-RESIZE"			  ;function
-   "FONT-NAME"				  ;setf function
-   "FREE-THEME"				  ;function
-   "FULLSCREENABLE-P"			  ;function
-   "FULLSCREEN-MODE"			  ;setf function
-   "GEOMETRY-COORDINATES"		  ;function
-   "GEOMETRY-H"				  ;function
-   "GEOMETRY-P"				  ;function
-   "GEOMETRY-SIZES"			  ;function
-   "GEOMETRY-W"				  ;function
-   "GEOMETRY-X"				  ;function
-   "GEOMETRY-Y"				  ;function
-   "GET-MAX-ITEM-WIDTH"			  ;function
-   "SCREEN-CONTENT"                       ;function
-   "GET-VISIBLE-WINDOWS"		  ;function
-   "GIVE-FOCUS-TO-NEXT-WIDGET-IN-DESKTOP" ;function
-   "HIGHLIGHT"				  ;function
-   "HOME-SUBDIRECTORY"			  ;function
-   "ICON-BOX-UPDATE"			  ;function
-   "ICON-P"				  ;function
-   "ICON-SORT-CREATION-ORDER"		  ;function
-   "ICON-SORT-NAME"			  ;function
-   "ICON-SORT-TYPE"			  ;function
-   "INIT-EDGES-CURSORS"			  ;function
-   "INIT-GNOME-COMPLIANCE"		  ;function
-   "INITIALIZE-CLONE"			  ;function
-   "INITIALIZE-FRAME"			  ;function
-   "INITIALIZE"				  ;function
-   "INITIALIZE-GEOMETRY-INFO-BOX"	  ;function
-   "INITIALIZE-MANAGER"			  ;function
-   "INITIALIZE-MOVE"                      ;function
-   "INITIALIZE-RESIZE"                    ;function
-   "INIT-LOG-FILE"			  ;function
-   "INPUT-FOCUS"                          ;function
-   "KEYCODE-REGISTERED-P"		  ;function
-   "KEYSTROKE-P"			  ;function
-   "KILL-CLIENT-WINDOW"			  ;function
-   "LOAD-CONFIG-FILE"			  ;function
-   "LOAD-PNM->PIXMAP"			  ;function
-   "LOAD-THEME"				  ;function
-   "LOOKUP-KEYSTROKE"			  ;function
-   "LOOKUP-MOUSE-STROKE"		  ;function
-   "LOOKUP-THEME"                         ;function
-   "LOOKUP-WIDGET"			  ;function
-   "MAKE-BACKGROUND-PIXMAP"		  ;function
-   "MAKE-BUTTONS-BAR"			  ;function
-   "MAKE-CORNER"			  ;function
-   "MAKE-DECORATION"			  ;function
-   "MAKE-EDGES"				  ;function
-   "MAKE-GEOMETRY"			  ;function
-   "MAKE-KEYSTROKE"			  ;function
-   "MAKE-MENU-BUTTON"			  ;function
-   "MAKE-MENU-BUTTON-MENU"		  ;function
-   "MAKE-MENU-LEAF-ITEM"		  ;function
-   "MAKE-MOUSE-STROKE"			  ;function
-   "MAKE-POP-UP"			  ;function
-   "MAKE-RAISE-WINDOW"			  ;function
-   "MAKE-RUNNING-MENU"			  ;function
-   "MAKE-SUB-MENU"			  ;function
-   "MAKE-SUBSTRUCTURE"			  ;function
-   "MAKE-TITLE-BAR"			  ;function
-   "MAKE-VIEWPORT-PROPERTY"		  ;function
-   "MAXIMIZE-MODIFIER"                    ;setf function
-   "MAXIMIZE-WINDOW"			  ;function
-   "MOTIF-WM-DECORATION"		  ;function
-   "MOUSE-STROKE-FOR-MOVE-AND-RESIZE"	  ;function
-   "MOUSE-STROKE-P"			  ;function
-   "MOVE-CURSOR-DOWN"			  ;function
-   "MOVE-CURSOR-LEFT"			  ;function
-   "MOVE-CURSOR-RIGHT"			  ;function
-   "MOVE-CURSOR-UP"			  ;function
-   "MOVE-WIDGET"			  ;function
-   "NUMBER-OF-VIRTUAL-SCREENS"		  ;function, setf
-   "PERFORM-CLICK"			  ;function
-   "PIXMAP-HEIGHT"			  ;function
-   "PIXMAP-WIDTH"			  ;function
-   "PROCEDE-DECORATION"			  ;function
-   "QUERY-APPLICATION-TREE"		  ;function
-   "%QUIT%"				  ;function
-   "REALIZE-MENU-ITEMS"			  ;function
-   "REALIZE-POP-UP"			  ;function
-   "RECOMPUTE-WM-NORMAL-HINTS"		  ;function
-   "REGION-INTERSECT-REGION-P"            ;function
-   "REGION-INTERSECT-WINDOW-IN-SCREEN"    ;function
-   "REGISTER-ALL-KEYSTROKES"		  ;function
-   "REGISTER-ALL-MOUSE-STROKES"		  ;function
-   "RUN-APPLICATION"			  ;function
-   "SEND-WM-PROTOCOLS-CLIENT-MESSAGE"	  ;function
-   "STICK-P"				  ;function
-   "TIMED-MESSAGE-BOX"			  ;function
-   "TITLE-BAR-HORIZONTAL-P"		  ;function
-   "TRANSIENT-STYLE-P"			  ;function
-   "UNDECORE-APPLICATION"		  ;function
-   "UNDRAW-GEOMETRY-INFO-BOX"		  ;function
-   "UNREGISTER-ALL-KEYSTROKES"		  ;function
-   "UNREGISTER-ALL-MOUSE-STROKES"	  ;function
-   "UPDATE-CLONE"			  ;function
-   "UPDATE-EDGES-GEOMETRY"		  ;function
-   "UPDATE-LISTS"			  ;function
-   "UPDATE-TITLE-BAR-SIZES"		  ;function
-   "WHERE-IS-POINTER"			  ;function
-   "WIDGET->FRAME-ITEM-KEY"               ;function
-   "WINDOW-DESKTOP-NUM"			  ;function, setf
-   "WINDOW-NOT-DECORABLE-P"               ;function
-   "WINDOW-PRIORITY"                      ;setf function
-   "WINDOW-TRANSIENT-P"			  ;function
-   "WM-ICON-NAME"			  ;function
-   "WM-NAME"				  ;function
-   "WM-STATE"				  ;function
-   "WORKSPACE-NAMES"			  ;function, setf
+   #:activate-move-resize                 ;function
+   #:application-class 			  ;function
+   #:application-class-name 		  ;function
+   #:application-class-type 		  ;function
+   #:application-find 			  ;function
+   #:application-list 			  ;function
+   #:application-name 			  ;function
+   #:application-p 			  ;function
+   #:base-widget-p 			  ;function
+   #:button-p 				  ;function
+   #:check-size 			  ;function
+   #:circulate-window-up-and-down 	  ;function
+   #:copy-geometry 			  ;function
+   #:create-application 		  ;function
+   #:create-button 			  ;function
+   #:create-icon 			  ;function
+   #:create-message-box 		  ;function
+   #:current-vscreen                      ;function
+   #:decode-netwm-icon-pixmap             ;function
+   #:decoration-p 			  ;function
+   #:decoration-theme 			  ;setf function
+   #:decore-application 		  ;function
+   #:default-handler 			  ;function
+   #:default-style-p 			  ;function
+   #:define-key-combo 			  ;function
+   #:define-menu-3 			  ;function
+   #:define-mouse-combo 		  ;function
+   #:delete-properties 		          ;function
+   #:dismiss-move-resize 		  ;function
+   #:display-coordinates 		  ;function
+   #:display-geometry 			  ;function
+   #:display-infos 			  ;function
+   #:draw-focused-decoration 		  ;function
+   #:draw-unfocused-decoration 		  ;function
+   #:draw-window-grid 			  ;function
+   #:eclipse 				  ;function
+   #:eclipse-path 			  ;function
+   #:edge-position 			  ;function
+   #:ensure-theme-directory-exists 	  ;function
+   #:find-corner 			  ;function
+   #:find-decoration-frame-style 	  ;function
+   #:find-input-model 			  ;function
+   #:finish-move 			  ;function
+   #:finish-resize 			  ;function
+   #:font-name 				  ;setf function
+   #:free-theme 			  ;function
+   #:fullscreenable-p 			  ;function
+   #:fullscreen-mode 			  ;setf function
+   #:geometry-coordinates 		  ;function
+   #:geometry-h 			  ;function
+   #:geometry-p 			  ;function
+   #:geometry-sizes 			  ;function
+   #:geometry-w 			  ;function
+   #:geometry-x 			  ;function
+   #:geometry-y 			  ;function
+   #:get-max-item-width 		  ;function
+   #:screen-content                       ;function
+   #:get-visible-windows 		  ;function
+   #:give-focus-to-next-widget-in-desktop ;function
+   #:highlight 				  ;function
+   #:home-subdirectory 			  ;function
+   #:icon-box-update 			  ;function
+   #:icon-p 				  ;function
+   #:icon-sort-creation-order 		  ;function
+   #:icon-sort-name 			  ;function
+   #:icon-sort-type 			  ;function
+   #:init-edges-cursors 		  ;function
+   #:init-gnome-compliance 		  ;function
+   #:initialize-clone 			  ;function
+   #:initialize-frame 			  ;function
+   #:initialize 			  ;function
+   #:initialize-geometry-info-box 	  ;function
+   #:initialize-manager 		  ;function
+   #:initialize-move                      ;function
+   #:initialize-resize                    ;function
+   #:init-log-file 			  ;function
+   #:input-focus                          ;function
+   #:keycode-registered-p 		  ;function
+   #:keystroke-p 			  ;function
+   #:kill-client-window 		  ;function
+   #:load-config-file 			  ;function
+   #:load-pnm->pixmap 			  ;function
+   #:load-theme 			  ;function
+   #:lookup-keystroke 			  ;function
+   #:lookup-mouse-stroke 		  ;function
+   #:lookup-theme                         ;function
+   #:lookup-widget 			  ;function
+   #:make-background-pixmap 		  ;function
+   #:make-buttons-bar 			  ;function
+   #:make-decoration 			  ;function
+   #:make-frame 			  ;function
+   #:make-geometry 			  ;function
+   #:make-keystroke 			  ;function
+   #:make-menu-button 			  ;function
+   #:make-menu-button-menu 		  ;function
+   #:make-menu-leaf-item 		  ;function
+   #:make-mouse-stroke 			  ;function
+   #:make-pop-up 			  ;function
+   #:make-raise-window 			  ;function
+   #:make-running-menu 			  ;function
+   #:make-sub-menu 			  ;function
+   #:make-substructure 			  ;function
+   #:make-title-bar 			  ;function
+   #:make-viewport-property 		  ;function
+   #:maximize-modifier                    ;setf function
+   #:maximize-window 			  ;function
+   #:motif-wm-decoration 		  ;function
+   #:mouse-stroke-for-move-and-resize 	  ;function
+   #:mouse-stroke-p 			  ;function
+   #:move-cursor-down 			  ;function
+   #:move-cursor-left 			  ;function
+   #:move-cursor-right 			  ;function
+   #:move-cursor-up 			  ;function
+   #:move-widget 			  ;function
+   #:number-of-virtual-screens 		  ;function, setf
+   #:perform-click 			  ;function
+   #:pixmap-height 			  ;function
+   #:pixmap-width 			  ;function
+   #:procede-decoration 		  ;function
+   #:query-application-tree 		  ;function
+   #:%quit% 				  ;function
+   #:realize-menu-items 		  ;function
+   #:realize-pop-up 			  ;function
+   #:recompute-wm-normal-hints 		  ;function
+   #:region-intersect-region-p            ;function
+   #:region-intersect-window-in-screen    ;function
+   #:register-all-keystrokes 		  ;function
+   #:register-all-mouse-strokes 	  ;function
+   #:run-application 			  ;function
+   #:send-wm-protocols-client-message 	  ;function
+   #:stick-p 				  ;function
+   #:timed-message-box 			  ;function
+   #:title-bar-horizontal-p 		  ;function
+   #:transient-style-p 			  ;function
+   #:undecore-application 		  ;function
+   #:undraw-geometry-info-box 		  ;function
+   #:unregister-all-keystrokes 		  ;function
+   #:unregister-all-mouse-strokes 	  ;function
+   #:update-clone 			  ;function
+   #:update-edges-geometry 		  ;function
+   #:update-lists 			  ;function
+   #:update-title-bar-sizes 		  ;function
+   #:where-is-pointer 			  ;function
+   #:widget->frame-item-key               ;function
+   #:window-desktop-num 		  ;function, setf
+   #:window-not-decorable-p               ;function
+   #:window-priority                      ;setf function
+   #:window-transient-p 		  ;function
+   #:wm-icon-name 			  ;function
+   #:wm-name 				  ;function
+   #:wm-state 				  ;function
+   #:workspace-names 			  ;function, setf
 
-   "ADD-DESKTOP-APPLICATION"		  ;generic function
-   "APPLICATION-ICON"			  ;generic function
-   "APPLICATION-ICONIC-P"		  ;generic function
-   "APPLICATION-INPUT-MODEL"		  ;generic function
-   "APPLICATION-MASTER"			  ;generic function
-   "APPLICATION-WANTS-FOCUS-P"		  ;generic function
-   "ARM-BRANCH"				  ;generic function
-   "ARM"				  ;generic function
-   "BOTTOM-LEFT-H"			  ;generic function
-   "BOTTOM-LEFT-W"			  ;generic function
-   "BOTTOM-RIGHT-H"			  ;generic function
-   "BOTTOM-RIGHT-W"			  ;generic function
-   "BUTTON-ACTIVE-P"			  ;generic function
-   "BUTTON-ARMED"			  ;generic function
-   "BUTTON-ITEM-TO-DRAW"		  ;generic function
-   "BUTTON-MASTER"			  ;generic function
-   "CHANGE-VSCREEN"			  ;generic function
-   "CIRCULATE-WINDOW"			  ;generic function
-   "CLOSE-WIDGET"			  ;generic function
-   "DECORATION-ACTIVE-P"		  ;generic function
-   "DECORATION-APPLICATION-GRAVITY"	  ;generic function
-   "DECORATION-CHILDREN"		  ;generic function
-   "DECORATION-FRAME-STYLE"		  ;generic function
-   "DECORATION-WM-HINTS"		  ;generic function
-   "DECORATION-WM-SIZE-HINTS"		  ;generic function
-   "DEFAULT-MODIFIERS-P"		  ;generic function
-   "DESTROY-SUBSTRUCTURE"		  ;generic function
-   "DISARM"				  ;generic function
-   "DISPATCH-REPAINT"			  ;generic function
-   "DRAW-ON-FOCUS-IN"			  ;generic function
-   "DRAW-ON-FOCUS-OUT"			  ;generic function
-   "EVENT-PROCESS"			  ;generic function
-   "FOCUSED-P"				  ;generic function
-   "FOCUS-WIDGET"			  ;generic function
-   "FRAME-BUTTON-SIZES"			  ;generic function
-   "FRAME-ITEM-EXIST-P"			  ;generic function
-   "FRAME-ITEM-HEIGHT"			  ;generic function
-   "FRAME-ITEM-PIXMAPS"			  ;generic function
-   "FRAME-ITEM-SIZES"			  ;generic function
-   "FRAME-ITEM-WIDTH"			  ;generic function
-   "FREE-FRAME-STYLE"			  ;generic function
-   "GET-CHILD"				  ;generic function
-   "GET-PIXMAP"				  ;generic function
-   "ICON-APPLICATION"			  ;generic function
-   "ICON-CREATION-TIME"			  ;generic function
-   "ICON-DESICONIFY-P"			  ;generic function
-   "ICONIFY"				  ;generic function
-   "INITIALIZE-MOVE"			  ;generic function
-   "KEYSTROKE-KEYSYMS"			  ;generic function
-   "MENU-3-PROCESS"			  ;generic function
-   "MENU-LEAF-CALLBACK"			  ;generic function
-   "MENU-ROOT-APPLICATION-WINDOW"	  ;generic function
-   "MENU-ROOT"				  ;generic function
-   "MOUSE-STROKE-BUTTON"		  ;generic function
-   "PUT-ON-TOP"                           ;generic function
-   "PUT-ON-BOTTOM"                        ;generic function
-   "REPAINT"				  ;generic function
-   "REMOVE-DESKTOP-APPLICATION"		  ;generic function
-   "REMOVE-WIDGET"			  ;generic function
-   "RESIZE-FROM"			  ;generic function
-   "RESIZE"				  ;generic function
-   "ROOT-DECORATION-THEME"		  ;generic function
-   "ROOT-DEFAULT-CURSOR"		  ;generic function
-   "ROOT-DESKTOP"			  ;generic function
-   "ROOT-MOVE-STATUS"			  ;generic function
-   "ROOT-RESIZE-STATUS"			  ;generic function
-   "SET-FOCUS"				  ;generic function
-   "SHADE"                                ;generic function
-   "SHADED-P"                             ;generic function
-   "STROKE-ACTION"			  ;generic function
-   "STROKE-EQUAL"			  ;generic function
-   "STROKE-KEYS"			  ;generic function
-   "STROKE-MODIFIERS"			  ;generic function
-   "STROKE-NAME"			  ;generic function
-   "STYLE-BOTTOM-MARGIN"		  ;generic function
-   "STYLE-FRAME-ITEM-PIXMAPS"		  ;generic function
-   "STYLE-HMARGIN"			  ;generic function
-   "STYLE-LEFT-MARGIN"			  ;generic function
-   "STYLE-NB-BUTTONS"			  ;generic function
-   "STYLE-PARTS-TO-REDRAW-ON-FOCUS"	  ;generic function
-   "STYLE-PIXMAP-TABLE"			  ;generic function
-   "STYLE-RIGHT-MARGIN"			  ;generic function
-   "STYLE-TITLE-BAR-DIRECTION"		  ;generic function
-   "STYLE-TITLE-BAR-POSITION"		  ;generic function
-   "STYLE-TOP-MARGIN"			  ;generic function
-   "STYLE-VMARGIN"			  ;generic function
-   "THEME-DEFAULT-STYLE"		  ;generic function
-   "THEME-NAME"				  ;generic function
-   "THEME-TRANSIENT-STYLE"		  ;generic function
-   "TOP-LEFT-H"				  ;generic function
-   "TOP-LEFT-W"				  ;generic function
-   "TOP-RIGHT-H"			  ;generic function
-   "TOP-RIGHT-W"			  ;generic function
-   "UNICONIFY"				  ;generic function
-   "UNMAP-ICON-WINDOW"			  ;generic function
-   "WIDGET-GCONTEXT"			  ;generic function
-   "WIDGET-WINDOW"			  ;generic function
+   #:add-desktop-application 		  ;generic function
+   #:application-icon 			  ;generic function
+   #:application-iconic-p 		  ;generic function
+   #:application-input-model 		  ;generic function
+   #:application-master 		  ;generic function
+   #:application-wants-focus-p 		  ;generic function
+   #:arm-branch 			  ;generic function
+   #:arm 				  ;generic function
+   #:bottom-left-h 			  ;generic function
+   #:bottom-left-w 			  ;generic function
+   #:bottom-right-h 			  ;generic function
+   #:bottom-right-w 			  ;generic function
+   #:button-active-p 			  ;generic function
+   #:button-armed 			  ;generic function
+   #:button-item-to-draw 		  ;generic function
+   #:button-master 			  ;generic function
+   #:change-vscreen 			  ;generic function
+   #:circulate-window 			  ;generic function
+   #:close-widget 			  ;generic function
+   #:decoration-active-p 		  ;generic function
+   #:decoration-application-gravity 	  ;generic function
+   #:decoration-children 		  ;generic function
+   #:decoration-frame-style 		  ;generic function
+   #:decoration-wm-hints 		  ;generic function
+   #:decoration-wm-size-hints 		  ;generic function
+   #:default-modifiers-p 		  ;generic function
+   #:destroy-substructure 		  ;generic function
+   #:disarm 				  ;generic function
+   #:dispatch-repaint 			  ;generic function
+   #:draw-on-focus-in 			  ;generic function
+   #:draw-on-focus-out 			  ;generic function
+   #:event-process 			  ;generic function
+   #:focused-p 				  ;generic function
+   #:focus-widget 			  ;generic function
+   #:frame-button-sizes 		  ;generic function
+   #:frame-item-exist-p 		  ;generic function
+   #:frame-item-height 			  ;generic function
+   #:frame-item-pixmaps 		  ;generic function
+   #:frame-item-sizes 			  ;generic function
+   #:frame-item-width 			  ;generic function
+   #:free-frame-style 			  ;generic function
+   #:get-child 				  ;generic function
+   #:get-pixmap 			  ;generic function
+   #:icon-application 			  ;generic function
+   #:icon-creation-time 		  ;generic function
+   #:icon-desiconify-p 			  ;generic function
+   #:iconify 				  ;generic function
+   #:initialize-move 			  ;generic function
+   #:keystroke-keysyms 			  ;generic function
+   #:menu-3-process 			  ;generic function
+   #:menu-leaf-callback 		  ;generic function
+   #:menu-root-application-window 	  ;generic function
+   #:menu-root 				  ;generic function
+   #:mouse-stroke-button 		  ;generic function
+   #:put-on-top                           ;generic function
+   #:put-on-bottom                        ;generic function
+   #:repaint 				  ;generic function
+   #:remove-desktop-application 	  ;generic function
+   #:remove-widget 			  ;generic function
+   #:resize-from 			  ;generic function
+   #:resize 				  ;generic function
+   #:root-decoration-theme 		  ;generic function
+   #:root-default-cursor 		  ;generic function
+   #:root-desktop 			  ;generic function
+   #:root-move-status 			  ;generic function
+   #:root-resize-status 		  ;generic function
+   #:set-focus 				  ;generic function
+   #:shade                                ;generic function
+   #:shaded-p                             ;generic function
+   #:stroke-action 			  ;generic function
+   #:stroke-equal 			  ;generic function
+   #:stroke-keys 			  ;generic function
+   #:stroke-modifiers 			  ;generic function
+   #:stroke-name 			  ;generic function
+   #:style-bottom-margin 		  ;generic function
+   #:style-frame-item-pixmaps 		  ;generic function
+   #:style-hmargin 			  ;generic function
+   #:style-left-margin 			  ;generic function
+   #:style-nb-buttons 			  ;generic function
+   #:style-parts-to-redraw-on-focus 	  ;generic function
+   #:style-pixmap-table 		  ;generic function
+   #:style-right-margin 		  ;generic function
+   #:style-title-bar-direction 		  ;generic function
+   #:style-title-bar-position 		  ;generic function
+   #:style-top-margin 			  ;generic function
+   #:style-vmargin 			  ;generic function
+   #:theme-default-style 		  ;generic function
+   #:theme-name 			  ;generic function
+   #:theme-transient-style 		  ;generic function
+   #:top-left-h 			  ;generic function
+   #:top-left-w 			  ;generic function
+   #:top-right-h 			  ;generic function
+   #:top-right-w 			  ;generic function
+   #:uniconify 				  ;generic function
+   #:unmap-icon-window 			  ;generic function
+   #:widget-gcontext 			  ;generic function
+   #:widget-window 			  ;generic function
 
-   "ACTION"				  ;macro
-   "ATOM-NAME->ID"			  ;macro
-   "CURRENT-DESK"			  ;macro
-   "DEFINE-THEME"			  ;macro
-   "DEFTYPEDPARAMETER"			  ;macro
-   "ID->ATOM-NAME"			  ;macro
-   "WITH-ROOT-CURSOR"			  ;macro
-   "WITH-GENSYM"                          ;macro
+   #:action 				  ;macro
+   #:atom-name->id 			  ;macro
+   #:current-desk 			  ;macro
+   #:define-theme 			  ;macro
+   #:deftypedparameter 			  ;macro
+   #:id->atom-name 			  ;macro
+   #:with-root-cursor 			  ;macro
+   #:with-gensym                          ;macro
 
-   "+ANY-DESKTOP+"			  ;constant
-   "+APPLICATION-MASK+"                   ;constant
-   "+DECORATION-EVENT-MASK+"		  ;constant
-   "+EDGE-EVENT-MASK+"			  ;constant
-   "+GNOME-PROTOCOLS+"			  ;constant
-   "+NETWM-PROTOCOL+"			  ;constant
-   "+POINTER-EVENT-MASK+"		  ;constant
-   "+PUSH-BUTTON-MASK+"			  ;constant
-   "+STD-BUTTON-MASK+"			  ;constant
+   #:+any-desktop+ 			  ;constant
+   #:+application-mask+                   ;constant
+   #:+decoration-event-mask+ 		  ;constant
+   #:+edge-event-mask+ 			  ;constant
+   #:+gnome-protocols+ 			  ;constant
+   #:+netwm-protocol+ 			  ;constant
+   #:+pointer-event-mask+ 		  ;constant
+   #:+push-button-mask+ 		  ;constant
+   #:+std-button-mask+ 			  ;constant
 
-   "*WHITE*"                              ;variable
-   "*BLACK*"                              ;variable
-   "*ROOT*"				  ;variable
-   "*ROOT-WINDOW*"			  ;variable
-   "*STDERR*"				  ;variable
-   "*CURSOR-2*"				  ;variable
-   "*DISPLAY*"				  ;variable
-   "*ECLIPSE-DIRECTORY*"		  ;variable
+   #:*white*                              ;variable
+   #:*black*                              ;variable
+   #:*root* 				  ;variable
+   #:*root-window* 			  ;variable
+   #:*stderr* 				  ;variable
+   #:*cursor-2* 			  ;variable
+   #:*display* 				  ;variable
+   #:*eclipse-directory* 		  ;variable
 
    ;; user custom variables.
-   "*CHANGE-DESKTOP-MESSAGE-ACTIVE-P*"	  
-   "*CLOSE-DISPLAY-P*"			  
-   "*CYCLE-ICONS-P*"                      
-   "*DOUBLE-CLICK-SPEED*"                 
-   "*FOCUS-TYPE*"			  
-   "*FOCUS-NEW-MAPPED-WINDOW*"		  
-   "*FOCUS-WHEN-WINDOW-CYCLE*"		  
-   "*ICON-BOX-SORT-FUNCTION*"		  
-   "*ICON-HINTS*"			  
-   "*MAXIMIZE-FILL*"                      
-   "*MAXIMIZE-MODIFIER*"                  
-   "*MENU-1-ITEMS*"			  
-   "*MOVE-MODE*"			  
-   "*RESIZE-MODE*"			  
-   "*SAVE-AND-RESTORE-POINTER-POSITION-DURING-WORKSPACE-SWITCH*"
-   "*SCREEN-EDGE-RESISTANT-P*"            
-   "*STANDARD-WINDOW-EDGE-RESISTANT-P*"   
-   "*VERBOSE-MOVE*"			  
-   "*VERBOSE-RESIZE*"			  
-   "*VERBOSE-WINDOW-CYCLING*"             
-   "*WARP-POINTER-WHEN-CYCLE*"   
+   #:*change-desktop-message-active-p* 	  
+   #:*close-display-p* 			  
+   #:*cycle-icons-p*                       
+   #:*double-click-speed*                  
+   #:*focus-type* 			  
+   #:*focus-new-mapped-window* 		  
+   #:*focus-when-window-cycle* 		  
+   #:*icon-box-sort-function* 		  
+   #:*icon-hints* 			  
+   #:*maximize-fill*                       
+   #:*maximize-modifier*                   
+   #:*menu-1-items* 			  
+   #:*move-mode* 			  
+   #:*resize-mode* 			  
+   #:*save-and-restore-pointer-position-during-workspace-switch* 
+   #:*screen-edge-resistant-p*             
+   #:*standard-window-edge-resistant-p*    
+   #:*verbose-move* 			  
+   #:*verbose-resize* 			  
+   #:*verbose-window-cycling*              
+   #:*warp-pointer-when-cycle*    
    ))
 
-(defpackage "ECLIPSE-EXTENSIONS"
+(defpackage  ECLIPSE-EXTENSIONS 
   (:nicknames eclipse-ext)
   (:use clx-extensions eclipse-internals common-lisp)
   (:size 50)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: COMMON-LISP; -*-
-;;; $Id:$
+;;; $Id: package.lisp,v 1.1 2004/01/12 11:10:51 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -68,239 +68,239 @@
      <ftp://ftp.xfree86.org/X.Org/pub/R6.6/xc/doc/hardcopy/ICE/ice.PS.gz>")
   (:export 
    ;; request classes.
-   "REQUEST"                    ; protocol class
-                                ; minor opcode
-   "BYTE-ORDER"                 ; 1
-   "CONNECTION-SETUP"           ; 2
-   "AUTHENTICATION-REQUIRED"    ; 3
-   "AUTHENTICATION-REPLY"       ; 4
-   "AUTHENTICATION-NEXT-PHASE"  ; 5
-   "CONNECTION-REPLY"           ; 6
-   "PROTOCOL-SETUP"             ; 7
-   "PROTOCOL-REPLY"             ; 8
-   "PING"                       ; 9
-   "PING-REPLY"                 ; 10
-   "WANT-TO-CLOSE"              ; 11
-   "NO-CLOSE"                   ; 12
+   #:request                     ; protocol class
+                                 ; minor opcode
+   #:byte-order                  ; 1
+   #:connection-setup            ; 2
+   #:authentication-required     ; 3
+   #:authentication-reply        ; 4
+   #:authentication-next-phase   ; 5
+   #:connection-reply            ; 6
+   #:protocol-setup              ; 7
+   #:protocol-reply              ; 8
+   #:ping                        ; 9
+   #:ping-reply                  ; 10
+   #:want-to-close               ; 11
+   #:no-close                    ; 12
    
    ;; error request classes.
-   "REQUEST-ERROR"              ; protocol class
-                                ; class
-   "BAD-MINOR"                  ; #x8000
-   "BAD-STATE"                  ; #x8001
-   "BAD-LENGTH"                 ; #x8002
-   "BAD-VALUE"                  ; #x8003
-   "BAD-MAJOR"                  ; 0
-   "NO-AUTHENTICATION"          ; 1
-   "NO-VERSION"                 ; 2
-   "SETUP-FAILED"               ; 3
-   "AUTHENTICATION-REJECTED"    ; 4
-   "AUTHENTICATION-FAILED"      ; 5
-   "PROTOCOL-DUPLICATE"         ; 6
-   "MAJOR-OPCODE-DUPLICATE"     ; 7
-   "UNKNOWN-PROTOCOL"
+   #:request-error               ; protocol class
+                                 ; class
+   #:bad-minor                   ; #x8000
+   #:bad-state                   ; #x8001
+   #:bad-length                  ; #x8002
+   #:bad-value                   ; #x8003
+   #:bad-major                   ; 0
+   #:no-authentication           ; 1
+   #:no-version                  ; 2
+   #:setup-failed                ; 3
+   #:authentication-rejected     ; 4
+   #:authentication-failed       ; 5
+   #:protocol-duplicate          ; 6
+   #:major-opcode-duplicate      ; 7
+   #:unknown-protocol 
 
    ;; ice lib classes 
-   "ICE-AUTHORITY-ENTRY"
-   "ICE-CONNECTION"
+   #:ice-authority-entry 
+   #:ice-connection 
 
    ;; error condition
-   "ICE-ERROR"
-   "ICE-ERROR-AUTHENTICATION-FAILED"
-   "ICE-ERROR-AUTHENTICATION-REJECTED"
-   "ICE-ERROR-BAD-LENGTH"
-   "ICE-ERROR-BAD-MAJOR"
-   "ICE-ERROR-BAD-MINOR"
-   "ICE-ERROR-BAD-STATE"
-   "ICE-ERROR-BAD-VALUE"
-   "ICE-ERROR-MAJOR-OPCODE-DUPLICATE"
-   "ICE-ERROR-NO-AUTHENTICATION"
-   "ICE-ERROR-NO-VERSION"
-   "ICE-ERROR-PROTOCOL-DUPLICATE"
-   "ICE-ERROR-SETUP-FAILED"
-   "ICE-ERROR-UNKNOWN-PROTOCOL"
+   #:ice-error 
+   #:ice-error-authentication-failed 
+   #:ice-error-authentication-rejected 
+   #:ice-error-bad-length 
+   #:ice-error-bad-major 
+   #:ice-error-bad-minor 
+   #:ice-error-bad-state 
+   #:ice-error-bad-value 
+   #:ice-error-major-opcode-duplicate 
+   #:ice-error-no-authentication 
+   #:ice-error-no-version 
+   #:ice-error-protocol-duplicate 
+   #:ice-error-setup-failed 
+   #:ice-error-unknown-protocol 
 
    ;; generic methods
-   "DECODE-REQUEST"
-   "ICE-FLUSH"
-   "LAST-RECEIVED-MESSAGE"
-   "LAST-SENDED-MESSAGE"
-   "MAKE-ICE-REQUEST"
-   "POST-REQUEST"
-   "READ-REQUEST"
-   "REQUEST-LENGTH"
-   "SIGNAL-REQUEST-ERROR"
+   #:decode-request 
+   #:ice-flush 
+   #:last-received-message 
+   #:last-sended-message 
+   #:make-ice-request 
+   #:post-request 
+   #:read-request 
+   #:request-length 
+   #:signal-request-error 
 
    ;; slots
-   "MINOR-OPCODE"
-   "MAJOR-OPCODE"
+   #:minor-opcode 
+   #:major-opcode 
 
    ;; slot accessors.
-   "AUTHENTICATION-FAILED-VALUES"
-   "AUTHENTICATION-NEXT-PHASE-DATA"
-   "AUTHENTICATION-NEXT-PHASE-LENGTH-OF-AUTHENTICATION-DATA"
-   "AUTHENTICATION-REJECTED-VALUES"
-   "AUTHENTICATION-REPLY-DATA"
-   "AUTHENTICATION-REPLY-LENGTH-OF-AUTHENTICATION-DATA"
-   "AUTHENTICATION-REQUIRED-AUTHENTICATION-PROTOCOL-INDEX"
-   "AUTHENTICATION-REQUIRED-DATA"
-   "AUTHENTICATION-REQUIRED-LENGTH-OF-AUTHENTICATION-DATA"
-   "BAD-MAJOR-VALUES"
-   "BAD-VALUE-LENGTH-OF-OFFENDING-VALUE"
-   "BAD-VALUE-OFFENDING-VALUE"
-   "BAD-VALUE-OFFSET-OF-OFFENDING-VALUE"
-   "BYTE-ORDER-BYTE-ORDER"
-   "CONNECTION-INPUT-BUFFER"
-   "CONNECTION-INPUT-BYTE-ORDER"
-   "CONNECTION-OUTPUT-BUFFER"
-   "CONNECTION-OUTPUT-BYTE-ORDER"
-   "CONNECTION-REPLY-RELEASE-NAME"
-   "CONNECTION-REPLY-VENDOR-NAME"
-   "CONNECTION-REPLY-VERSION-INDEX"
-   "CONNECTION-SETUP-AUTHENTICATION-PROTOCOL-NAMES"
-   "CONNECTION-SETUP-MUST-AUTHENTICATE-P"
-   "CONNECTION-SETUP-NUMBER-OF-AUTHENTICATION-PROTOCOL-NAMES-OFFERED"
-   "CONNECTION-SETUP-NUMBER-OF-VERSIONS-OFFERED"
-   "CONNECTION-SETUP-RELEASE-NAME"
-   "CONNECTION-SETUP-VENDOR-NAME"
-   "CONNECTION-SETUP-VERSION-LIST"
-   "CONNECTION-STREAM"
-   "ICE-CONNECTION-STRING"
-   "ICE-CONNECTION-WAIT"
-   "ICE-ERROR-HANDLER"
-   "ICE-PROTOCOL-REVISION"
-   "ICE-PROTOCOL-VERSION"
-   "ICE-RELEASE"
-   "ICE-VENDOR"
-   "MAJOR-OPCODE-DUPLICATE-VALUES"
-   "PROTOCOL-DUPLICATE-VALUES"
-   "PROTOCOL-REPLY-RELEASE-NAME"
-   "PROTOCOL-REPLY-VENDOR-NAME"
-   "PROTOCOL-REPLY-VERSION-INDEX"
-   "PROTOCOL-SETUP-AUTHENTICATION-PROTOCOL-NAMES"
-   "PROTOCOL-SETUP-MUST-AUTHENTICATE-P"
-   "PROTOCOL-SETUP-NUMBER-OF-AUTHENTICATION-PROTOCOL-NAMES-OFFERED"
-   "PROTOCOL-SETUP-NUMBER-OF-VERSIONS-OFFERED"
-   "PROTOCOL-SETUP-PROTOCOL-MAJOR-OPCODE"
-   "PROTOCOL-SETUP-PROTOCOL-NAME"
-   "PROTOCOL-SETUP-RELEASE-NAME"
-   "PROTOCOL-SETUP-VENDOR-NAME"
-   "PROTOCOL-SETUP-VERSION-LIST"
-   "REQUEST-ERROR-CLASS"
-   "REQUEST-ERROR-OFFENDING-MINOR-OPCODE"
-   "REQUEST-ERROR-SEQUENCE-NUMBER-OF-ERRONEOUS-MESSAGE"
-   "REQUEST-ERROR-SEVERITY"
-   "REQUEST-MAJOR-OPCODE"
-   "REQUEST-MINOR-OPCODE"
-   "SETUP-FAILED-VALUES"
-   "UNKNOWN-PROTOCOL-VALUES"
+   #:authentication-failed-values 
+   #:authentication-next-phase-data 
+   #:authentication-next-phase-length-of-authentication-data 
+   #:authentication-rejected-values 
+   #:authentication-reply-data 
+   #:authentication-reply-length-of-authentication-data 
+   #:authentication-required-authentication-protocol-index 
+   #:authentication-required-data 
+   #:authentication-required-length-of-authentication-data 
+   #:bad-major-values 
+   #:bad-value-length-of-offending-value 
+   #:bad-value-offending-value 
+   #:bad-value-offset-of-offending-value 
+   #:byte-order-byte-order 
+   #:connection-input-buffer 
+   #:connection-input-byte-order 
+   #:connection-output-buffer 
+   #:connection-output-byte-order 
+   #:connection-reply-release-name 
+   #:connection-reply-vendor-name 
+   #:connection-reply-version-index 
+   #:connection-setup-authentication-protocol-names 
+   #:connection-setup-must-authenticate-p 
+   #:connection-setup-number-of-authentication-protocol-names-offered 
+   #:connection-setup-number-of-versions-offered 
+   #:connection-setup-release-name 
+   #:connection-setup-vendor-name 
+   #:connection-setup-version-list 
+   #:connection-stream 
+   #:ice-connection-string 
+   #:ice-connection-wait 
+   #:ice-error-handler 
+   #:ice-protocol-revision 
+   #:ice-protocol-version 
+   #:ice-release 
+   #:ice-vendor 
+   #:major-opcode-duplicate-values 
+   #:protocol-duplicate-values 
+   #:protocol-reply-release-name 
+   #:protocol-reply-vendor-name 
+   #:protocol-reply-version-index 
+   #:protocol-setup-authentication-protocol-names 
+   #:protocol-setup-must-authenticate-p 
+   #:protocol-setup-number-of-authentication-protocol-names-offered 
+   #:protocol-setup-number-of-versions-offered 
+   #:protocol-setup-protocol-major-opcode 
+   #:protocol-setup-protocol-name 
+   #:protocol-setup-release-name 
+   #:protocol-setup-vendor-name 
+   #:protocol-setup-version-list 
+   #:request-error-class 
+   #:request-error-offending-minor-opcode 
+   #:request-error-sequence-number-of-erroneous-message 
+   #:request-error-severity 
+   #:request-major-opcode 
+   #:request-minor-opcode 
+   #:setup-failed-values 
+   #:unknown-protocol-values 
 
    ;; functions   
-   "AUTHENTICATION-FAILED-P"
-   "AUTHENTICATION-NEXT-PHASE-P"
-   "AUTHENTICATION-REJECTED-P"
-   "AUTHENTICATION-REPLY-P"
-   "AUTHENTICATION-REQUIRED-P"
-   "BAD-LENGTH-P"
-   "BAD-MAJOR-P"
-   "BAD-MINOR-P"
-   "BAD-STATE-P"
-   "BAD-VALUE-P"
-   "BYTE-ORDER-P"
-   "CONNECTION-REPLY-P"
-   "CONNECTION-SETUP-P"
-   "MAJOR-OPCODE-DUPLICATE-P"
-   "NO-AUTHENTICATION-P"
-   "NO-CLOSE-P"
-   "NO-VERSION-P"
-   "PING-P"
-   "PING-REPLY-P"
-   "PROTOCOL-DUPLICATE-P"
-   "PROTOCOL-REPLY-P"
-   "PROTOCOL-SETUP-P"
-   "REQUEST-P"
-   "SETUP-FAILED-P"
-   "UNKNOWN-PROTOCOL-P"
-   "WANT-TO-CLOSE-P"
+   #:authentication-failed-p 
+   #:authentication-next-phase-p 
+   #:authentication-rejected-p 
+   #:authentication-reply-p 
+   #:authentication-required-p 
+   #:bad-length-p 
+   #:bad-major-p 
+   #:bad-minor-p 
+   #:bad-state-p 
+   #:bad-value-p 
+   #:byte-order-p 
+   #:connection-reply-p 
+   #:connection-setup-p 
+   #:major-opcode-duplicate-p 
+   #:no-authentication-p 
+   #:no-close-p 
+   #:no-version-p 
+   #:ping-p 
+   #:ping-reply-p 
+   #:protocol-duplicate-p 
+   #:protocol-reply-p 
+   #:protocol-setup-p 
+   #:request-p 
+   #:setup-failed-p 
+   #:unknown-protocol-p 
+   #:want-to-close-p 
 
-   "BOOLEAN-LENGTH"
-   "CARD16-LENGTH"
-   "CARD24-LENGTH"
-   "CARD32-LENGTH"
-   "CARD8-LENGTH"
-   "DATA-LENGTH"
-   "ERROR-SEVERITY-LENGTH"
-   "ICE-BYTE-ORDER-LENGTH"
-   "MAKE-REQUEST-LENGTH"
-   "PAD-LENGTH"
-   "STRING-LENGTH"
-   "STRINGS-LENGTH"
-   "VERSION-LENGTH"
-   "VERSIONS-LENGTH"
+   #:boolean-length 
+   #:card16-length 
+   #:card24-length 
+   #:card32-length 
+   #:card8-length 
+   #:data-length 
+   #:error-severity-length 
+   #:ice-byte-order-length 
+   #:make-request-length 
+   #:pad-length 
+   #:string-length 
+   #:strings-length 
+   #:version-length 
+   #:versions-length 
    
-   "AVAILABLE-AUTHENTICATION-PROTOCOLS"
-   "DECODE-ERROR"
-   "DECODE-ICE-MINOR-OPCODE"
-   "ENCODE-ERROR"
-   "ENCODE-ICE-MINOR-OPCODE"
-   "GET-ENVIRONMENT-VARIABLE"
-   "GET-PROTOCOL-HANDLER"
-   "ICE-AUTH-PROTO-NAMES"
-   "ICE-ERROR-REQUEST-ERROR"
-   "MAKE-BUFFER"
-   "MAKE-DATA"
-   "MAKE-VERSION"
-   "MAKE-VERSIONS"
-   "OPEN-CONNECTION"
-   "PARSE-ICEAUTHORITY-FILE"
-   "PROCESS-REQUEST"
-   "READ-ICE-AUTH-FILE"
-   "REGISTER-PROTOCOL"
-   "REPORT-ICE-ERROR"
+   #:available-authentication-protocols 
+   #:decode-error 
+   #:decode-ice-minor-opcode 
+   #:encode-error 
+   #:encode-ice-minor-opcode 
+   #:get-environment-variable 
+   #:get-protocol-handler 
+   #:ice-auth-proto-names 
+   #:ice-error-request-error 
+   #:make-buffer 
+   #:make-data 
+   #:make-version 
+   #:make-versions 
+   #:open-connection 
+   #:parse-iceauthority-file 
+   #:process-request 
+   #:read-ice-auth-file 
+   #:register-protocol 
+   #:report-ice-error 
 
    ;; macros
-   "BUFFER-READ-BOOLEAN"
-   "BUFFER-READ-CARD16"
-   "BUFFER-READ-CARD32"
-   "BUFFER-READ-CARD8"
-   "BUFFER-READ-DATA"
-   "BUFFER-READ-ERROR-SEVERITY"
-   "BUFFER-READ-ICE-BYTE-ORDER"
-   "BUFFER-READ-STRING"
-   "BUFFER-READ-STRINGS"
-   "BUFFER-READ-VERSION"
-   "BUFFER-READ-VERSIONS"
-   "BUFFER-WRITE-BOOLEAN"
-   "BUFFER-WRITE-CARD16"
-   "BUFFER-WRITE-CARD32"
-   "BUFFER-WRITE-CARD8"
-   "BUFFER-WRITE-DATA"
-   "BUFFER-WRITE-ERROR-SEVERITY"
-   "BUFFER-WRITE-ICE-BYTE-ORDER"
-   "BUFFER-WRITE-STRING"
-   "BUFFER-WRITE-STRINGS"
-   "BUFFER-WRITE-VERSION"
-   "BUFFER-WRITE-VERSIONS"
-   "DECLARE-ERROR"
-   "DECLARE-REQUEST"
-   "DEFINE-ACCESSOR"
-   "DEFINE-ERROR"
-   "DEFINE-MEMBER16-ACCESSOR"
-   "DEFINE-MEMBER8-ACCESSOR"
-   "DEFINE-REQUEST"
-   "READ-MAJOR-OPCODE"
-   "READ-MINOR-OPCODE"
-   "REGISTER-ICE-AUTHENTICATION-PROTOCOL"
-   "WITH-GENSYM"
-   "REQUEST-CASE"
+   #:buffer-read-boolean 
+   #:buffer-read-card16 
+   #:buffer-read-card32 
+   #:buffer-read-card8 
+   #:buffer-read-data 
+   #:buffer-read-error-severity 
+   #:buffer-read-ice-byte-order 
+   #:buffer-read-string 
+   #:buffer-read-strings 
+   #:buffer-read-version 
+   #:buffer-read-versions 
+   #:buffer-write-boolean 
+   #:buffer-write-card16 
+   #:buffer-write-card32 
+   #:buffer-write-card8 
+   #:buffer-write-data 
+   #:buffer-write-error-severity 
+   #:buffer-write-ice-byte-order 
+   #:buffer-write-string 
+   #:buffer-write-strings 
+   #:buffer-write-version 
+   #:buffer-write-versions 
+   #:declare-error 
+   #:declare-request 
+   #:define-accessor 
+   #:define-error 
+   #:define-member16-accessor 
+   #:define-member8-accessor 
+   #:define-request 
+   #:read-major-opcode 
+   #:read-minor-opcode 
+   #:register-ice-authentication-protocol 
+   #:with-gensym 
+   #:request-case 
 
    ;; types
-   "CARD8" "CARD16" "CARD24" "CARD32"
-   "ERROR-SEVERITY" "ICE-BYTE-ORDER"
-   "STRINGS" "VERSION" "VERSIONS" "DATA"
+   #:card8 #:card16 #:card24 #:card32
+   #:error-severity #:ice-byte-order 
+   #:strings #:version #:versions #:data 
 
    ;; constants
-   "+ICE-PROTO-MAJOR+" "+ICE-PROTO-MINOR+"
+   #:+ice-proto-major+ #:+ice-proto-minor+
    ))
 
 

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.13 2004/01/29 21:09:27 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.14 2004/02/17 11:03:21 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -29,41 +29,38 @@
   (:use common-lisp manager-commons)
   (:nicknames netwm)
   (:size 50)
-  (:import-from :xlib get-property change-property)
+  (:import-from :xlib #:get-property #:change-property)
   (:import-from :manager-commons 
-		card-32 card-16 card-8 int-16
-		make-geometry-hint
-		get-geometry-hint set-geometry-hint
-		encode-string-property get-text-property
-		set-workspace-names 
-		set-atoms-property get-atoms-property
-		get-window-property
-		define-window-list-property-accessor)
+		#:card-32 #:card-16 #:card-8 #:int-16
+		#:make-geometry-hint
+		#:get-geometry-hint #:set-geometry-hint
+		#:encode-string-property #:get-text-property
+		#:set-workspace-names 
+		#:set-atoms-property #:get-atoms-property
+		#:get-window-property
+		#:define-window-list-property-accessor)
   (:export
-   net-supported             net-client-list
-   net-client-list-stacking  net-number-of-desktops
-   net-current-desktop       net-desktop-geometry
-   net-desktop-viewport      net-desktop-names
-   net-active-window         net-workarea
-   net-supporting-wm-check   net-virtual-roots
-   net-wm-name               net-wm-visible-name
-   net-wm-icon-name          net-wm-visible-icon-name
-   net-wm-desktop            net-wm-window-type
-   net-wm-state              net-wm-strut
-   net-wm-icon-geometry      net-wm-icon
-   net-wm-pid                net-wm-handled-icons
-   net-wm-allowed-actions    net-wm-strut-partial
-   net-wm-user-time
+   #:net-supported             #:net-client-list
+   #:net-client-list-stacking  #:net-number-of-desktops
+   #:net-current-desktop       #:net-desktop-geometry
+   #:net-desktop-viewport      #:net-desktop-names
+   #:net-active-window         #:net-workarea
+   #:net-supporting-wm-check   #:net-virtual-roots
+   #:net-wm-name               #:net-wm-visible-name
+   #:net-wm-icon-name          #:net-wm-visible-icon-name
+   #:net-wm-desktop            #:net-wm-window-type
+   #:net-wm-state              #:net-wm-strut
+   #:net-wm-icon-geometry      #:net-wm-icon
+   #:net-wm-pid                #:net-wm-handled-icons
+   #:net-wm-allowed-actions    #:net-wm-strut-partial
+   #:net-wm-user-time
 
-   intern-atoms)
+   #:intern-atoms)
   (:documentation
-   "This package implements :
-The Extended Window Manager Hints (from Freedesktop.org).
-When you use it I recommend to call (intern-gnome-atom display),
-before anything else, to be sure that all the atoms you will use
-exist in the server. - version 1.3 (June 19, 2003) -
-In order to use it, you should first call intern-atoms to be sure all
- atoms are in the server."))
+   "This package implements the Extended Window Manager Hints
+   (from Freedesktop.org). - version 1.3 (June 19, 2003) -
+   In order to use it, you should first call intern-atoms to be sure
+   all atoms are in the server."))
 
 (in-package :EXTENDED-WINDOW-MANAGER-HINTS)
 

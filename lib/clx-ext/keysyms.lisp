@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: Keyboard -*-
-;;; $Id: keysyms.lisp,v 1.3 2003/09/16 21:32:53 hatchond Exp $
+;;; $Id: keysyms.lisp,v 1.4 2004/01/07 11:05:49 ihatchondo Exp $
 ;;;
 ;;; This is a CLX extension for managing keyboard.
 ;;;
@@ -27,14 +27,14 @@
   (:use common-lisp)
   (:size 50)
   (:export
-   define-keysym
-   keysym->keyname
-   keyname->keysym
-   keyname->keycodes
-   keycode->keyname
-   modifier->modifier-mask
-   modifiers
-   modifier-map-changed-p))
+   #:define-keysym
+   #:keysym->keyname
+   #:keyname->keysym
+   #:keyname->keycodes
+   #:keycode->keyname
+   #:modifier->modifier-mask
+   #:modifiers
+   #:modifier-map-changed-p))
 
 (in-package :keyboard)
 

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.34 2004/02/12 23:30:22 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.35 2004/02/17 12:48:39 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -463,15 +463,14 @@
   ;; the others are optional.
   (when (and (not (xlib:cursor-p cursor)) (keywordp cursor))
     (setf cursor (get-x-cursor *display* cursor)))
-  (make-instance
-      button-type
-      :window (xlib:create-window
-	          :parent parent :x x :y y
-		  :width width :height height :border-width border-width
-		  :background background :border border
-		  :gravity gravity :bit-gravity (if item :north-west :forget)
-		  :cursor cursor :event-mask event-mask)
-      :item-to-draw item :master master))
+  (make-instance button-type
+    :window (xlib:create-window
+	        :parent parent :x x :y y
+		:width width :height height :border-width border-width
+		:background background :border border
+		:gravity gravity :bit-gravity (if item :north-west :forget)
+		:cursor cursor :event-mask event-mask)
+    :item-to-draw item :master master))
 
 ;;;; Box button
 ;; Use it for displaying short message in window, that do not require
@@ -485,11 +484,10 @@
 			                 (background *white*))
   (setf messages (apply #'concatenate 'string messages))
   (let ((message-box
-	 (create-button
-	    'box-button
-	    :parent parent :event-mask '(:exposure :visibility-change)
-	    :x 0 :y 0 :width 1 :height 1 :border-width border-width
-	    :background background :item messages)))
+	 (create-button 'box-button
+	   :parent parent :event-mask '(:exposure :visibility-change)
+	   :x 0 :y 0 :width 1 :height 1 :border-width border-width
+	   :background background :item messages)))
     (setf (xlib:window-override-redirect (widget-window message-box)) :on
 	  (button-item-to-draw message-box) messages
 	  (message-pixmap message-box) pixmap)
@@ -619,24 +617,49 @@
 (defclass menu-button (push-button) ())
 
 ;; Those are master edges and master corners
-(defclass edge (button) ())
 
-(defclass top (edge) ())
-(defclass top-left (edge) ())
-(defclass top-right (edge) ())
-(defclass right (edge) ())
-(defclass left (edge) ())
-(defclass bottom (edge) ())
-(defclass bottom-right (edge) ())
-(defclass bottom-left (edge) ())
-
-(defconstant +corner-cursors+ 
-  '(:xc_top_left_corner :xc_top_right_corner 
-    :xc_bottom_left_corner :xc_bottom_right_corner))
-(defconstant +side-cursors+ 
-  '(:xc_right_side :xc_left_side :xc_top_side :xc_bottom_side))
 (defconstant +edge-event-mask+
   '(:button-press :button-release :button-motion :owner-grab-button))
+
+(defclass edge (button)
+  ((gravity :initform :north-west :accessor edge-gravity)
+   (cursor :initform :xc_left_ptr :accessor edge-cursor)))
+
+(defmethod initialize-instance :after ((edge edge) &rest options)
+  (declare (ignore options))
+  (with-slots (window cursor gravity) edge
+    (setf (xlib:window-gravity window) gravity)
+    (setf (xlib:window-cursor window)
+	  (get-x-cursor (xlib:drawable-display window) cursor))))
+
+(defclass top (edge)
+  ((cursor :initform :xc_top_side)))
+
+(defclass top-left (edge)
+  ((cursor :initform :xc_top_left_corner)))
+
+(defclass top-right (edge)
+  ((gravity :initform :north-east)
+   (cursor :initform :xc_top_right_corner)))
+
+(defclass right (edge)
+  ((gravity :initform :north-east)
+   (cursor :initform :xc_right_side)))
+
+(defclass left (edge)
+  ((cursor :initform :xc_left_side)))
+
+(defclass bottom (edge)
+  ((gravity :initform :south-west)
+   (cursor :initform :xc_bottom_side)))
+
+(defclass bottom-right (edge)
+  ((gravity :initform :south-east)
+   (cursor :initform :xc_bottom_right_corner)))
+
+(defclass bottom-left (edge)
+  ((gravity :initform :south-west)
+   (cursor :initform :xc_bottom_left_corner)))
 
 ;;;; Icon
 
@@ -666,13 +689,12 @@
 			:depth (xlib:drawable-depth window))))
 	    (xlib:copy-plane bkgrd gcontext 1 0 0 width height pix 0 0)
 	    (setf bkgrd pix))))
-      (setf icon (create-button
-		    'icon
-		    :event-mask '(:pointer-motion-hint . #.+std-button-mask+)
-		    :parent *root-window* :master master
-		    :x 0 :y 0 :width width :height height
-		    :item (unless bkgrd (wm-icon-name window))
-		    :background (or bkgrd bg-color)))
+      (setf icon (create-button 'icon
+		   :event-mask '(:pointer-motion-hint . #.+std-button-mask+)
+		   :parent *root-window* :master master
+		   :x 0 :y 0 :width width :height height
+		   :item (unless bkgrd (wm-icon-name window))
+		   :background (or bkgrd bg-color)))
       (setf (slot-value icon 'pixmap-to-free) pixmap-to-free)
       (setf (slot-value icon 'application) application)
       icon)))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: GNOME -*-
-;;; $Id: gnome-manager.lisp,v 1.1 2002/11/07 14:23:31 hatchond Exp $
+;;; $Id: gnome-manager.lisp,v 1.2 2003/11/13 00:03:50 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -29,25 +29,25 @@
   (:use common-lisp)
   (:use manager-commons)
   (:size 50)
-  (:import-from :xlib get-property change-property)
+  (:import-from :xlib #:get-property #:change-property)
   (:import-from :manager-commons 
-		card-32 card-16 card-8 int-16
-		get-geometry-hint set-geometry-hint
-		encode-string-property get-text-property
-		set-workspace-names 
-		set-atoms-property get-atoms-property
-		get-window-property
-		define-window-list-property-accessor)
+		#:card-32 #:card-16 #:card-8 #:int-16
+		#:get-geometry-hint #:set-geometry-hint
+		#:encode-string-property #:get-text-property
+		#:set-workspace-names 
+		#:set-atoms-property #:get-atoms-property
+		#:get-window-property
+		#:define-window-list-property-accessor)
   (:export
-   win-client-list           win-workspace-count
-   win-workspace-names       win-workspace
-   win-area                  win-area-count
-   win-protocols             win-supporting-wm-check
-   win-layer                 win-state
-   win-hints                 win-desktop-button-proxy
-   win-app-state             win-expanded-size
+   #:win-client-list           #:win-workspace-count
+   #:win-workspace-names       #:win-workspace
+   #:win-area                  #:win-area-count
+   #:win-protocols             #:win-supporting-wm-check
+   #:win-layer                 #:win-state
+   #:win-hints                 #:win-desktop-button-proxy
+   #:win-app-state             #:win-expanded-size
 
-   intern-gnome-atom)
+   #:intern-gnome-atom)
   (:documentation
    "This package implements :
 The Gnome Window Manager Complience specification.

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.38 2004/02/17 12:48:39 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.39 2004/02/23 15:57:58 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -127,8 +127,7 @@
 	    (setf (xlib:window-background window) (style-background frame-style)
 		  (window-position app-win) (values left-margin top-margin)
 		  (drawable-sizes window) (values width height))
-	    (make-edges master)
-	    (make-corner master width height)
+	    (make-frame-parts master)
 	    (make-title-bar master (wm-name app-win))
 	    (update-edges-geometry master)
 	    (xlib:map-subwindows window))
@@ -208,15 +207,14 @@
 	(multiple-value-bind (width height) (drawable-sizes (aref pixmaps 0))
 	  (multiple-value-bind (tw th) (drawable-sizes parent-window)
 	    (setf (getf children :menu-button)
-		  (create-button 
-		     'menu-button
-		     :parent parent-window :master master
-		     :background (aref pixmaps 0) 
-		     :item (aref pixmaps 1)
-		     :width width :height height
-		     :event-mask '(:owner-grab-button . #.+push-button-mask+)
-		     :y (if horizontal-p (ash (- th height) -1) (- th height))
-		     :x (if horizontal-p 0 (ash (- tw width) -1))))))))))
+		  (create-button 'menu-button
+		    :parent parent-window :master master
+		    :background (aref pixmaps 0) 
+		    :item (aref pixmaps 1)
+		    :width width :height height
+		    :event-mask '(:owner-grab-button . #.+push-button-mask+)
+		    :y (if horizontal-p (ash (- th height) -1) (- th height))
+		    :x (if horizontal-p 0 (ash (- tw width) -1))))))))))
 
 (defun make-buttons-bar (master parent-window)
   (with-slots (children frame-style) master
@@ -238,10 +236,10 @@
 	    do (multiple-value-setq (width height) (drawable-sizes bkgrd))
 	       (setf (getf children child)
 		     (create-button type
-				    :parent container :master master
-				    :background bkgrd :item (aref pixmaps 1)
-				    :x x :y y :width width :height height
-				    :event-mask +push-button-mask+))
+		       :parent container :master master
+		       :background bkgrd :item (aref pixmaps 1)
+		       :x x :y y :width width :height height
+		       :event-mask +push-button-mask+))
 	       (if horizontal-p (incf x width) (incf y height))
 	    finally 
 	      (multiple-value-bind (w h) (drawable-sizes parent-window)
@@ -271,12 +269,12 @@
 	  (multiple-value-setq (mbw mbh)
 	    (drawable-sizes (widget-window menu-button))))
 	(setf title
-	      (create-button 'title-bar :parent parent-window :master master
-			     :width 1 :height 1
-			     :x (if horizontal-p mbw 0)
-			     :y (if horizontal-p 0 bch)
-			     :event-mask +push-button-mask+
-			     :background (aref pixmaps 0) :item name)
+	      (create-button 'title-bar
+		:parent parent-window :master master
+		:width 1 :height 1
+		:x (if horizontal-p mbw 0) :y (if horizontal-p 0 bch)
+		:event-mask +push-button-mask+
+		:background (aref pixmaps 0) :item name)
 	      (slot-value title 'parent) parent-window
 	      (getf children :title-bar) title
 	      (xlib:window-background parent-window) :parent-relative
@@ -287,69 +285,46 @@
 	(xlib:map-subwindows parent-window)
 	title))))
 
-(defun edge-position (style edge-key w h)
+(defun edge-position (style edge-key width height)
   (with-slots (top-left-w top-left-h top-right-h bottom-left-w) style
-    (case edge-key
-      (:top (values top-left-w 0))
-      (:right (values (- w (frame-item-width style :right)) top-right-h))
-      (:bottom (values bottom-left-w (- h (frame-item-height style :bottom))))
-      (:left (values 0 top-left-h)))))
+    (multiple-value-bind (w h) (frame-item-sizes style edge-key)
+      (case edge-key
+	(:top (values top-left-w 0))
+	(:right (values (- width w) top-right-h))
+	(:bottom (values bottom-left-w (- height h)))
+	(:left (values 0 top-left-h))
+	(:top-left (values 0 0))
+	(:top-right (values (- width w) 0))
+	(:bottom-right (values (- width w) (- height h)))
+	(:bottom-left (values 0 (- height h)))))))
 
-(defun make-edges (master)
+(defvar *frame-parts*
+  '(:right :left :top :bottom :top-left :top-right :bottom-left :bottom-right))
+
+(defun make-frame-parts (master)
   (with-slots (children window frame-style) master
     (multiple-value-bind (width height) (drawable-sizes window)
-      (loop for type in '(right left top bottom)
-	    for child in '(:right :left :top :bottom)
-	    for gravity in '(:north-east :north-west :north-west :south-west)
-	    for cursor in +side-cursors+
+      (loop for child in *frame-parts*
 	    for pixmaps = (frame-item-pixmaps frame-style child)
 	    for background = (aref pixmaps 0)
 	    for hilighted = (aref pixmaps 1)
 	    for event-mask = (if hilighted +std-button-mask+ +edge-event-mask+)
-	    for (x y) = (multiple-value-list 
-			   (edge-position frame-style child width height))
 	    when (frame-item-exist-p frame-style child)
-	    do (setf (getf children child)
-		     (create-button type
-				    :parent window :master master
-				    :gravity gravity
-				    :background background
-				    :item hilighted 
-				    :event-mask event-mask
-				    :x x :y y
-				    :width (pixmap-width background)
-				    :height (pixmap-height background)
-				    :cursor cursor))))))
-
-(defun make-corner (master width height)
-  (with-slots (children window frame-style) master
-    (loop for type in '(top-left top-right bottom-left bottom-right)
-	  for gravity in '(:north-west :north-east :south-west :south-east)
-	  for child in '(:top-left :top-right :bottom-left :bottom-right)
-	  for cursor in +corner-cursors+
-	  for pixmaps = (frame-item-pixmaps frame-style child)
-	  for bkgrd = (aref pixmaps 0)
-	  for hilighted = (aref pixmaps 1)
-	  for event-mask = (if hilighted +std-button-mask+ +edge-event-mask+)
-	  for (w h) = (and bkgrd (multiple-value-list (drawable-sizes bkgrd)))
-	  for (x . y) in '((0 . 0) (nil . 0) (0 . nil) (nil . nil))
-	  when (frame-item-exist-p frame-style child)
-	  do (setf (getf children child)
-		   (create-button type
-				  :parent window :master master
-				  :background bkgrd :item hilighted
-				  :event-mask event-mask
-				  :gravity gravity
-				  :x (or x (- width w))
-				  :y (or y (- height h))
-				  :width w :height h
-				  :cursor cursor)))))
+	    do (multiple-value-bind (x y)
+		   (edge-position frame-style child width height)
+		 (multiple-value-bind (w h) (frame-item-sizes frame-style child)
+		   (setf (getf children child)
+			 (create-button (intern (symbol-name child) :eclipse)
+			   :parent window :master master
+			   :background background :item hilighted
+			   :event-mask event-mask
+			   :x x :y y :width w :height h))))))))
 
 ;; Public.
 
 (defun update-edges-geometry (master)
-  (declare (optimize (speed 3) (safety 0))
-	   (inline update-edges-geometry))
+  (declare (optimize (speed 3) (safety 0)))
+  (declare (inline update-edges-geometry))
   (macrolet
       ((update (edge size &rest frame-style-slots-size)
 	 `(when ,edge
@@ -413,15 +388,13 @@
 			       :event-mask +decoration-event-mask+
 			       :do-not-propagate-mask 
 			       '(:button-press :button-release)))
-		   (master (make-instance 
-			       'decoration
-			       :window window
-			       :old-frame-style dstyle :frame-style style
-			       :children (list :application application)
-			       :application-gravity gravity
-			       :wm-size-hints wm-sizes)))
-	      (make-edges master)
-	      (make-corner master (+ width hmargin) (+ height vmargin))
+		   (master (make-instance 'decoration
+			     :window window
+			     :old-frame-style dstyle :frame-style style
+			     :children (list :application application)
+			     :application-gravity gravity
+			     :wm-size-hints wm-sizes)))
+	      (make-frame-parts master)
 	      (make-title-bar master (wm-name app-window))
 	      (update-edges-geometry master)
 	      (with-slots (icon) application

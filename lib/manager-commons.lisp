@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: MANAGER-COMMONS -*-
-;;; $Id: manager-commons.lisp,v 1.1 2002/11/07 14:23:31 hatchond Exp $
+;;; $Id: manager-commons.lisp,v 1.2 2003/11/13 00:03:50 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -26,18 +26,18 @@
 
 (defpackage manager-commons
   (:use common-lisp)
-  (:import-from :xlib get-property change-property)
+  (:import-from :xlib #:get-property #:change-property)
   (:size 50)
   (:export
-   geometry-hint             make-geometry-hint
-   geometry-hint-x           geometry-hint-y
-   geometry-hint-width       geometry-hint-height
+   #:geometry-hint             #:make-geometry-hint
+   #:geometry-hint-x           #:geometry-hint-y
+   #:geometry-hint-width       #:geometry-hint-height
 
-   encode-names              decode-names
-   encode-mask               decode-mask
+   #:encode-names              #:decode-names
+   #:encode-mask               #:decode-mask
 
-   utf8->strings
-   string->utf8
+   #:utf8->strings
+   #:string->utf8
    )
   (:documentation ""))
 

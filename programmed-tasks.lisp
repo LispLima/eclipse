@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PROGRAMMED-TASKS  -*-
-;;; $Id: programmed-tasks.lisp,v 1.5 2003/10/06 17:57:26 ihatchondo Exp $
+;;; $Id: programmed-tasks.lisp,v 1.6 2004/01/21 10:42:32 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001 Iban HATCHONDO
@@ -25,9 +25,9 @@
   (:use common-lisp)
   (:size 50)
   (:export
-   preprogrammed-tasks
-   arm-timer
-   execute-preprogrammed-tasks))
+   #:preprogrammed-tasks
+   #:arm-timer
+   #:execute-preprogrammed-tasks))
 
 (in-package :PROGRAMMED-TASKS)
 

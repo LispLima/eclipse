@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: COMMON-LISP; -*-
-;;; $Id: package.lisp,v 1.1 2004/01/12 11:10:52 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.2 2004/01/15 13:43:15 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -79,142 +79,142 @@
     protocol specification can be found at: 
      <ftp://ftp.xfree86.org/X.Org/pub/R6.6/xc/doc/hardcopy/SM/xsmp.PS.gz>")
   (:import-from :ice-lib 
-    "MAKE-DEFAULT-VERSIONS"
-    "AUTHENTICATION-PROTOCOL-INDEX"
-    "PROTOCOL-MAJOR-OPCODE"
-    "MAJOR-OPCODE" "OFFENDING-MINOR-OPCODE"
-    "VERSION-INDEX" "VENDOR-NAME" "RELEASE-NAME"
-    "SINTERN"
+    #:make-default-versions
+    #:authentication-protocol-index
+    #:protocol-major-opcode
+    #:major-opcode #:offending-minor-opcode
+    #:version-index #:vendor-name #:release-name
+    #:sintern
     )
   (:shadow
-    "STRING-LENGTH" "BUFFER-READ-STRING" "BUFFER-WRITE-STRING"
-    "BUFFER-READ-STRINGS" "BUFFER-WRITE-STRINGS")
+    #:string-length #:buffer-read-string #:buffer-write-string
+    #:buffer-read-strings #:buffer-write-strings)
   (:size 90)
   (:export 
    ;; classes.                      minor opcode
-   "REGISTER-CLIENT"              ; 1
-   "REGISTER-CLIENT-REPLY"        ; 2
-   "SAVE-YOURSELF"               ; 3
-   "SAVE-YOURSELF-REQUEST"       ; 4
-   "INTERACT-REQUEST"             ; 5
-   "INTERACT"                     ; 6
-   "INTERACT-DONE"                ; 7
-   "SAVE-YOURSELF-DONE"          ; 8
-   "DIE"                          ; 9
-   "SHUTDOWN-CANCELLED"           ; 10
-   "CONNECTION-CLOSED"            ; 11 
-   "SET-PROPERTIES"               ; 12
-   "DELETE-PROPERTIES"            ; 13
-   "GET-PROPERTIES"               ; 14
-   "GET-PROPERTIES-REPLY"         ; 15
-   "SAVE-YOURSELF-PHASE2-REQUEST" ; 16
-   "SAVE-YOURSELF-PHASE2"         ; 17
-   "SAVE-COMPLETE"                ; 18
+   #:register-client              ; 1
+   #:register-client-reply        ; 2
+   #:save-yourself                ; 3
+   #:save-yourself-request        ; 4
+   #:interact-request             ; 5
+   #:interact                     ; 6
+   #:interact-done                ; 7
+   #:save-yourself-done           ; 8
+   #:die                          ; 9
+   #:shutdown-cancelled           ; 10
+   #:connection-closed            ; 11 
+   #:set-properties               ; 12
+   #:delete-properties            ; 13
+   #:get-properties               ; 14
+   #:get-properties-reply         ; 15
+   #:save-yourself-phase2-request ; 16
+   #:save-yourself-phase2         ; 17
+   #:save-complete                ; 18
 
    ;; structures.
-   "PROPERTY"
+   #:property
    
    ;; condition
-   "SESSION-MANAGER-UNAVAILABLE"
+   #:session-manager-unavailable
 
    ;; sm lib classes    
-   "SM-CONNECTION"
+   #:sm-connection
 
    ;; types
-   "INTERACT-STYLE"
-   "DIALOG-TYPE"
-   "SAVE-TYPE"
-   "ARRAY8"
-   "ARRAY8S"
-   "PROPERTIES"
+   #:interact-style
+   #:dialog-type
+   #:save-type
+   #:array8
+   #:array8s
+   #:properties
    
    ;; constants & vars
-   "+SM-PROTO-MAJOR+"
-   "+SM-PROTO-MINOR+"
+   #:+sm-proto-major+
+   #:+sm-proto-minor+
 
    ;; macros.
-   "BUFFER-READ-ARRAY8"
-   "BUFFER-READ-ARRAY8S"
-   "BUFFER-READ-CLIENT-ID"
-   "BUFFER-READ-DIALOG-TYPE"
-   "BUFFER-READ-INTERACT-STYLE"
-   "BUFFER-READ-PROPERTIES"
-   "BUFFER-READ-PROPERTY"
-   "BUFFER-READ-SAVE-TYPE"
-   "BUFFER-WRITE-ARRAY8"
-   "BUFFER-WRITE-ARRAY8S"
-   "BUFFER-WRITE-CLIENT-ID"
-   "BUFFER-WRITE-DIALOG-TYPE"
-   "BUFFER-WRITE-INTERACT-STYLE"
-   "BUFFER-WRITE-PROPERTIES"
-   "BUFFER-WRITE-PROPERTY"
-   "BUFFER-WRITE-SAVE-TYPE"
-   "SIGNAL-SM-ERROR"
+   #:buffer-read-array8
+   #:buffer-read-array8s
+   #:buffer-read-client-id
+   #:buffer-read-dialog-type
+   #:buffer-read-interact-style
+   #:buffer-read-properties
+   #:buffer-read-property
+   #:buffer-read-save-type
+   #:buffer-write-array8
+   #:buffer-write-array8s
+   #:buffer-write-client-id
+   #:buffer-write-dialog-type
+   #:buffer-write-interact-style
+   #:buffer-write-properties
+   #:buffer-write-property
+   #:buffer-write-save-type
+   #:signal-sm-error
 
    ;; functions
-   "CONNECTION-CLOSED-P"
-   "DELETE-PROPERTIES-P"
-   "DIE-P"
-   "GET-PROPERTIES-P"
-   "GET-PROPERTIES-REPLY-P"
-   "INTERACT-DONE-P"
-   "INTERACT-P"
-   "INTERACT-REQUEST-P"
-   "PROPERTY-P"
-   "REGISTER-CLIENT-P"
-   "REGISTER-CLIENT-REPLY-P"
-   "REGISTER-XSMP-PROTOCOL"
-   "SAVE-COMPLETE-P"
-   "SAVE-YOURSELF-DONE-P"
-   "SAVE-YOURSELF-P"
-   "SAVE-YOURSELF-REQUEST-P"
-   "SAVE-YOURSELF-PHASE2-P"
-   "SAVE-YOURSELF-PHASE2-REQUEST-P"
-   "SET-PROPERTIES-P"
-   "SHUTDOWN-CANCELLED-P"
+   #:connection-closed-p
+   #:delete-properties-p
+   #:die-p
+   #:get-properties-p
+   #:get-properties-reply-p
+   #:interact-done-p
+   #:interact-p
+   #:interact-request-p
+   #:property-p
+   #:register-client-p
+   #:register-client-reply-p
+   #:register-xsmp-protocol
+   #:save-complete-p
+   #:save-yourself-done-p
+   #:save-yourself-p
+   #:save-yourself-request-p
+   #:save-yourself-phase2-p
+   #:save-yourself-phase2-request-p
+   #:set-properties-p
+   #:shutdown-cancelled-p
 
-   "ARRAY8-LENGTH"
-   "ARRAY8S-LENGTH"
-   "CLIENT-ID-LENGTH"
-   "DIALOG-TYPE-LENGTH"
-   "INTERACT-STYLE-LENGTH"
-   "PROPERTIES-LENGTH"
-   "PROPERTY-LENGTH"
-   "SAVE-TYPE-LENGTH"
+   #:array8-length
+   #:array8s-length
+   #:client-id-length
+   #:dialog-type-length
+   #:interact-style-length
+   #:properties-length
+   #:property-length
+   #:save-type-length
    
-   "COPY-PROPERTY"
-   "MAKE-PROPERTY"
-   "PROPERTY-NAME"
-   "PROPERTY-TYPE"
-   "PROPERTY-VALUES"
-   "MAKE-ARRAY8"
+   #:copy-property
+   #:make-property
+   #:property-name
+   #:property-type
+   #:property-values
+   #:make-array8
 
-   "CLOSE-SM-CONNECTION"
-   "CONNECTION-CLOSED-REASON"
-   "OPEN-SM-CONNECTION"   
-   "SESSION-MANAGER-UNAVAILABLE-REASON"
+   #:close-sm-connection
+   #:connection-closed-reason
+   #:open-sm-connection   
+   #:session-manager-unavailable-reason
 
    ;; methods
-   "DELETE-PROPERTIES-PROPERTIES"
-   "GET-PROPERTIES-REPLY-PROPERTIES"
-   "INTERACT-DONE-CANCEL-SHUTDOWN-P"
-   "INTERACT-REQUEST-DIALOG-TYPE"
-   "REGISTER-CLIENT-PREVIOUS-ID"
-   "REGISTER-CLIENT-REPLY-CLIENT-ID"
-   "SAVE-YOURSELF-DONE-SUCCESS-P"
-   "SAVE-YOURSELF-FAST-P"
-   "SAVE-YOURSELF-INTERACT-STYLE"
-   "SAVE-YOURSELF-REQUEST-FAST-P"
-   "SAVE-YOURSELF-REQUEST-GLOBAL-P"
-   "SAVE-YOURSELF-REQUEST-INTERACT-STYLE"
-   "SAVE-YOURSELF-REQUEST-SHUTDOWN-P"
-   "SAVE-YOURSELF-REQUEST-TYPE"
-   "SAVE-YOURSELF-SHUTDOWN-P"
-   "SAVE-YOURSELF-TYPE"
-   "SET-PROPERTIES-PROPERTIES"
-   "SM-CLIENT-ID"
-   "SM-PROTOCOL-REVISION"
-   "SM-PROTOCOL-VERSION"
-   "SM-RELEASE"
-   "SM-VENDOR"
+   #:delete-properties-properties
+   #:get-properties-reply-properties
+   #:interact-done-cancel-shutdown-p
+   #:interact-request-dialog-type
+   #:register-client-previous-id
+   #:register-client-reply-client-id
+   #:save-yourself-done-success-p
+   #:save-yourself-fast-p
+   #:save-yourself-interact-style
+   #:save-yourself-request-fast-p
+   #:save-yourself-request-global-p
+   #:save-yourself-request-interact-style
+   #:save-yourself-request-shutdown-p
+   #:save-yourself-request-type
+   #:save-yourself-shutdown-p
+   #:save-yourself-type
+   #:set-properties-properties
+   #:sm-client-id
+   #:sm-protocol-revision
+   #:sm-protocol-version
+   #:sm-release
+   #:sm-vendor
    ))

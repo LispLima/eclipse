@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PPM -*-
-;;; $Id: image-reader.lisp,v 1.4 2003/02/10 14:10:58 hatchond Exp $
+;;; $Id: image-reader.lisp,v 1.5 2003/08/28 14:40:34 hatchond Exp $
 ;;;
 ;;; This a ppm image reader for CLX
 ;;; This file is part of Eclipse
@@ -27,17 +27,15 @@
   (:use common-lisp)
   (:size 50)
   (:export
-   picture gray-scale colored-24
-   p5 p6
-   internal-picture-width picture-width
-   picture-height
-   picture-data
-   picture-max
-   make-clx-data
-   make-pnm
-   load-ppm
-   load-ppm-into-clx-image
-   initialize
+   #:picture #:gray-scale #:colored-24 #:p5 #:p6
+   #:internal-picture-width #:picture-width #:picture-height
+   #:picture-data
+   #:picture-max
+   #:make-clx-data
+   #:make-pnm
+   #:load-ppm
+   #:load-ppm-into-clx-image
+   #:initialize
    ))
 
 (in-package :PPM)
