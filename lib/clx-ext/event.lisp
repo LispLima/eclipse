@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: event.lisp,v 1.5 2004/01/14 11:23:52 ihatchondo Exp $
+;;; $Id: event.lisp,v 1.6 2004/03/10 17:16:27 ihatchondo Exp $
 ;;;
 ;;; Add on for CLX to have some CLOS events.
 ;;; This file is part of Eclipse.
@@ -239,7 +239,7 @@
   `(mapcar #'(lambda (k) (intern (symbol-name k))) ,keywords))
 
 (macrolet ((define-make-event-function ()
-  `(values
+  `(progn
     ,@(loop for event-key across xlib::*event-key-vector*
 	    for class = (find-class (intern (symbol-name event-key)) nil)
 	    for initargs = (when class (class-initargs class))

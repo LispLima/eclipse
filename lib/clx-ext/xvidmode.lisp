@@ -165,12 +165,14 @@
 
 (declaim (inline screen-position))
 (defun screen-position (screen display)
-  (declare (type display display)
-	   (type screen screen))
+  (declare (type display display))
+  (declare (type screen screen))
   (declare (clx-values position))
   (let ((position (position screen (xlib:display-roots display))))
     (if (not (numberp position))
-	(error (format nil "screen ~a, not found in display ~a" screen display))
+	(error (the simple-base-string 
+		 (format nil "screen ~a, not found in display ~a"
+			 screen display)))
 	position)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -181,7 +183,7 @@
 
 (defun xfree86-vidmode-query-version (display)
   "Determine the version of the extension built into the server.
-return two values major-version and minor-version in that order."
+  Return two values major-version and minor-version in that order."
   (declare (type display display))
   (with-buffer-request-and-reply
       (display (vidmode-opcode display) nil :sizes 16)
@@ -201,8 +203,8 @@ return two values major-version and minor-version in that order."
     (card16 +xf86vidmode-minor-version+)))
 
 (defun xfree86-vidmode-get-permissions (dpy screen)
-  (declare (type display dpy)
-	   (type screen screen))
+  (declare (type display dpy))
+  (declare (type screen screen))
   (with-buffer-request-and-reply
       (dpy (vidmode-opcode dpy) nil :sizes (8 16 32))
     ((data +get-permisions+)
@@ -213,14 +215,14 @@ return two values major-version and minor-version in that order."
 
 (defun xfree86-vidmode-mod-mode-line (display screen mode-line)
   "Change the settings of the current video mode provided the 
-requested settings are valid (e.g. they don't exceed the 
-capabilities of the monitor)."
-  (declare (type display display)
-	   (type screen screen))
+  requested settings are valid (e.g. they don't exceed the 
+  capabilities of the monitor)."
+  (declare (type display display))
+  (declare (type screen screen))
   (let* ((major (xfree86-vidmode-query-version display))
 	 (v (mode-info->v-card16 mode-line major)))
-    (declare (type card16 major)
-	     (type simple-vector v))
+    (declare (type card16 major))
+    (declare (type simple-vector v))
     (with-buffer-request (display (vidmode-opcode display))
       (data +mod-mode-line+)
       (card32 (screen-position screen display))
@@ -228,17 +230,17 @@ capabilities of the monitor)."
 
 (defun xfree86-vidmode-get-mode-line (display screen)
   "Query the settings for the currently selected video mode.
-return a mode-info structure fields with the server answer.
-If there are any server  private  values (currently  only 
-applicable  to  the S3 server) the function will store it 
-into the returned structure."
-  (declare (clx-values mode-info)
-	   (type display display)
-	   (type screen screen))
+  return a mode-info structure fields with the server answer.
+  If there are any server  private  values (currently  only 
+  applicable  to  the S3 server) the function will store it 
+  into the returned structure."
+  (declare (clx-values mode-info))
+  (declare (type display display))
+  (declare (type screen screen))
   (let ((major (xfree86-vidmode-query-version display))
 	(offset 8))
-    (declare (type fixnum offset)
-	     (type card16 major))    
+    (declare (type fixnum offset))
+    (declare (type card16 major))    
     (with-buffer-request-and-reply
         (display (vidmode-opcode display) nil :sizes (8 16 32))
       ((data +get-mode-line+)
@@ -268,9 +270,9 @@ into the returned structure."
 
 (defun xfree86-vidmode-get-all-mode-lines (dpy screen)
   "Returns a list containing all video modes (as mode-info structure). 
-The first element of the list corresponds to the current video mode."
-  (declare (type display dpy)
-	   (type screen screen))
+  The first element of the list corresponds to the current video mode."
+  (declare (type display dpy))
+  (declare (type screen screen))
   (multiple-value-bind (major minor) (xfree86-vidmode-query-version dpy)
     (declare (type card16 major minor))
     (with-buffer-request-and-reply 
@@ -311,17 +313,17 @@ The first element of the list corresponds to the current video mode."
 		mode-info))))))
 
 (defun xfree86-vidmode-add-mode-line (dpy scr new &key (after (make-mode-info)))
-  (declare (type display dpy)
-	   (type screen scr))
+  (declare (type display dpy))
+  (declare (type screen scr))
   (let* ((private (mode-info-private new))
 	 (privsize (mode-info-privsize new))
 	 (major (xfree86-vidmode-query-version dpy))
 	 (i (if (< major 2) 14 22))
 	 (v (make-array (- (+ (* 2 i) (* 2 privsize)) 2) :initial-element 0)))
-    (declare (type card32 privsize)
-	     (type fixnum i)
-	     (type card16 major)
-	     (type simple-vector v))
+    (declare (type card32 privsize))
+    (declare (type fixnum i))
+    (declare (type card16 major))
+    (declare (type simple-vector v))
     (mode-info->v-card16 new major :encode-private nil :data v)
     (mode-info->v-card16 after major :encode-private nil :data v :index i)
     (setf i (- (* 2 i) 2))
@@ -338,16 +340,16 @@ The first element of the list corresponds to the current video mode."
 
 (defun xfree86-vidmode-delete-mode-line (dpy scr mode-info)
   "Delete mode argument. The specified mode must match an existing mode. 
-To be considered a match, all of the fields of the given mode-info 
-structure must match, except the privsize and private fields. 
-If the mode to be deleted is the current mode, a mode switch to the next 
-mode will occur first. The last remaining mode can not be deleted."
-  (declare (type display dpy)
-	   (type screen scr))
+  To be considered a match, all of the fields of the given mode-info 
+  structure must match, except the privsize and private fields. 
+  If the mode to be deleted is the current mode, a mode switch to the next 
+  mode will occur first. The last remaining mode can not be deleted."
+  (declare (type display dpy))
+  (declare (type screen scr))
   (let* ((major (xfree86-vidmode-query-version dpy))
 	 (v (mode-info->v-card16 mode-info major)))
-    (declare (type card16 major)
-	     (type simple-vector v))
+    (declare (type card16 major))
+    (declare (type simple-vector v))
     (with-buffer-request (dpy (vidmode-opcode dpy))
       (data +delete-mode-line+)
       (card32 (screen-position scr dpy))
@@ -400,16 +402,16 @@ mode will occur first. The last remaining mode can not be deleted."
 
 (defun xfree86-vidmode-validate-mode-line (dpy scr mode-info)
   "Checked the validity of a mode-info argument. If the specified mode can be 
-used by the server (i.e. meets all the constraints placed upon a mode by the 
-combination of the server, card, and monitor) the function returns :mode_ok
-otherwise it returns a keyword indicating  the  reason why the mode is 
-invalid."
-  (declare (type display dpy)
-	   (type screen scr))
+  used by the server (i.e. meets all the constraints placed upon a mode by the 
+  combination of the server, card, and monitor) the function returns :mode_ok
+  otherwise it returns a keyword indicating  the  reason why the mode is 
+  invalid."
+  (declare (type display dpy))
+  (declare (type screen scr))
   (let* ((major (xfree86-vidmode-query-version dpy))
 	 (v (mode-info->v-card16 mode-info major)))
-    (declare (type card16 major)
-	     (type simple-vector v))
+    (declare (type card16 major))
+    (declare (type simple-vector v))
     (with-buffer-request-and-reply
         (dpy (vidmode-opcode dpy) nil :sizes (8 16 32))
       ((data +validate-mode-line+)
@@ -420,8 +422,8 @@ invalid."
        (when status (decode-status-mode status))))))
 
 (defun xfree86-vidmode-get-gamma (display screen)
-  (declare (type display display)
-	   (type screen screen))
+  (declare (type display display))
+  (declare (type screen screen))
   (with-buffer-request-and-reply 
       (display (vidmode-opcode display) nil :sizes (8 16 32))
     ((data +get-gamma+)
@@ -436,9 +438,9 @@ invalid."
     (/ (the card32 (or (card32-get 16) 0)) 10000.0))))
 
 (defun xfree86-vidmode-set-gamma (dpy scr &key (red 1.0) (green 1.0) (blue 1.0))
-  (declare (type display dpy)
-	   (type screen scr)
-	   (type (single-float 0.100 10.000) red green blue))
+  (declare (type display dpy))
+  (declare (type screen scr))
+  (declare (type (single-float 0.100 10.000) red green blue))
   (with-buffer-request (dpy (vidmode-opcode dpy))
     (data +set-gamma+)
     (card16 (screen-position scr dpy))
@@ -451,9 +453,9 @@ invalid."
     (card32 0)))
 
 (defun xfree86-vidmode-get-gamma-ramp (dpy scr size)
-  (declare (type display dpy)
-	   (type screen scr)
-	   (type card16 size))
+  (declare (type display dpy))
+  (declare (type screen scr))
+  (declare (type card16 size))
   (with-buffer-request-and-reply (dpy (vidmode-opcode dpy) nil :sizes (8 16 32))
     ((data +get-gamma-ramp+)
      (card16 (screen-position scr dpy))
@@ -473,10 +475,10 @@ invalid."
 			:index off2 :result-type 'list)))))))
 
 (defun xfree86-vidmode-set-gamma-ramp (dpy scr size &key red green blue)
-  (declare (type (or null simple-vector) red green blue)
-	   (type card16 size)
-	   (type display dpy)
-	   (type screen scr))
+  (declare (type (or null simple-vector) red green blue))
+  (declare (type card16 size))
+  (declare (type display dpy))
+  (declare (type screen scr))
   (with-buffer-request (dpy (vidmode-opcode dpy))
     (data +set-gamma-ramp+)
     (card16 (screen-position scr dpy))
@@ -487,8 +489,8 @@ invalid."
          (concatenate 'vector red '#(0) green '#(0) blue '#(0))))))
 
 (defun xfree86-vidmode-get-gamma-ramp-size (dpy screen)
-  (declare (type display dpy)
-	   (type screen screen))
+  (declare (type display dpy))
+  (declare (type screen screen))
   (with-buffer-request-and-reply 
       (dpy (vidmode-opcode dpy) nil :sizes (8 16 32))
     ((data +get-gamma-ramp-size+)
@@ -498,11 +500,11 @@ invalid."
 
 (defun xfree86-vidmode-lock-mode-switch (display screen lock-p)
   "Allow or disallow mode switching whether the request to switch
-modes comes from a call to the mode switching functions or from one 
-of the mode switch key sequences (e.g. Ctrl-Alt-+ Ctrl-Alt--)."
-  (declare (type display display)
-	   (type screen screen)
-	   (type boolean lock-p))
+  modes comes from a call to the mode switching functions or from one 
+  of the mode switch key sequences (e.g. Ctrl-Alt-+ Ctrl-Alt--)."
+  (declare (type display display))
+  (declare (type screen screen))
+  (declare (type boolean lock-p))
   (with-buffer-request (display (vidmode-opcode display))
     (data +lock-mode-switch+)
     (card16 (screen-position screen display))
@@ -510,10 +512,10 @@ of the mode switch key sequences (e.g. Ctrl-Alt-+ Ctrl-Alt--)."
 
 (defun xfree86-vidmode-switch-to-mode (display screen mode-info)
   "Switch directly to the specified mode. The specified mode must match 
-an existing mode. Matching is as specified in the description of the 
-xf86-vidmode-delete-mode-line function."
-  (declare (type display display)
-	   (type screen screen))
+  an existing mode. Matching is as specified in the description of the 
+  xf86-vidmode-delete-mode-line function."
+  (declare (type display display))
+  (declare (type screen screen))
   (multiple-value-bind (major minor) (xfree86-vidmode-query-version display)
     (declare (type card16 major minor))
     ;; Note: There was a bug in the protocol implementation in versions
@@ -533,10 +535,10 @@ xf86-vidmode-delete-mode-line function."
 
 (defun xfree86-vidmode-switch-mode (display screen zoom)
   "Change the video mode to next (or previous) video mode, depending 
-of zoom sign. If positive, switch to next mode, else switch to prev mode."
-  (declare (type display display)
-	   (type screen screen)
-	   (type card16 zoom))
+  of zoom sign. If positive, switch to next mode, else switch to prev mode."
+  (declare (type display display))
+  (declare (type screen screen))
+  (declare (type card16 zoom))
   (with-buffer-request (display (vidmode-opcode display))
     (data +switch-mode+)
     (card16 (screen-position screen display))
@@ -544,8 +546,8 @@ of zoom sign. If positive, switch to next mode, else switch to prev mode."
 
 (defun xfree86-vidmode-select-next-mode (display screen)
   "Change the video mode to next video mode"
-  (declare (type display display)
-	   (type screen screen))
+  (declare (type display display))
+  (declare (type screen screen))
   (with-buffer-request (display (vidmode-opcode display))
     (data +switch-mode+)
     (card16 (screen-position screen display))
@@ -553,8 +555,8 @@ of zoom sign. If positive, switch to next mode, else switch to prev mode."
 
 (defun xfree86-vidmode-select-prev-mode (display screen)
   "Change the video mode to previous video mode"
-  (declare (type display display)
-	   (type screen screen))
+  (declare (type display display))
+  (declare (type screen screen))
   (with-buffer-request (display (vidmode-opcode display))
     (data +switch-mode+)
     (card16 (screen-position screen display))
@@ -562,16 +564,16 @@ of zoom sign. If positive, switch to next mode, else switch to prev mode."
 
 (defun xfree86-vidmode-get-monitor (dpy screen)
   "Information known to the server about the monitor is returned. 
-Multiple value return:
- hsync (list of hi, low, ...)
- vsync (list of hi, low, ...)
- vendor name
- model name 
+  Multiple value return:
+    hsync (list of hi, low, ...)
+    vsync (list of hi, low, ...)
+    vendor name
+    model name 
 
-The hi and low values will be equal if a discreate value was given 
-in the XF86Config file."
-  (declare (type display dpy)
-	   (type screen screen))
+  The hi and low values will be equal if a discreate value was given 
+  in the XF86Config file."
+  (declare (type display dpy))
+  (declare (type screen screen))
   (with-buffer-request-and-reply
       (dpy (vidmode-opcode dpy) nil :sizes (8 16 32))
     ((data +get-monitor+)
@@ -587,8 +589,8 @@ in the XF86Config file."
 	  (hsync (sequence-get :length nhsync :index 32 :result-type 'list))
 	  (vsync (sequence-get :length nvsync :index (+ 32 (* nhsync 4))
 			       :result-type 'list)))
-     (declare (type card8 nhsync nvsync vendor-name-length model-name-length)
-	      (type fixnum pad vindex mindex))
+     (declare (type card8 nhsync nvsync vendor-name-length model-name-length))
+     (declare (type fixnum pad vindex mindex))
      (values 
       (loop for i of-type card32 in hsync
 	    collect (/ (ldb (byte 16 0) i) 100.)
@@ -601,10 +603,10 @@ in the XF86Config file."
 
 (defun xfree86-vidmode-get-viewport (dpy screen)
   "Query the location of the upper left corner of the viewport into 
-the virtual screen. The upper left coordinates will be returned as 
-a multiple value."
-  (declare (type display dpy)
-	   (type screen screen))
+  the virtual screen. The upper left coordinates will be returned as 
+  a multiple value."
+  (declare (type display dpy))
+  (declare (type screen screen))
   (multiple-value-bind (major minor) (xfree86-vidmode-query-version dpy)
     (declare (type card16 major minor))
     ;; Note: There was a bug in the protocol implementation in versions
@@ -627,10 +629,10 @@ a multiple value."
        
 (defun xfree86-vidmode-set-viewport (dpy screen &key (x 0) (y 0))
   "Set upper left corner of the viewport into the virtual screen to the 
-x and y keyword parameters value (zero will be theire default value)."
-  (declare (type display dpy)
-	   (type screen screen)
-	   (type card32 x y))
+  x and y keyword parameters value (zero will be theire default value)."
+  (declare (type display dpy))
+  (declare (type screen screen))
+  (declare (type card32 x y))
   (with-buffer-request (dpy (vidmode-opcode dpy))
     (data +set-viewport+)
     (card16 (screen-position screen dpy))
@@ -640,11 +642,11 @@ x and y keyword parameters value (zero will be theire default value)."
 
 (defun xfree86-vidmode-get-dotclocks (dpy screen)
   "Returns as a multiple value return the server dotclock informations:
- flags
- maxclocks
- clock list"
-  (declare (type display dpy)
-	   (type screen screen))
+    flags
+    maxclocks
+    clock list"
+  (declare (type display dpy))
+  (declare (type screen screen))
   (with-buffer-request-and-reply 
       (dpy (vidmode-opcode dpy) nil :sizes (8 16 32))
     ((data +get-dot-clocks+)
@@ -664,10 +666,10 @@ x and y keyword parameters value (zero will be theire default value)."
 
 (defun mode-info->v-card16
     (mode-info major &key (encode-private t) (index 0) data)
-  (declare (type integer index)
-	   (type card16 major)
-	   (type boolean encode-private)
-	   (type (or null simple-vector) data))
+  (declare (type integer index))
+  (declare (type card16 major))
+  (declare (type boolean encode-private))
+  (declare (type (or null simple-vector) data))
   (let ((dotclock (mode-info-dotclock mode-info))
 	(hdisplay (mode-info-hdisplay mode-info))
 	(hsyncstart (mode-info-hsyncstart mode-info))
@@ -681,14 +683,14 @@ x and y keyword parameters value (zero will be theire default value)."
 	(flags (mode-info-flags mode-info))
 	(privsize (mode-info-privsize mode-info))
 	(private (mode-info-private mode-info)))
-    (declare (type card16 hdisplay hsyncstart hsyncend htotal hskew)
-	     (type card16 vdisplay vsyncstart vsyncend vtotal)
-	     (type card32 dotclock flags privsize)
-	     (type (or null sequence) private))
+    (declare (type card16 hdisplay hsyncstart hsyncend htotal hskew))
+    (declare (type card16 vdisplay vsyncstart vsyncend vtotal))
+    (declare (type card32 dotclock flags privsize))
+    (declare (type (or null sequence) private))
     (let* ((size (+ (if (< major 2) 14 22) (* privsize 2)))
 	   (v (or data (make-array size :initial-element 0))))      
-      (declare (type fixnum size)
-	       (type simple-vector v))
+      (declare (type fixnum size))
+      (declare (type simple-vector v))
       ;; store dotclock (card32) according clx bytes order.
       (multiple-value-bind (w1 w2) (__card32->card16__ dotclock)
 	(setf (svref v index) w1
