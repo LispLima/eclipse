@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.8 2003/06/11 18:29:23 hatchond Exp $
+;;; $Id: input.lisp,v 1.9 2003/08/28 14:50:35 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -290,14 +290,14 @@
 
 (defmethod event-process ((event focus-out) (application application))
   (with-slots (master) application
-    (when (and master (not (eql (event-mode event) :while-grabbed)))
-      (dispatch-repaint master :focus nil))))
+    (with-slots (mode) event
+      (unless (or (not master) (eql mode :while-grabbed) (eql mode :grab))
+	(dispatch-repaint master :focus nil)))))
 
 (defmethod event-process ((event focus-in) (application application))
   (with-slots (master window) application
-    (unless (eql (event-mode event) :ungrab)
-      (when master
-	(dispatch-repaint master :focus t))
+    (when (and master (not (eql (event-mode event) :ungrab)))
+      (dispatch-repaint master :focus t)
       (setf (netwm:net-active-window *root-window*) window))))
 
 (defmethod event-process ((event property-notify) (app application))
