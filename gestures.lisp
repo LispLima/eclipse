@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.11 2003/11/19 10:29:08 ihatchondo Exp $
+;;; $Id: gestures.lisp,v 1.12 2003/11/28 10:13:47 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -144,43 +144,6 @@
 
 ;;;;
 
-(defun translate-modifiers (dpy modifiers)
-  (cond ((keywordp modifiers) 
-	 (list (kb:modifier->modifier-mask dpy modifiers)))
-	((numberp modifiers) 
-	 (list modifiers))
-	((eq (car modifiers) :and)
-	 (list (loop for mod in (cdr modifiers)
-		     sum (kb:modifier->modifier-mask dpy mod))))
-	(t 
-	 (mapcar #'(lambda (m) (kb:modifier->modifier-mask dpy m)) modifiers))))
-
-(defun action-key->lambda (action-keyword)
-  "Returns the associated predefined callback for the given action keyword."
-  (case action-keyword
-    (:switch-win-up #'(lambda (e) (circulate-window-up-and-down e :above)))
-    (:switch-win-down #'(lambda (e) (circulate-window-up-and-down e :below)))
-    (:switch-screen-left
-     (action (:press (change-vscreen *root* :direction #'-)) ()))
-    (:switch-screen-right
-     (action (:press (change-vscreen *root* :direction #'+)) ()))
-    (:move-right (action (:press (move-cursor-right)) ()))
-    (:move-left (action (:press (move-cursor-left)) ()))
-    (:move-up (action (:press (move-cursor-up)) ()))
-    (:move-down (action (:press (move-cursor-down)) ()))
-    (:left-click #'(lambda (event) (perform-click 1 event)))
-    (:middle-click #'(lambda (event) (perform-click 2 event)))
-    (:right-click #'(lambda (event) (perform-click 3 event)))
-    (:scroll-up #'(lambda (event) (perform-click 4 event)))
-    (:scroll-down #'(lambda (event) (perform-click 5 event)))
-    (:move-window 
-     #'(lambda (event)
-	 (mouse-stroke-for-move-and-resize event :action :move)))
-    (:resize-window 
-     #'(lambda (event)
-	 (mouse-stroke-for-move-and-resize event :action :resize)))
-    ))
-
 (defmacro action ((&rest f1) (&rest f2))
   (when (or (eq (car f1) :release) (eq (car f2) :press)) (rotatef f1 f2))
   `(lambda (event)
@@ -250,6 +213,43 @@
 		   (when (and num-l caps-l)
 		     (realize (,dest-window :mouse-p ,mouse-p)
 		       key (+ mask num-l caps-l) action)))))))
+
+(defun translate-modifiers (dpy modifiers)
+  (cond ((keywordp modifiers) 
+	 (list (kb:modifier->modifier-mask dpy modifiers)))
+	((numberp modifiers) 
+	 (list modifiers))
+	((eq (car modifiers) :and)
+	 (list (loop for mod in (cdr modifiers)
+		     sum (kb:modifier->modifier-mask dpy mod))))
+	(t 
+	 (mapcar #'(lambda (m) (kb:modifier->modifier-mask dpy m)) modifiers))))
+
+(defun action-key->lambda (action-keyword)
+  "Returns the associated predefined callback for the given action keyword."
+  (case action-keyword
+    (:switch-win-up #'(lambda (e) (circulate-window-up-and-down e :above)))
+    (:switch-win-down #'(lambda (e) (circulate-window-up-and-down e :below)))
+    (:switch-screen-left
+     (action (:press (change-vscreen *root* :direction #'-)) ()))
+    (:switch-screen-right
+     (action (:press (change-vscreen *root* :direction #'+)) ()))
+    (:move-right (action (:press (move-cursor-right)) ()))
+    (:move-left (action (:press (move-cursor-left)) ()))
+    (:move-up (action (:press (move-cursor-up)) ()))
+    (:move-down (action (:press (move-cursor-down)) ()))
+    (:left-click #'(lambda (event) (perform-click 1 event)))
+    (:middle-click #'(lambda (event) (perform-click 2 event)))
+    (:right-click #'(lambda (event) (perform-click 3 event)))
+    (:scroll-up #'(lambda (event) (perform-click 4 event)))
+    (:scroll-down #'(lambda (event) (perform-click 5 event)))
+    (:move-window 
+     #'(lambda (event)
+	 (mouse-stroke-for-move-and-resize event :action :move)))
+    (:resize-window 
+     #'(lambda (event)
+	 (mouse-stroke-for-move-and-resize event :action :resize)))
+    ))
 
 (defun define-key-combo (name &key keys
 			          (default-modifiers-p t)
