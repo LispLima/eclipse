@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.20 2003/11/24 13:12:02 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.21 2003/11/28 10:13:47 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -367,6 +367,8 @@
 				  (gravity :north-west)
 				  (cursor (root-default-cursor *root*))
 				  (event-mask +std-button-mask+))
+  (when (and (not (xlib:cursor-p cursor)) (keywordp cursor))
+    (setf cursor (get-x-cursor *display* cursor)))
   (make-instance
       button-type
       :window (xlib:create-window
@@ -538,19 +540,13 @@
 (defclass bottom-right (edge) ())
 (defclass bottom-left (edge) ())
 
-(defvar +corner-cursors+ 
+(defconstant +corner-cursors+ 
   '(:xc_top_left_corner :xc_top_right_corner 
     :xc_bottom_left_corner :xc_bottom_right_corner))
-(defvar +side-cursors+ 
+(defconstant +side-cursors+ 
   '(:xc_right_side :xc_left_side :xc_top_side :xc_bottom_side))
 (defconstant +edge-event-mask+ 
   '(:button-press :button-release :button-motion :owner-grab-button))
-
-(defun init-edges-cursors ()
-  (setf +corner-cursors+ 
-	(loop for c in +corner-cursors+ collect (get-x-cursor *display* c)))
-  (setf +side-cursors+ 
-	(loop for c in +side-cursors+ collect (get-x-cursor *display* c))))
 
 ;;;; Icon
 
