@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.17 2004/01/17 18:22:34 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.18 2004/01/19 16:19:17 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -180,9 +180,8 @@
 		(let ((h (ignore-errors (xlib:wm-normal-hints win))))
 		  (if h (xlib:wm-size-hints-win-gravity h) :north-west)))))
     (when master
-      (multiple-value-setq (top-margin left-margin)
-	(with-slots (left-margin top-margin) (decoration-frame-style master)
-	  (values top-margin left-margin))))
+      (setf top-margin (style-top-margin (decoration-frame-style master)))
+      (setf left-margin (style-left-margin (decoration-frame-style master))))
     (multiple-value-bind (delta-x delta-y)
 	(multiple-value-bind (w h) (drawable-sizes (or parent win))
 	  (case g
@@ -195,26 +194,27 @@
 	    (:center (values (ash w -1) (ash h -1)))
 	    (:static (values left-margin top-margin))
 	    (t (values 0 0))))
-      ;; update coordinates.
-      (xlib:with-state ((or parent win))
-	(when x (setf (xlib:drawable-x (or parent win)) (- x delta-x)))
-	(when y (setf (xlib:drawable-y (or parent win)) (- y delta-y))))
-      ;; update sizes.
-      (when (or width height)
-	(with-event-mask ((or parent win))
-	  (xlib:with-state (win)
-	    (when width (setf (xlib:drawable-width win) width))
+      (xlib:with-server-grabbed ((xlib:drawable-display win))
+	;; update coordinates.
+	(xlib:with-state ((or parent win))
+	  (when x (setf (xlib:drawable-x (or parent win)) (- x delta-x)))
+	  (when y (setf (xlib:drawable-y (or parent win)) (- y delta-y))))
+	;; update sizes.
+	(when (or width height)
+	  (with-event-mask ((or parent win))
+	    (xlib:with-state (win)
+	      (when width (setf (xlib:drawable-width win) width))
 	    (when height (setf (xlib:drawable-height win) height)))
-	  (when parent
-	    (with-window-gravity (parent g)
-	      (resize-from application))
-	    (update-edges-geometry master))))
-      ;; restack.
-      (when stack-mode
-	(let ((tmp (lookup-widget sibling)))
-	  (when (and (application-p tmp) (application-master tmp))
-	    (setf sibling (widget-window (application-master tmp)))))
-	(setf (window-priority (or parent win) sibling) stack-mode))))
+	    (when parent
+	      (with-window-gravity (parent g)
+		(resize-from application))
+	      (update-edges-geometry master))))
+	;; restack.
+	(when stack-mode
+	  (let ((tmp (lookup-widget sibling)))
+	    (when (and (application-p tmp) (application-master tmp))
+	      (setf sibling (widget-window (application-master tmp)))))
+	  (setf (window-priority (or parent win) sibling) stack-mode)))))
   ;; Acording to the ICCCM: send a synthetic configure-notify,
   ;; when we moved a application window without resizing it.
   (when (and (or x y) (not (or width height))) (send-configuration-notify win)))
