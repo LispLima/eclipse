@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.12 2003/11/28 10:13:47 ihatchondo Exp $
+;;; $Id: gestures.lisp,v 1.13 2003/11/28 11:02:39 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -259,18 +259,15 @@
   - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
   - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
   - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)"
-  (catch 'keystroke-definition
-    (handler-bind
-        ((error #'(lambda (condition)
-		    (declare (ignorable condition))
-		    (format *stderr* "Can't realize key-combo ~A~%" name)
-		    (format *stderr* " mods : ~A~% key : ~A~%" modifiers keys)
-		    (throw 'keystroke-definition nil))))
+  (handler-case
       (let ((ks (make-keystroke name keys modifiers default-modifiers-p fun)))
 	(when (stroke-equal ks (gethash name *keystrokes*))
 	  (undefine-combo-internal ks *root-window*))
 	(define-combo-internal ks *root-window*)
-	(setf (gethash name *keystrokes*) ks)))))
+	(setf (gethash name *keystrokes*) ks))
+    (error ()
+      (format *stderr* "Can't realize key-combo ~A~%" name)
+      (format *stderr* " mods : ~A~% key : ~A~%" modifiers keys))))
 
 (defun define-mouse-combo (name &key button
 				     (default-modifiers-p t)
@@ -280,19 +277,16 @@
   - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
   - a simple modifier as :ALT-LEFT or 18 (a modifier mask)
   - a list of possible modifiers as '(:ALT-LEFT :CONTOL-RIGHT)"
-  (catch 'mouse-stroke-definition
-    (handler-bind
-        ((error #'(lambda (condition)
-		    (declare (ignorable condition))
-		    (format *stderr* "Can't realize mouse-combo ~A~%" name)
-		    (format *stderr* " mods : ~A~% key : ~A~%" modifiers button)
-		    (throw 'mouse-stroke-definition nil))))
+  (handler-case
       (let ((ms (make-mouse-stroke 
 		    name button modifiers default-modifiers-p fun)))
 	(when (stroke-equal ms (gethash name *mousestrokes*))
 	  (undefine-combo-internal ms *root-window* :mouse-p t))
 	(define-combo-internal ms *root-window* :mouse-p t)
-	(setf (gethash name *mousestrokes*) ms)))))
+	(setf (gethash name *mousestrokes*) ms))
+    (error ()
+      (format *stderr* "Can't realize mouse-combo ~A~%" name)
+      (format *stderr* " mods : ~A~% key : ~A~%" modifiers button))))
 
 ;;; Cursor movements, and click.
 
