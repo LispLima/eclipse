@@ -2,6 +2,8 @@
 
 (defvar *ice-lib-src-directory* (directory-namestring *load-truename*))
 
+#+sbcl (progn (require :asdf) (require :sb-bsd-sockets))
+
 (macrolet
     ((ice-lib-defsystem ((module &key depends-on) &rest components)
        `(progn

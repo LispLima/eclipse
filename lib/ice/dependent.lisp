@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id:$
+;;; $Id: dependent.lisp,v 1.1 2004/01/12 11:10:51 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -67,25 +67,22 @@
   #+cmu (sys:make-fd-stream (ext:connect-to-unix-socket path kind)
                             :input t :output t :element-type
                             (if bin '(unsigned-byte 8) 'character))
-  #+(and sbcl net.sbcl.sockets)
-  (net.sbcl.sockets:make-socket 'net.sbcl.sockets:unix-stream-socket
-                                :buffering :full :path path :type kind)
-  #+(and sbcl db-sockets)
-  (let ((socket (make-instance 'sockets:unix-socket :type :stream)))
-    (sockets:socket-connect socket path)
-    (sockets:socket-make-stream socket :input t :output t
-                                :buffering :none
-                                :element-type '(unsigned-byte 8)))
-  #-(or allegro cmu (and sbcl (or net.sbcl.sockets db-sockets)))
+  #+sbcl
+  (let ((socket (make-instance 'sb-bsd-sockets:local-socket :type :stream)))
+    (sb-bsd-sockets:socket-connect socket path)
+    (sb-bsd-sockets:socket-make-stream socket
+        :input t :output t :buffering :none
+	:element-type (if bin '(unsigned-byte 8) 'character)))
+  #-(or allegro cmu sbcl)
   (open path :element-type (if bin '(unsigned-byte 8) 'character)
         :direction :io))
 
 (defun connect-to-tcp-peer (host port &optional (bin t))
   "connect to a tcp socket to host at port, and returns a two way stream
    associated with."
-  (declare (type string host)
-	   (type fixnum port)
-	   (type boolean bin))
+  (declare (type string host))
+  (declare (type fixnum port))
+  (declare (type boolean bin))
   #+allegro (socket:make-socket :remote-host host :remote-port port
                                   :format (if bin :binary :text))
   #+clisp (#+lisp=cl ext:socket-connect #-lisp=cl lisp:socket-connect
@@ -101,24 +98,17 @@
 				    (if bin 'unsigned-byte 'base-char))
   #+mcl (ccl:make-socket :remote-host host :remote-port port
 			 :format (if binary-p :binary :text))
-  #+(and sbcl db-sockets)
-  (let ((socket (make-instance 'sockets:inet-socket
-			       :type :stream :protocol :tcp)))
-    (sockets:socket-connect socket
-                              (sockets::host-ent-address
-                               (sockets:get-host-by-name host))
-                              port)
-    (sockets:socket-make-stream
-     socket :input t :output t :buffering (if bin :none :line)
-     :element-type (if bin '(unsigned-byte 8) 'character)))
-  #+(and sbcl net.sbcl.sockets)
-  (net.sbcl.sockets:make-socket
-   (if bin
-       'net.sbcl.sockets:binary-stream-socket
-       'net.sbcl.sockets:character-stream-socket)
-   :port port :host host)
-  #-(or allegro clisp cmu gcl lispworks mcl
-	(and sbcl (or net.sbcl.sockets db-sockets)) scl)
+  #+sbcl
+  (let ((socket (make-instance 'sb-bsd-sockets:inet-socket
+		  :type :stream :protocol :tcp)))
+    (sb-bsd-sockets:socket-connect socket
+				   (sb-bsd-sockets::host-ent-address
+				    (sb-bsd-sockets:get-host-by-name host))
+				   port)
+    (sb-bsd-sockets:socket-make-stream socket
+        :input t :output t :buffering (if bin :none :line)
+	:element-type (if bin '(unsigned-byte 8) 'character)))
+  #-(or allegro clisp cmu gcl lispworks mcl sbcl)
   (error 'not-implemented :proc (list 'open-socket host port bin)))
 
 (defun connect-to-decnet-peer (host obj)
