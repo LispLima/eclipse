@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.14 2004/01/06 17:02:06 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.15 2004/01/12 11:22:05 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -48,7 +48,7 @@
 	       :name "CloneCommand"
 	       :type "LISTofARRAY8"
 	       :values
-	       (if dpy (encode "eclipse" "--display" dpy) (encode "eclipse")))
+	       (if dpy (encode "eclipse" "--display=" dpy) (encode "eclipse")))
 	      (sm-lib:make-property
 	       :name "Program"
 	       :type "ARRAY8"
@@ -56,7 +56,7 @@
 	      (sm-lib:make-property
 	       :name "RestartCommand"
 	       :type "LISTofARRAY8"
-	       :values (encode "eclipse" "--sm-client-id" sm-client-id))
+	       :values (encode "eclipse" "--sm-client-id=" sm-client-id))
 	      (sm-lib:make-property
 	       :name "UserID"
 	       :type "ARRAY8"
