@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.1 2002/11/07 14:23:31 hatchond Exp $
+;;; $Id: netwm-manager.lisp,v 1.2 2003/03/19 09:18:47 hatchond Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -51,7 +51,8 @@
    net-wm-state              net-wm-strut
    net-wm-icon-geometry      net-wm-icon
    net-wm-pid                net-wm-handled-icons
-   net-wm-allowed-actions
+   net-wm-allowed-actions    net-wm-strut-partial
+   net-wm-user-time
 
    intern-atoms)
   (:documentation
@@ -59,7 +60,7 @@
 The Extended Window Manager Hints (from Freedesktop.org).
 When you use it I recommend to call (intern-gnome-atom display),
 before anything else, to be sure that all the atoms you will use
-exist in the server. - version 1.2 (October 7, 2002) -
+exist in the server. - version 1.3 (June 19, 2003) -
 In order to use it, you should first call intern-atoms to be sure all
  atoms are in the server."))
 
@@ -87,6 +88,7 @@ In order to use it, you should first call intern-atoms to be sure all
 	"_NET_WM_ICON_GEOMETRY"       "_NET_WM_ICON"
 	"_NET_WM_PID"                 "_NET_WM_HANDLED_ICONS"
 	"_NET_WM_PING"                ; "_NET_WM_MOVE_ACTIONS"
+	"_NET_WM_USER_TIME"
 
 	"_NET_WM_WINDOW_TYPE_DESKTOP" "_NET_WM_STATE_MODAL"
 	"_NET_WM_WINDOW_TYPE_DOCK"    "_NET_WM_STATE_STICKY"
@@ -97,6 +99,8 @@ In order to use it, you should first call intern-atoms to be sure all
 	"_NET_WM_WINDOW_TYPE_DIALOG"  "_NET_WM_STATE_SKIP_PAGER"
 	"_NET_WM_WINDOW_TYPE_NORMAL"  "_NET_WM_STATE_HIDDEN"
 	                              "_NET_WM_STATE_FULLSCREEN"
+				      "_NET_WM_STATE_ABOVE"
+				      "_NET_WM_STATE_BELOW"
 			
 	"_NET_WM_ALLOWED_ACTIONS"
 	"_NET_WM_ACTION_MOVE"
@@ -378,12 +382,33 @@ In order to use it, you should first call intern-atoms to be sure all
 (defsetf net-wm-strut (window) (strut)
   `(set-geometry-hint ,window ,strut :_NET_WM_STRUT))
 
+;; _NET_WM_STRUT_PARTIAL
+
+(defun net-wm-strut-partial (window)
+  "return the strut partial property as a multiple value. The order is:
+    left, right, top, bottom, 
+    left_start_y, left_end_y, right_start_y, right_end_y,
+    top_start_x, top_end_x, bottom_start_x, bottom_end_x"
+  (let ((v (get-property window :_NET_WM_STRUT_PARTIAL :result-type 'vector)))
+    (declare (type (simple-array integer (12)) v))
+    (values (aref v 1) (aref v 2) (aref v 3) (aref v 4)
+	    (aref v 5) (aref v 6) (aref v 7) (aref v 8)
+	    (aref v 9) (aref v 10) (aref v 11) (aref v 12))))
+
+(defsetf net-wm-strut-partial (window) (strut)
+  "set the strut partial property. The given strut is expected to be a 
+   list or a vector of length 12. The order of the element inside the strut
+   is: left, right, top, bottom, 
+       left_start_y, left_end_y, right_start_y, right_end_y,
+       top_start_x, top_end_x, bottom_start_x, bottom_end_x"
+  `(change-property ,window :_NET_WM_STRUT_PARTIAL ,strut :CARDINAL 32))
+  
 ;; _NET_WM_ICON_GEOMETRY
 
 (defun net-wm-icon-geometry (window)
   (get-geometry-hint window :_NET_WM_ICON_GEOMETRY))
 
-(defsetf net-wm-strut (window) (strut)
+(defsetf net-wm-icon-geometry (window) (strut)
   `(set-geometry-hint ,window ,strut :_NET_WM_ICON_GEOMETRY))
 
 ;; _NET_WM_ICON
@@ -430,3 +455,11 @@ In order to use it, you should first call intern-atoms to be sure all
 
 (defsetf net-wm-allowed-actions (window &key (mode :replace)) (actions)
   `(set-atoms-property ,window ,actions :_NET_WM_ALLOWED_ACTIONS :mode ,mode))
+
+;; _NET_WM_USER_TIME
+
+(defun net-wm-user-time (window)
+  (first (get-property window :_NET_WM_USER_TIME)))
+
+(defsetf net-wm-user-time (window) (time)
+  `(change-property ,window :_NET_WM_USER_TIME (list ,time) :CARDINAL 32))

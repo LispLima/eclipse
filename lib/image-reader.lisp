@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PPM -*-
-;;; $Id: image-reader.lisp,v 1.3 2003/02/03 08:06:32 hatchond Exp $
+;;; $Id: image-reader.lisp,v 1.4 2003/02/10 14:10:58 hatchond Exp $
 ;;;
 ;;; This a ppm image reader for CLX
 ;;; This file is part of Eclipse
@@ -54,7 +54,7 @@
 (deftype card-4 () `(unsigned-byte 4))
 
 (deftype picture-size () `(and (unsigned-byte 16) (satisfies plusp)))
-(deftype color-table () '(simple-array card-24 (256)))
+(deftype color-table () '(simple-array fixnum (256)))
 
 (deftype pixarray-1 () '(simple-array bit (* *)))
 (deftype pixarray-4 () '(simple-array card-4 (* *)))
@@ -187,13 +187,13 @@
 		       :bits-per-pixel (find-bits-per-pixel depth)
 		       :data clx-data)))
 
-(defvar *red-table* (make-array 256 :element-type 'card-24))
-(defvar *green-table* (make-array 256 :element-type 'card-24))
-(defvar *blue-table* (make-array 256 :element-type 'card-24))
-(defvar *gray-table* (make-array 256 :element-type 'integer))
+(defvar *red-table* (make-array 256 :element-type 'fixnum))
+(defvar *green-table* (make-array 256 :element-type 'fixnum))
+(defvar *blue-table* (make-array 256 :element-type 'fixnum))
+(defvar *gray-table* (make-array 256 :element-type 'fixnum))
 
-(declaim (type (simple-array integer (256)) *gray-table*))
-(declaim (type color-table *red-table* *green-table* *blue-table*))
+(declaim 
+ (type color-table *blue-table* *red-table* *green-table* *gray-table*))
 
 (defun initialize-color-tables (colormap r-table g-table b-table)
   (declare (type color-table r-table g-table b-table))
@@ -206,7 +206,7 @@
 		 (aref b-table i) (xlib:alloc-color colormap b))))
 
 (defun initialize-gray-table (colormap gray-table)
-  (declare (type (simple-array integer (256)) gray-table))
+  (declare (type color-table gray-table))
   (loop	for i of-type card-16 from 0 to 255
 	for rgb = (xlib:make-color :red (/ i 255) :green (/ i 255) :blue (/ i 255))
 	do (setf (aref gray-table i) (xlib:alloc-color colormap rgb))))
@@ -221,7 +221,6 @@
 
 (defun get-color (r-index g-index b-index)
   (declare (type card-8 r-index g-index b-index))
-  (logior (the card-24 (aref *red-table* r-index))
-	  (the card-24 (aref *green-table* g-index))
-	  (the card-24 (aref *blue-table* b-index))))
-
+  (logior (the fixnum (aref *red-table* r-index))
+	  (the fixnum (aref *green-table* g-index))
+	  (the fixnum (aref *blue-table* b-index))))
