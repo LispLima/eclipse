@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.12 2003/11/19 10:29:08 ihatchondo Exp $
+;;; $Id: virtual-screen.lisp,v 1.13 2003/11/24 13:12:01 ihatchondo Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -42,6 +42,8 @@
 		     (member :_net_wm_window_type_dock netwm-type)))))))
 
 (defun map-or-unmap-vscreen (fun scr-num)
+  (declare (optimize (speed 3) (safety 0)))
+  (declare (type function fun))
   (loop for widget being each hash-value in *widget-table*
 	when (application-p widget) do
 	  (with-slots (window master) widget
@@ -109,9 +111,10 @@
 	      (when (application-p widget)
 		(setf (application-wants-focus-p widget) t))))
 	  (xlib:set-input-focus *display* :pointer-root :pointer-root)
-	  (with-pointer-grabbed (window nil)
-	    (map-or-unmap-vscreen #'xlib:unmap-window cur)
-	    (map-or-unmap-vscreen #'xlib:map-window new)))
+	  (xlib:with-server-grabbed (*display*)
+	    (with-pointer-grabbed (window nil)
+	      (map-or-unmap-vscreen #'xlib:unmap-window cur)
+	      (map-or-unmap-vscreen #'xlib:map-window new))))
 	(setf (gnome:win-workspace window) new
 	      (netwm:net-current-desktop window) new)
 	(when *change-desktop-message-active-p*
