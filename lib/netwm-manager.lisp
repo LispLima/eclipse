@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.12 2004/01/19 16:13:14 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.13 2004/01/29 21:09:27 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -244,8 +244,8 @@ In order to use it, you should first call intern-atoms to be sure all
 
 ;; _NET_SUPPORTING_WM_CHECK
 
-(defun net-supporting-wm-check (window &key window-list)
-  (get-window-property window :_NET_SUPPORTING_WM_CHECK window-list))
+(defun net-supporting-wm-check (window &key (window-list t))
+  (car (get-window-property window :_NET_SUPPORTING_WM_CHECK window-list)))
 
 (defsetf net-supporting-wm-check (window) (win)
   `(change-property ,window
