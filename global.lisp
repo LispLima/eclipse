@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.11 2003/09/30 12:18:36 hatchond Exp $
+;;; $Id: global.lisp,v 1.12 2003/10/06 17:57:26 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -66,6 +66,8 @@
 (defparameter *cycle-icons-p* t "Alt-Tab shows or not iconified windows.")
 (defparameter *focus-new-mapped-window* t)
 (defparameter *focus-when-window-cycle* t)
+(defparameter *screen-edge-resistant-p* t)
+(defparameter *standard-window-edge-resistant-p* t)
 (defparameter *double-click-speed* 200 "the speed of the double click")
 (defparameter *move-mode* :opaque "values are: :box :opaque")
 (defparameter *resize-mode* :opaque "values are: :box :opaque")

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.5 2003/09/30 12:18:36 hatchond Exp $
+;;; $Id: move-resize.lisp,v 1.6 2003/10/06 17:57:26 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -278,12 +278,88 @@
   (setf *card-point* nil))
 
 ;;;; Move.
-	  
+
+(defvar *screen-windows* nil)
+
+(defun region-intersect-region-p (x y w h x2 y2 w2 h2)
+  "Returns true if the rectangular regions, described by the two four-uple
+  `x y w h', have a not empty intersection."
+  (declare (optimize (speed 3) (safety 0)))
+  (declare (type (signed-byte 16) x y x2 y2))
+  (declare (type (unsigned-byte 16) w h w2 h2))
+  (or (and (<= x (+ x2 w2)) (<= x2 (+ x w)) (<= y (+ y2 h2)) (<= y2 (+ y h)))
+      (and (<= x2 (+ x w)) (<= x (+ x2 w2)) (<= y2 (+ y h)) (<= y (+ y2 h2)))))
+
+(defun region-intersect-window-in-screen (x y w h &rest windows-to-skip)
+  "Returns a window list that has an intersection with the given region
+  (defines by the four-uple `x y w h'). The windows-to-skip argument is 
+  a list of window that should not be used."
+  (declare (optimize (speed 3) (safety 0)))
+  (declare (type (signed-byte 16) x y))
+  (declare (inline region-intersect-region-p))
+  (declare (type (unsigned-byte 16) w h))
+  (loop for win in *screen-windows*
+	for master = (application-master (lookup-widget win))
+	when master do (setf win (widget-window master)) end
+	when (and (not (member win windows-to-skip :test #'xlib:window-equal))
+		  (multiple-value-bind (x2 y2 w2 h2) (window-geometry win)
+		    (declare (type (signed-byte 16) x2 y2))
+		    (declare (type (unsigned-byte 16) w2 h2))
+		    (region-intersect-region-p x y w h x2 y2 w2 h2)))
+	collect win))
+
+(defun perform-dock (window x y)
+  "Returns the new coordinates of the window if it needs do be docked on
+  one or two window present on that desktop. Otherwise x and y will be 
+  returned. Arguments x, y represent the hypotheticals future coordinates."
+  (declare (optimize (speed 3) (safety 0)))
+  (declare (type (signed-byte 16) x y))
+  (multiple-value-bind (x1 y1 w1 h1) (window-geometry window)
+    (declare (type (signed-byte 16) x1 y1))
+    (declare (type (unsigned-byte 16) w1 h1))
+    (loop with x-already-set-p and y-already-set-p
+	  for win in (region-intersect-window-in-screen x y w1 h1 window)
+	  do (multiple-value-bind (x2 y2 w2 h2) (window-geometry win)
+	       (declare (type (signed-byte 16) x2 y2))
+	       (declare (type (unsigned-byte 16) w2 h2))
+	       (unless x-already-set-p
+		 (cond ((and (<= (+ x1 w1) x2) (<= -40 (- x2 x w1) 0))
+			(setf x (- x2 w1))  (setf x-already-set-p t))
+		       ((and (>= x1 (+ x2 w2)) (<= -40 (- x x2 w2) 0))
+			(setf x (+ x2 w2)) (setf x-already-set-p t))))
+	       (unless y-already-set-p
+		 (cond ((and (>= y1 (+ y2 h2)) (<= -40 (- y y2 h2) 0))
+			(setf y (+ y2 h2)) (setf y-already-set-p t))
+		       ((and (<= (+ y1 h1) y2) (<= -40 (- y2 y h1) 0))
+			(setf y (- y2 h1)) (setf y-already-set-p t)))))
+	  when (and x-already-set-p y-already-set-p) do (loop-finish)
+	  finally (return (values x y)))))
+
+(defun perform-root-dock (window x y)
+  "Returns the new coordinates of the window if it needs do be docked
+  on the root window. Otherwise x and y will be returned. 
+  Arguments x, y represent the hypotheticals future coordinates."
+  (declare (optimize (speed 3) (safety 0)))
+  (declare (type (signed-byte 16) x y))
+  (multiple-value-bind (x1 y1 w1 h1) (window-geometry window)
+    (declare (type (signed-byte 16) x1 y1))
+    (declare (type (unsigned-byte 16) w1 h1))
+    (and (>= x1 0) (< -40 x 0) (setf x 0))
+    (and (>= y1 0) (< -40 y 0) (setf y 0))
+    (let ((scr-w (screen-width)) (scr-h (screen-height)))
+      (declare (type (unsigned-byte 16) scr-w scr-h))
+      (and (>= (- scr-w x1 w1) 0) (< -40 (- scr-w x w1) 0)
+	   (setf x (- scr-w w1)))
+      (and (>= (- scr-h y1 h1) 0) (< -40 (- scr-h y h1) 0)
+	   (setf y (- scr-h h1)))))
+  (values x y))
+
 (defmethod initialize-move ((widget base-widget) (event button-press))
   "Initialize internal values for animating the future widget movements."
   (with-slots (window active-p) widget
     (setf (window-priority window) :above)
     (setf active-p  t
+	  *screen-windows* (get-screen-content (current-desk))
 	  *delta-x* (- (event-root-x event) (xlib:drawable-x window))
 	  *delta-y* (- (event-root-y event) (xlib:drawable-y window)))))
 
@@ -291,27 +367,24 @@
   (let ((app-window (get-child master :application :window t)))
     (when (or (member :win_state_fixed_position (gnome:win-state app-window))
 	      (member :_net_wm_state_sticky (netwm:net-wm-state app-window)))
-      (setf (decoration-active-p master) nil))))
+      (setf (decoration-active-p master) nil
+	    *screen-windows* nil))))
 
 (defun move-widget (widget event &optional verbose-p mode)
   (declare (optimize (speed 3) (safety 0)))
   (with-slots (window active-p gcontext) widget
     (when active-p
       (let ((new-x (- (the (signed-byte 16) (event-root-x event)) *delta-x*))
-	    (new-y (- (the (signed-byte 16) (event-root-y event)) *delta-y*))
-	    (scr-w (screen-width)) (scr-h (screen-height)))
+	    (new-y (- (the (signed-byte 16) (event-root-y event)) *delta-y*)))
 	(declare (type (signed-byte 16) new-x new-y))
-	(declare (type (unsigned-byte 16) scr-w scr-h))
-	(multiple-value-bind (x y w h)
-	    (window-geometry (if (eq mode :box) (widget-window *clone*) window))
-	  (declare (type (signed-byte 16) x y))
-	  (declare (type (unsigned-byte 16) w h))
-	  (when (and (>= x 0) (< -40 new-x 0)) (setf new-x 0))
-	  (when (and (>= y 0) (< -40 new-y 0)) (setf new-y 0))
-	  (when (and (>= (- scr-w x w) 0) (< -40 (- scr-w new-x w) 0))
-	    (setf new-x (- scr-w w)))
-	  (when (and (>= (- scr-h y h) 0) (< -40 (- scr-h new-y h) 0))
-	    (setf new-y (- scr-h h))))
+	(let ((aux (if (eq mode :box) (widget-window *clone*) window)))
+	  (declare (inline perform-dock perform-root-dock))
+	  (when *standard-window-edge-resistant-p*
+	    (multiple-value-setq (new-x new-y)
+	      (perform-dock aux new-x new-y)))
+	  (when *screen-edge-resistant-p*
+	    (multiple-value-setq (new-x new-y)
+	      (perform-root-dock aux new-x new-y))))
 	(when verbose-p (display-coordinates new-x new-y))
 	(if (and (decoration-p widget) (eql mode :box))
 	    (with-slots (window) *clone*	    
@@ -331,4 +404,5 @@
   (when (get-child master :title-bar)
     (with-slots (armed active-p) (get-child master :title-bar)
       (setf armed nil active-p nil)))
-  (send-configuration-notify (get-child master :application :window t)))
+  (send-configuration-notify (get-child master :application :window t))
+  (setf *screen-windows* nil))
