@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: clx-extensions.lisp,v 1.6 2004/01/16 14:48:44 ihatchondo Exp $
+;;; $Id: clx-extensions.lisp,v 1.7 2004/01/19 14:12:23 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -60,16 +60,15 @@
 	      ,@body)
 	 (setf (xlib:window-event-mask ,window) ,original-mask)))))
 
-(defmacro with-window-gravity ((window gravity) &body (forms declarations))
+(defmacro with-window-gravity ((window gravity) &body body)
   "Changes the gravity of the indicated window to the specified value only
    within the dynamic extent of the body."
   (let ((original-gravity (gensym)))
     `(let ((,original-gravity (xlib:window-gravity ,window)))
-       ,@declarations
        (unwind-protect
 	    (progn 
 	      (setf (xlib:window-gravity ,window) (or ,gravity :north-west))
-	      ,@forms)
+	      ,@body)
 	 (setf (xlib:window-gravity ,window) ,original-gravity)))))
 
 (defmacro with-pointer-grabbed

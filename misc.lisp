@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.23 2004/02/02 09:43:58 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.24 2004/02/12 23:30:22 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -118,7 +118,7 @@
   (unless property-vector (return-from decode-netwm-icon-pixmap nil))
   (loop with depth of-type ppm::card-8 = (xlib:drawable-depth window)
 	with bits-per-pixel = (ppm::find-bits-per-pixel depth)
-	with type = `(unsigned-byte ,depth)
+	with type = `(unsigned-byte ,bits-per-pixel)
 	with width of-type ppm::card-16 = (aref property-vector 0)
 	with height of-type ppm::card-16 = (aref property-vector 1)
 	with size of-type ppm::card-32 = (* width height)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PPM -*-
-;;; $Id: image-reader.lisp,v 1.6 2004/03/01 14:54:02 ihatchondo Exp $
+;;; $Id: image-reader.lisp,v 1.7 2004/03/03 04:03:40 ihatchondo Exp $
 ;;;
 ;;; This a ppm image reader for CLX
 ;;; This file is part of Eclipse
@@ -96,7 +96,7 @@
 
 (defmethod make-clx-data ((image gray-scale) depth)
   (make-array (list (picture-height image) (picture-width image))
-	      :element-type `(unsigned-byte ,depth)))
+	      :element-type `(unsigned-byte ,(find-bits-per-pixel depth))))
 
 (defmethod create-ppm-internal ((image gray-scale) clx-data)
   (declare (type pixarray clx-data))
@@ -115,7 +115,7 @@
 
 (defmethod make-clx-data ((image colored-24) depth)
   (make-array (list (picture-height image) (picture-width image))
-	      :element-type `(unsigned-byte ,depth)))
+	      :element-type `(unsigned-byte ,(find-bits-per-pixel depth))))
 
 (defmethod create-ppm-internal ((image colored-24) clx-data)
   (declare (type pixarray clx-data))
