@@ -60,6 +60,24 @@
   :keys '(:q)
   :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
 
+;; example of user define keystroke:
+;(define-key-combo :raise-pointered-window
+;  :keys '(:F4)
+;  :modifiers 0
+;  :default-modifiers-p nil 
+;  :fun #'(lambda (event)
+;	   (put-on-top (event-child event))))
+
+;; mouse strokes for moving and resizing windows.
+
+(define-mouse-combo :move-window
+	:button 2
+	:modifiers '(:SHIFT-LEFT :SHIFT-RIGHT))
+
+(define-mouse-combo :resize-window
+	:button 3
+	:modifiers '(:SHIFT-LEFT :SHIFT-RIGHT))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Custom variables.
 
@@ -69,6 +87,8 @@
       *focus-type* :none
       *verbose-move* nil
       *verbose-resize* nil
+      *wrap-pointer-when-cycle* nil
+      *focus-new-mapped-window* t
       *change-desktop-message-active-p* nil
       (decoration-theme) "microGUI")
 
