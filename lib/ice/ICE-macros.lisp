@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-macros.lisp,v 1.2 2004/03/17 13:38:12 ihatchondo Exp $
+;;; $Id: ICE-macros.lisp,v 1.3 2004/12/14 17:58:20 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -209,27 +209,34 @@
 	      ,@slots))
 	  request)))))
 
-(defmacro declare-error (name (&rest slots) &body options)
+(defmacro declare-error (name (&rest parents) (&rest slots) &body options)
   "Declare an ice error: creates a class named `name' and a condition named
-  ice-error-<name>. The error class will be a request-error subclass which is
-  a subclass of request. The condition will be a sub condition of ice-error.
-  The interpretation of the slot declaration is as for declare-request. Plus
-  you can pass options, such as in declare-condition, that will be pass to the
-  declare-condition form.
-  The generated condition has only one slot inherited from the ice-error
-  condition: request-error with a reader named `ice-error-request-error'."
-  `(progn
-     (declare-request ,name (request-error)
-       ((major-opcode :type card8 :inherited t)
-	(class :type card16 :inherited t)
-	(offending-minor-opcode :type card8 :inherited t)
-	(severity :type error-severity :pad-size 2 :inherited t)
-	(sequence-number-of-erroneous-message :type card32 :inherited t)
-	,@slots)
-       ,@(let ((doc (car (member :documentation options :key #'car))))
-	   (when doc `(,doc))))
-     (define-condition ,(sintern (format nil "ICE-ERROR-~a" name))
-       (ice-error) () ,@options)
-     (defmethod request-error-handler ((req ,(intern (symbol-name name))))
-       (error ',(sintern (format nil "ICE-ERROR-~a" name)) 
-	      :request-error req))))
+  `ice-error-<name>'.
+   The defined class will be a request-error subclass if no parent classes
+  are supplied.
+   The condition will be a sub condition of ice-error if no parent classes
+  are supplied. In that case the generated condition has only one slot
+  inherited from the ice-error condition: request-error with a reader
+  named `ice-error-request-error'. If parent classes are supplied, then the
+  correct parent conditions will be retrieved by the addition of the prefix
+  `ice-error-' (keeping package prefix if supplied).
+  The interpretation of the slots declaration is as for declare-request. Plus
+  you can pass options, such as in define-condition, that will be pass to the
+  define-condition form."
+  (let ((condition (sintern (format nil "ICE-ERROR-~a" name)))
+	(cparents (loop for parent in parents collect
+			(intern (symbol-name parent)
+				(package-name (symbol-package parent))))))
+    `(progn
+       (declare-request ,name ,(or parents `(request-error))
+	 ((major-opcode :type card8 :inherited t)
+	  (class :type card16 :inherited t)
+	  (offending-minor-opcode :type card8 :inherited t)
+	  (severity :type error-severity :pad-size 2 :inherited t)
+	  (sequence-number-of-erroneous-message :type card32 :inherited t)
+	  ,@slots)
+	 ,@(let ((doc (car (member :documentation options :key #'car))))
+	     (when doc `(,doc))))
+       (define-condition ,condition ,(or cparents `(ice-error)) () ,@options)
+       (defmethod request-error-handler ((req ,(intern (symbol-name name))))
+	 (error ',condition :request-error req)))))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-request.lisp,v 1.7 2004/03/18 17:22:05 ihatchondo Exp $
+;;; $Id: ICE-request.lisp,v 1.8 2004/12/14 17:58:21 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -337,18 +337,18 @@
 (define-error :bad-length #x8002)
 (define-error :bad-value #x8003)
 
-(declare-error bad-minor ()
+(declare-error bad-minor () ()
   (:documentation "Received a message with an unknown minor opcode."))
 
-(declare-error bad-state ()
+(declare-error bad-state () ()
   (:documentation "Received a message with a valid minor opcode which is not
   appropriate for the current state of the protocol."))
 
-(declare-error bad-length ()
+(declare-error bad-length () ()
   (:documentation "Received a message with a bad length. The length of the
   message is longer or shorter than required to contain the data."))
 
-(declare-error bad-value
+(declare-error bad-value ()
   ((offset-of-offending-value :type card32)
    (length-of-offending-value :type card32)
    (offending-value :type data :length length-of-offending-value))
@@ -372,7 +372,7 @@
 (define-error :major-opcode-duplicate 7)
 (define-error :unknown-protocol 8)
 
-(declare-error bad-major
+(declare-error bad-major ()
   ((values :type card8))
   (:documentation "The opcode given is not one that has been registered.")
   (:report (lambda (condition stream)
@@ -381,14 +381,14 @@
 	       (format stream "Bad major: ~a~%"
 		       (slot-value request-error 'values))))))
 
-(declare-error no-authentication ()
+(declare-error no-authentication () ()
   (:documentation
    "None of the authentication protocols offered are available."))
 
-(declare-error no-version ()
+(declare-error no-version () ()
   (:documentation "None of the protocol versions offered are available."))
 
-(declare-error setup-failed
+(declare-error setup-failed ()
   ((values :type string))
   (:documentation "The sending side is unable to accept the new connection or
   new protocol for a reason other than authentication failure. Typically this
@@ -401,7 +401,7 @@
 	       (format stream "Setup failed: ~a~%"
 		       (slot-value request-error 'values))))))
 
-(declare-error authentication-rejected
+(declare-error authentication-rejected ()
   ((values :type string))
   (:documentation "Authentication rejected. The peer has failed to properly
   authenticate itself. The reason field will give a human-interpretable message
@@ -412,7 +412,7 @@
 	       (format stream "Authentication rejected: ~a~%"
 		       (slot-value request-error 'values))))))
 
-(declare-error authentication-failed
+(declare-error authentication-failed ()
   ((values :type string))
   (:documentation "Authentication failed. authentication-failed does not imply
   that the authentication was rejected, as authentication-rejected does.
@@ -426,7 +426,7 @@
 	       (format stream "Authentication failed: ~a~%"
 		       (slot-value request-error 'values))))))
 
-(declare-error protocol-duplicate
+(declare-error protocol-duplicate ()
   ((values :type string))
   (:documentation "The protocol name was already registered. This is fatal to
   the ``new'' protocol being set up by protocol-setup, but it does not affect
@@ -437,7 +437,7 @@
 	       (format stream "Protocol duplication: ~a~%"
 		       (slot-value request-error 'values))))))
 
-(declare-error major-opcode-duplicate
+(declare-error major-opcode-duplicate ()
   ((values :type card8))
   (:documentation "The major opcode specified was already registered. This is
   fatal to the ``new'' protocol being set up by ProtocolSetup, but it does not
@@ -448,7 +448,7 @@
 	       (format stream "Major opcode duplication: ~a~%"
 		       (slot-value request-error 'values))))))
 
-(declare-error unknown-protocol
+(declare-error unknown-protocol ()
   ((values :type string))
   (:documentation "The protocol specified is not supported.")
   (:report (lambda (condition stream)
