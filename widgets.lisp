@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.17 2003/10/09 11:37:08 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.18 2003/11/01 09:41:49 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -304,7 +304,7 @@
 	    (when desktop-p
 	      (pushnew :_net_wm_state_sticky netwm-state)
 	      (add-desktop-application *root* app)
-	      (setf (window-priority window prec-desk) stack-mode))
+	      (setf (xlib:window-priority window prec-desk) stack-mode))
 	    (setf (netwm:net-wm-state window) netwm-state
 		  (window-desktop-num window) +any-desktop+))
 	  (grab-button window :any '(:button-press) :sync-pointer-p t))
@@ -566,9 +566,10 @@
   (with-slots (window icon gcontext) application
     (let ((background (clx-ext::wm-hints-icon-pixmap window))
 	  (width 45) (height 20))
-      (if (typep background 'xlib:pixmap)
-	  (multiple-value-setq (width height) (drawable-sizes background))
-	  (setf background nil))
+      (ignore-errors
+	(if (typep background 'xlib:pixmap)
+	    (multiple-value-setq (width height) (drawable-sizes background))
+	    (setf background nil)))
       (ignore-errors
 	(when (and background (= 1 (xlib:drawable-depth background)))
 	  (let ((pix (xlib:create-pixmap
