@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.25 2004/01/12 10:57:58 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.26 2004/01/12 11:22:05 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -678,6 +678,9 @@
 	 (setf ,sibling (get-root-desktop *root* t)
 	       ,p (if ,sibling :above :below)))
        (setf (xlib:window-priority (widget-window ,icon) ,sibling) ,p))))
+
+(defmethod close-widget ((widget icon))
+  (close-widget (icon-application icon)))
 
 (defmethod remove-widget :after ((widget icon))
   (with-slots (pixmap-to-free) widget

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.28 2004/01/06 17:02:06 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.29 2004/01/12 11:22:05 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -134,6 +134,9 @@
 		 (xlib:unmap-window app-win))
 		((application-iconic-p application)
 		 (xlib:unmap-window app-win))))))))
+
+(defmethod close-widget ((widget decoration))
+  (close-widget (get-child widget :application)))
 
 (defmethod put-on-top ((widget decoration))
   (put-on-top (get-child widget :application)))
