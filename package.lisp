@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.3 2003/06/11 18:29:23 hatchond Exp $
+;;; $Id: package.lisp,v 1.4 2003/08/28 14:50:35 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -201,6 +201,7 @@
    "UPDATE-LISTS"			  ;function
    "UPDATE-TITLE-BAR-SIZES"		  ;function
    "WHERE-IS-POINTER"			  ;function
+   "WIDGET->FRAME-ITEM-KEY"               ;function
    "WINDOW-DESKTOP-NUM"			  ;setf function
    "WINDOW-NOT-DECORABLE-P"               ;function
    "WINDOW-PRIORITY"                      ;setf function
