@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp -*-
-;;; $Id: clx-patch.lisp,v 1.3 2003/08/28 14:44:40 hatchond Exp $
+;;; $Id: clx-patch.lisp,v 1.4 2003/09/09 13:49:41 hatchond Exp $
 ;;;
 ;;; This file contains the patch fixing a bug in CLX as distributed
 ;;; with vanilla CMUCL versions up to 18d.
@@ -71,11 +71,11 @@ Indeed O or 1 are inappropriated ID's.
        (save-id display id window))
       (t window))))
 
- (defun lookup-pixmap (display id)
-   (declare (type display display) (type resource-id id))
-   (declare (clx-values pixmap))
-   (let ((pixmap (lookup-resource-id display id)))
-     (cond
+(defun lookup-pixmap (display id)
+  (declare (type display display) (type resource-id id))
+  (declare (clx-values pixmap))
+  (let ((pixmap (lookup-resource-id display id)))
+    (cond
       ((null pixmap) (setq pixmap (make-pixmap :display display :id id))
        (save-id display id pixmap))
       ((not (pixmap-p pixmap))
