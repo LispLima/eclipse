@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.16 2003/12/04 16:12:42 ihatchondo Exp $
+;;; $Id: virtual-screen.lisp,v 1.17 2004/01/15 00:00:11 ihatchondo Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -85,7 +85,8 @@
 	       ((= cur (1- ,n))	(map-or-unmap-vscreen #'xlib:map-window cur)))
 	 (setf (netwm:net-desktop-viewport window) (make-viewport-property ,n)
 	       (gnome:win-workspace-count window) ,n
-	       (netwm:net-number-of-desktops window) ,n)))))
+	       (netwm:net-number-of-desktops window) ,n)
+	 (update-workarea-property *root*)))))
 
 (defun input-focus (display)
   "Find the application that is currently focused if anyone is."

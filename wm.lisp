@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.30 2004/01/13 13:50:38 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.31 2004/01/15 15:35:34 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -710,7 +710,9 @@
     (unless (member :_net_wm_window_type_desktop netwm-type)
       (with-slots (wants-focus-p input-model) application
 	(unless (eq input-model :no-input)	      
-	  (setf wants-focus-p *focus-new-mapped-window*))))))
+	  (setf wants-focus-p *focus-new-mapped-window*))))
+    (when (member :_net_wm_window_type_dock netwm-type)
+      (update-workarea-property *root*))))
 
 ;;;; The main loop.
 

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.28 2004/01/13 13:52:15 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.29 2004/01/15 15:35:34 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -164,9 +164,7 @@
     (when (or *verbose-move* *verbose-resize*) (undraw-geometry-info-box))
     (when (or (and (eql *move-mode* :opaque) move-status)
 	      (and (eql *resize-mode* :opaque) resize-status))
-      (setf move-status nil
-	    resize-status nil
-	    current-active-decoration nil)
+      (setf (values move-status resize-status current-active-decoration) nil)
       (xlib:ungrab-pointer *display*))))
 
 (defun close-sm-connection (root &key (exit-p t))
@@ -191,7 +189,15 @@
    (wants-iconic-p :initform nil :accessor application-wants-iconic-p)
    (wants-focus-p :initform nil :accessor application-wants-focus-p)
    (initial-geometry :initform (make-geometry))
-   (full-geometry :initform (make-geometry))))
+   (full-geometry :initform (make-geometry))
+   (type :initarg :type :accessor application-type)))
+
+(defmethod remove-widget :after ((app application))
+  (with-slots (window type) app
+    (let ((root (lookup-widget (xlib:drawable-root window))))
+      (case type
+	(:_net_wm_window_type_desktop (remove-desktop-application root app))
+	(:_net_wm_window_type_dock (update-workarea-property root))))))
 
 (defmethod close-widget ((application application))
   (with-slots (window) application
@@ -213,8 +219,7 @@
 	finally (return (xlib:window-equal window foc))))
 
 (defmethod shaded-p ((widget application))
-  (with-slots (window) widget
-    (member :_net_wm_state_shaded (netwm:net-wm-state window))))
+  (member :_net_wm_state_shaded (netwm:net-wm-state (widget-window widget))))
 
 (defmethod shade ((application application))
   (with-slots (master) application
@@ -261,19 +266,15 @@
 		   (setf w (xlib:mode-info-hdisplay ml)
 			 h (xlib:mode-info-vdisplay ml)))
 	         (setf x 0 y 0 w (screen-width) h (screen-height)))
-	     (xlib:with-state (window)
-	       (with-slots (window) (or master application)
-		 (setf (window-position window) (values x y)))
-	       (setf (drawable-sizes window) (values w h))))
+	     (configure-window window :x x :y y :width w :height h))
 	   (focus-widget application 0))
 	 (with-event-mask (*root-window*)
 	   (setf (drawable-sizes window) (geometry-sizes fgeometry))
 	   (unless (window-not-decorable-p window)
 	     (setf (decoration-frame-style master)
 		   (slot-value master 'old-frame-style)))
-	   (with-slots ((win window)) (or master application)
-	     (setf (window-position win) (geometry-coordinates fgeometry)))))
-     (send-configuration-notify window)
+	   (multiple-value-bind (x y) (geometry-coordinates fgeometry)
+	     (configure-window window :x x :y y))))
      (let ((prop (netwm:net-wm-state window)))
        (if (eq ,mode :on)
 	   (pushnew :_net_wm_state_fullscreen prop)
@@ -308,8 +309,8 @@
 	 (type (ignore-errors (netwm:net-wm-window-type window)))
 	 (desktop-p (member :_net_wm_window_type_desktop type))
 	 (dock-p (member :_net_wm_window_type_dock type))
-	 (app (make-instance 
-	         'application :window window :master master :input input)))
+	 (app (make-instance 'application
+		:window window :master master :input input :type type)))
     (ignore-errors 
       (create-icon app master)
       (if (or desktop-p dock-p)

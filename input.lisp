@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.28 2004/01/15 15:35:34 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.29 2004/01/17 18:22:34 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -108,9 +108,7 @@
       (when (and (application-p app) (not (application-master app)))
 	(ignore-errors (update-lists app 0 root))
 	(mapc #'remove-widget (list app (application-icon app)))
-	(xlib:destroy-window (widget-window (application-icon app)))
-	(when (member app (root-desktop root))
-	  (remove-desktop-application root app))))))
+	(xlib:destroy-window (widget-window (application-icon app)))))))
 
 (defmethod event-process ((event enter-notify) (root root))
   (with-slots (resize-status move-status) root
@@ -196,10 +194,8 @@
     (when (or move-status resize-status)
       (xlib:ungrab-server *display*)
       (xlib:ungrab-pointer *display*)
-      (setf (decoration-active-p current-active-decoration) nil
-	    current-active-decoration nil
-	    move-status nil
-	    resize-status nil))))
+      (setf (values current-active-decoration move-status resize-status) nil)
+      (setf (decoration-active-p current-active-decoration) nil))))
 
 ;;; Events for master (type: decoration)
 
@@ -217,8 +213,7 @@
     (event-process (make-event :destroy-notify) master)))
 
 (defmethod event-process ((event unmap-notify) (master decoration))
-  (with-slots (window) master
-    (xlib:unmap-window window)))
+  (xlib:unmap-window (widget-window master)))
 
 (defmethod event-process ((event map-request) (master decoration))
   (xlib:map-window (event-window event)))
@@ -281,20 +276,23 @@
       (setf (netwm:net-active-window *root-window*) window))))
 
 (defmethod event-process ((event property-notify) (app application))
-  (with-slots (window master) app
+  (with-slots (window master type) app
     (case (event-atom event)
-      (:WM_NORMAL_HINTS
+      (:wm_normal_hints
        (when master
 	 (with-slots (hmargin vmargin) (decoration-frame-style master)
 	   (with-slots (application-gravity wm-size-hints) master
 	     (multiple-value-setq (wm-size-hints application-gravity)
 		 (recompute-wm-normal-hints window hmargin vmargin))))))
-      ((or :WM_NAME :_NET_WM_NAME)
+      ((:wm_name :_net_wm_name)
        (when (and master (get-child master :title-bar))
 	 (with-slots (window item-to-draw) (get-child master :title-bar)
 	   (setf item-to-draw (wm-name (widget-window app)))
 	   (xlib:queue-event *display* :exposure :window window :count 0))))
-      (:WM_STATE
+      ((:_net_wm_strut_partial :_net_wm_strut)
+       (when (eq type :_net_wm_window_type_dock)
+	 (update-workarea-property *root*)))
+      (:wm_state
        (update-lists app (car (wm-state window)) *root*)))))
 
 (defmethod event-process ((event client-message) (application application))
