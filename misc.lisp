@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.6 2003/05/14 08:56:17 hatchond Exp $
+;;; $Id: misc.lisp,v 1.7 2003/08/28 14:50:35 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -135,7 +135,7 @@
   `(progn
      (setf (xlib:window-priority ,window ,sibling) ,priority)
      (update-client-list-stacking *root*)))
-      
+
 (defun grab-root-pointer (&key cursor owner-p confine-to)
   (xlib:grab-pointer
       *root-window*
