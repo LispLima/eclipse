@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.1 2002/11/07 15:06:03 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.2 2002/12/18 10:50:49 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -78,14 +78,15 @@
 (defmethod map-or-unmap-screen ((vscreens eclipse-screens)
 				&key (fun #'xlib:unmap-window)
 				     (n (vs:current-screen vscreens)))
-  (loop for window in (vs:nth-vscreen vscreens n)
-	for widget = (gethash window *widget-table*)
+  (loop for window across (vs:nth-vscreen vscreens n)
+	for widget = (lookup-widget window)
+	for i from 0
 	when (and widget (application-master widget)) do
 	  (setf widget (application-master widget))
 	when (and widget (= 1 (first (ignore-errors (wm-state window))))) do
 	  (funcall fun (ignore-errors (widget-window widget)))
-	when widget collect window into windows
-	finally (vs:set-vscreen-content vscreens windows :n n)))
+	unless widget do (setf (aref (vs:nth-vscreen vscreens n) i) nil)
+	finally (delete nil (vs:nth-vscreen vscreens n))))
 
 (defmethod change-vscreen ((vscreens eclipse-screens) direction &optional n)
   (let* ((current-screen (vs:current-screen vscreens))
@@ -93,29 +94,31 @@
 	  (or n (mod (funcall direction current-screen 1) *nb-vscreen*))))
     (unless (= new-screen +any-desktop+)
       (with-event-mask (*root-window*)
-        ;; first : revert the focus to the root-window.
+        ;; Revert the focus to the root-window.
 	(xlib:set-input-focus *display* :pointer-root :pointer-root)
 	(map-or-unmap-screen vscreens)
 	(map-or-unmap-screen vscreens :fun #'xlib:map-window :n new-screen))
       (setf (vs:current-screen vscreens) new-screen
 	    (gnome:win-workspace *root-window*) new-screen
 	    (netwm:net-current-desktop *root-window*) new-screen)
+      (when (eq *focus-type* :on-click)
+	(ignore-errors (give-focus-to-next-widget-in-desktop *root*)))
       (when *change-desktop-message-active-p*
 	(timed-message-box *root-window*
 		     (or (nth new-screen (workspace-names *root-window*))
 			 (format nil "WORKSPACE ~a" new-screen)))))))
 
-(defun get-visible-windows (vscreen)
-  (loop for window in vscreen
+(defun get-visible-windows (vscreens)
+  (loop for window across (vs:nth-vscreen vscreens)
 	when (= 1 (or (car (wm-state window)) 0))
-	collect (with-slots (master) (gethash window *widget-table*)
+	collect (with-slots (master) (lookup-widget window)
 		  (if master (widget-window master) window))))
 
 (defmethod circulate-window ((vscreens eclipse-screens) &key direction)
-  (loop	initially (unless (cdr (vs:nth-vscreen vscreens))
+  (loop	initially (unless (> (length (vs:nth-vscreen vscreens)) 1)
 		    (setf direction :above))
 	with windows = (xlib:query-tree *root-window*)
-	with screen-windows = (get-visible-windows (vs:nth-vscreen vscreens))
+	with screen-windows = (get-visible-windows vscreens)
 	with dest-win = nil
 	with sibling = (and (eql direction :below) (get-root-desktop *root* t))
 	for window in (if (eq direction :above) windows (reverse windows))
@@ -127,7 +130,22 @@
 	  (when screen-windows
 	    (when (and sibling (eql direction :below)) (setf direction :above))
 	    (setf (xlib:window-priority (or dest-win window) sibling) direction)
-	    (xlib:warp-pointer window 8 5))))
+	    (when *wrap-pointer-when-cycle* (xlib:warp-pointer window 8 5))
+	    (and (eq *focus-type* :on-click) *focus-when-window-cycle*
+		 (focus-widget (lookup-widget window) 0)))))
+
+(defun give-focus-to-next-widget-in-desktop (root-widget)
+  (loop with foo = nil
+	for window across (vs:nth-vscreen (root-vscreens root-widget))
+	for widget = (lookup-widget window)
+	when (and widget (eq :viewable (xlib:window-map-state window)))
+	do (with-slots (input-model) widget
+	     (unless (eq input-model :no-input)
+	       (set-focus input-model window 0)
+	       (setf foo t)
+	       (loop-finish)))
+	finally 
+	 (or foo (xlib:set-input-focus *display* :pointer-root :pointer-root))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -144,30 +162,32 @@
 
 (defgeneric remove-widget (widget))
 (defgeneric close-widget (widget))
+(defgeneric focus-widget (widget timestamp))
 (defgeneric draw-on-focus-in (widget))
 (defgeneric draw-on-focus-out (widget))
+
+(macrolet ((define-null-method (name &rest args)
+	     (let ((%name% (with-standard-io-syntax (format nil "~A" name))))
+	       `(defmethod ,(intern %name%) ,args
+		  (declare (ignorable ,@args))
+		  (values)))))
+  (define-null-method remove-widget widget)
+  (define-null-method close-widget widget)
+  (define-null-method focus-widget widget timestamp)
+  (define-null-method draw-on-focus-in widget)
+  (define-null-method draw-on-focus-out widget))
 
 (defmethod remove-widget ((widget base-widget))
   (remhash (widget-window widget) *widget-table*))
 
-(defmethod remove-widget (widget)
-  (declare (ignorable widget))
-  (values))
-
-(defmethod close-widget (widget)
-  (declare (ignorable widget))
-  (values))
-
-(defmethod draw-on-focus-in (widget)
-  (declare (ignorable widget))
-  (values))
-
-(defmethod draw-on-focus-out (widget)
-  (declare (ignorable widget))
-  (values))
-
 (defun base-widget-p (widget)
   (typep widget 'base-widget))
+
+(defun lookup-widget (window)
+  (declare (optimize (speed 3) (safety 1)))
+  (gethash window *widget-table*))
+
+(declaim (inline lookup-widget))
 
 ;;;; The ROOT
 
@@ -213,6 +233,7 @@
    (input-model :initform nil :initarg :input :reader application-input-model)
    (icon :initform nil :initarg :icon :reader application-icon)
    (iconic-p :initform nil :accessor application-iconic-p)
+   (wants-focus-p :initform nil :accessor application-wants-focus-p)
    (unobscured-p :initform nil :accessor application-unobscured-p)))
 
 (defmethod close-widget ((application application))
@@ -220,6 +241,10 @@
     (if (member :wm_delete_window (xlib:wm-protocols window))
 	(send-wm-protocols-client-message window :wm_delete_window)
         (kill-client-window window))))
+
+(defmethod focus-widget ((application application) timestamp)
+  (with-slots (window input-model) application
+    (set-focus input-model window timestamp)))
 
 (defun undecore-application (application &key state)
   (with-slots (window master icon) application
@@ -249,7 +274,7 @@
     (ignore-errors 
       (create-icon app (or master *root*))
       (grab-button window :any '(:button-press) :sync-pointer-p t)
-      (setf (xlib:window-event-mask window)
+      (setf (xlib:window-event-mask window) 
 	    (if (eq input :no-input) +unfocusable-mask+ +focusable-mask+)))
     app))
 
@@ -363,6 +388,7 @@
 (defmethod event-process ((event enter-notify) (b push-button))
   (when (button-armed b)
     (setf (button-active-p b) t)))
+
 (defmethod event-process ((event leave-notify) (b push-button))
   (when (button-armed b)
     (setf (button-active-p b) nil)))
@@ -434,10 +460,8 @@
 (defun create-icon (application master
 		    &optional (gcontext *gcontext*) (bg-color *black*))
   (with-slots (window icon) application
-    (let* (;; (wm-hints (ignore-errors (xlib:wm-hints window)))
-	   (background (clx-ext::wm-hints-icon-pixmap window))
-	   ;; (and wm-hints (xlib:wm-hints-icon-pixmap wm-hints)))
-	   (width 45) (height 60))
+    (let ((background (clx-ext::wm-hints-icon-pixmap window))
+	  (width 45) (height 60))
       (if (typep background 'xlib:pixmap)
 	  (multiple-value-setq (width height) (drawable-sizes background))
 	  (setf background nil))
@@ -459,9 +483,12 @@
       icon)))
 
 (defmethod iconify ((application application))
-  (setf (application-iconic-p application) t)
+  (setf (application-iconic-p application) t
+	(application-wants-focus-p application) *focus-new-mapped-window*)
   (xlib:unmap-window (widget-window application))
-  (xlib:map-window (widget-window (application-icon application))))
+  (xlib:map-window (widget-window (application-icon application)))
+  (when (eq *focus-type* :on-click)
+    (give-focus-to-next-widget-in-desktop *root*)))
 
 (defmethod uniconify ((icon icon))
   (with-slots (application desiconify-p) icon
@@ -478,5 +505,6 @@
     (setf (application-iconic-p application) nil)
     (unless (decoration-p master)
       (with-slots (window) application
-        (setf (window-desktop-num window) (current-desk)
+        (setf (window-desktop-num window)
+	      (if (stick-p window) +any-desktop+ (current-desk))
 	      (wm-state window) 1)))))
