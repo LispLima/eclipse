@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.9 2003/08/28 14:50:35 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.10 2003/09/08 13:05:32 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -441,7 +441,7 @@ the extended window manager specification."))
     ;; after a close-widget has been done (such as after clicking on the 
     ;; close button of a decoration or something similar). To avoid
     ;; inconsistant X requests we'll ensure that the widget still exists.
-    (when (lookup-widget window)
+    (when (and (decoration-p master) (lookup-widget window))
       (with-slots (name) (decoration-frame-style master)
 	(repaint button name (focused-p master))))))
 
@@ -631,7 +631,8 @@ the extended window manager specification."))
       (shade application))
     (setf iconic-p t wants-focus-p t)
     (xlib:unmap-window window)
-    (xlib:unmap-window (widget-window master))
+    (when master
+      (xlib:unmap-window (widget-window master)))
     (when (stringp (slot-value icon 'item-to-draw))
       (setf (slot-value icon 'item-to-draw) (wm-icon-name window)))
     (xlib:map-window (widget-window icon))
