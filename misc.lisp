@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.7 2003/08/28 14:50:35 hatchond Exp $
+;;; $Id: misc.lisp,v 1.8 2003/09/10 23:56:19 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -152,9 +152,8 @@
 		     (decoration (get-child obj :application :window t)))
 	when appw collect appw))
 
-(defun delete-root-properties ()
-  (mapc #'(lambda (prop) (xlib:delete-property *root-window* prop))
-	(concatenate 'list +gnome-protocols+ +netwm-protocol+)))
+(defun delete-properties (window properties)
+  (mapc #'(lambda (prop) (xlib:delete-property window prop)) properties))
 
 (defstruct geometry
   (x 0 :type (signed-byte 16))
