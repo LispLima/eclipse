@@ -1,5 +1,5 @@
 .TH Eclipse 1 "(c) 2001 Iban HATCHONDO"
-.\"$Id: eclipse.1,v 1.13 2004/01/15 15:35:34 ihatchondo Exp $
+.\"$Id: eclipse.1,v 1.14 2004/01/21 17:48:39 ihatchondo Exp $
 
 .SH NAME
 eclipse - a window manager in Common Lisp
@@ -124,6 +124,11 @@ If you want to be notified when the desktop changes this value should
 be \fIt\fP. In that case, a change will display a small window with
 the number or the name (if sets)  of the new desktop. If the value is
 \fInil\fP, nothing will happen.
+.TP
+.B\-*save-and-restore-pointer-position-during-workspace-switch*\
+\fIboolean\fP (or t nil)
+If you want the mouse pointer position to be saved and restore during
+workspace switching then set it to \fIt\fP. Default value is \fInil\fP.
 .TP
 .B\-*move-mode*\ \fIkeyword\fP (or \fB:box :opaque\fP) 
 As usual :box will draw a 3x3 grid to show you the window move ;

@@ -1,5 +1,5 @@
 -*- Mode: ChangeLog -*-
-$Id: changelog,v 1.4 2002/11/07 14:54:27 hatchond Exp $
+$Id: changelog,v 1.5 2003/10/06 17:57:27 ihatchondo Exp $
 0.01 => 0.02
 
      Eclipse should now compile on every ANSI-compliant Common Lisp
@@ -195,7 +195,6 @@ pre 0.03=>0.03
        - fullscreen-mode should now be correct: the spec say it would be
          better to undecore the window when in fullscreen. It does now.
 
-
        - maximize-window signature changes. It now expect an application 
 	 instead of a decoration.  
 	 => STROKES USING MAXIMIZE-WINDOW SHOULD BE UPDATED.
@@ -222,6 +221,178 @@ pre 0.03=>0.03
 
 0.07=>0.08
 
+     - Window rotation (Alt-Tab) re-designed. It now works as in almost
+       every window managers. Press Alt-Tab once will raise the next
+       application, on the current desktop, according to the current
+       stacking order. If Alt is released then pressing again Alt-Tab will
+       put back the precedent application. Otherwise if you kipped Alt down
+       then Tab again and the next application will be brought on top of the
+       others, and the precedent one is back on its depth. And so on
+       until you come back on the first one. 
+       The same mechanism is available with say Alt-a. It just rotate
+       windows on the other sens.
+
+     - The window rotation may be verbose by displaying a small window
+       indicating the name and the icon, if provided, of the application
+       that comes on top of the others.
+       To disable it do (setf *verbose-window-cycling* nil) in your eclipse
+       config file.
+
+     - The window rotation may also cycle the current desktop iconified
+       applications. To disable it do (setf *cycle-icons-p* nil) in
+       your eclipse config file.
+
+     - Screen edges are now resistant. 
+
+     - fix menu bug. They don't anymore appear below their applications.
+
+     - a maximized window does not allow anymore to be resized in the
+       directions in which it has been maximized.
+
+     - the message-box may now display a centered pixmap before the text.
+
+0.08 => 0.09
+
+     - The window edges resistance is also implemented.
+       To configure it use *standard-window-edge-resistant-p*.
+       Set it to nil if you don't want to feel any resistance on
+       edges of window(s) you are about to overlap. Default value is t.
+
+     - minor focus change:
+       For application with a :no-input as focus model, we now gives the
+       same event mask as the others. The problem was that an application
+       with a globaly-active model can decide to sets the focus to one of
+       its satellite window that have a no-input model. This is correct
+       because the input model is indicate to the window manager how to
+       give the focus to the application. But in any case, it indicates
+       that the application will never have or not the focus.
+
+	- give-focus-to-next-widget-in-desktop will now gives the focus to
+	  the first application that claims for the focus if one, or to the
+	  first one that could receive it (from top most to bottom stack
+	  order). 
+	- change-vscreen invoke give-focus-to-next-widget-in-desktop if
+	  the focus policy is on-click.       
+
+     - minor change in (setf fullscreen-mode): we now use the
+       no-decoration-theme instead of undecorting. This will avoid
+       problems in xinerama mode.
+
+     - compile-theme hacking. Should fix theme compiling problem report by
+       Robert Strandh. 
+
+     - Fix incorect handling of the states _net_wm_state_{above, below}.
+       They are permanent as the other states (see inpout.lisp).
+       It implies that the (setf window-priority) should take those state
+       in account when modifying the stack order (see misc.lisp) 
+
+       This have as last implication, that we should work with an external
+       list of window for the window circulation keystrokes. Indeed, if
+       one window has the _net_wm_state_above state then it will always be 
+       on top of the others. What means, that will stay stuck on this
+       window during circulation. (see minor signature modification of
+       circulate-window in virtual-screen.lisp, and small hack in
+       gestures.lisp) 
+
+     - new file rectangles.lisp. This module computes a list of the
+       largest free rectangles available on a virtual screen. This will
+       gives us some new maximize mode such as maximize a window to fit
+       the largest rectangle that includes it, without creating more
+       overlaps than already exists.
+
+     - maximize-window modified to use the maximize-fill operation.
+
+     - new user configuration options: *maximize-fill* *maximize-modifier*
+       (setf maximize-modifier) function. It allow user to choose a
+       modifier key that will alter the maximize button behavior if the
+       choosen modifier down or not when pressing on maximize button. If
+       modifier is down then the value of (not *maximize-fill*) will be
+       used otherwise *maximize-fill* will be used. 
+
+     - We now support the netwm-strut{-partial}, and don't overlap panels
+       that should not be overlapped (gnome panels for exemple) 
+
+ 0.09 => 0.10
+
+     - fix the problem raised by Christian. Icons have the following
+       behavior: 
+        - when you click on an icon it comes on top of anything else.
+	- when you release the mouse button after a move (otherwise the
+	  application get de-iconified) the icon window priority goes back
+	  at the bottom of the stack (above any desktop application of
+	  course)
+
+     - implementation of ICE protocol and xsmp protocol. (lib/ice lib/sm)
+
+     - eclipse now connect itself to the session manager according to the
+       xsmp protocol. (see the cvs commit message for more infos)
+
+     - fix forgotten added slot hint-p of motion-notify event.
+
+     - fix bug with shaded windows and virtual screen switching.
+
+     - move resize improvements:
+
+       We now use the :pointer-potion-hint in the event-mask. The server
+       is now free to send only one :motion-notify event, until either the
+       key or button state changes, the pointer leaves the event window,
+       or the client calls query-pointer or motion-events. 
+
+       This allow us to be served only for event when we can deal with. As
+       effect opaque move and resize are smoother.
+
+         side effects: 
+	    decoration time slot removed.
+	    modify event handling of motion-notify
+
+       find-corner modfication: It now looks for the cardinal point by
+       dichotomy in the window split in 16 pieces. 
+
+     - configure-window [ function ] added for ICCCM and EWMH complience.
+
+     - support for :_NET_MOVERESIZE_WINDOW client message.
+
+     - support for :_NET_WORKAREA (ewmh says we have to set it)
+	implies :_net_wm_strut_partial :_net_wm_strut property notify
+	handling to reflect changes in the net_workarea property and
+	a call to update-workarea-property when changing the number of
+	virtual screens.
+	
+     - a very little change in the define-theme syntax. Style parts are
+       now defined in a list (such as the class slots for example). This
+       allow to have the :title-bar-position :parts-to-redraw-on-focus
+       potions to be effectively optional. Plus a :background option has
+       been added. This will be useful to the one who wants to define a
+       no-decoration style like but with colored border. See the
+       documentation (for more).
+
+     - Christian point out a bug/inconsitency with emacs and multiple
+       frame. Changing frames with C-x 5-o was not raising frames. It is
+       now fix.
+       the fix consist in:
+          - add :susbstructure-redirect in the decoration event mask.
+	  - add event handling for configure-request on decoration.
+	  - add event handling for map-request on decoration.
+	
+     - bug fix and code clean up and more hacking.
+       - error handling at start up.
+       - close-sm-connection (widget.lisp)
+       - (event-process selection-notify null)
+       - bug fix and typo in gestures.lisp
+       - bug fix in ewmh implementation.
+       - ...
+
+O.10 => 0.11
+
+     
 
 
-       
+
+
+
+     
+
+
+
+
+

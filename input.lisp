@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.30 2004/01/20 16:10:00 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.31 2004/01/20 21:38:11 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -54,16 +54,6 @@
 	 (string= selection +xa-wm+)
 	 (error 'exit-eclipse))))
 
-(defmethod event-process :after ((event destroy-notify) (widget base-widget))
-  (with-slots (window) event
-    (when (or (decoration-p widget) (application-p (lookup-widget window)))
-      (if (eq *focus-type* :on-click)
-	  (give-focus-to-next-widget-in-desktop)
-          (multiple-value-bind (x y s child) (xlib:query-pointer *root-window*)
-	    (declare (ignore x y s))
-	    (let ((e (make-event :enter-notify :kind :inferior :mode :normal)))
-	      (event-process e (or (lookup-widget child) *root*))))))))
-
 (defmethod event-process ((ev configure-request) (widget base-widget))
   (declare (ignorable widget))
   (with-slots (window value-mask x y width height above-sibling stack-mode) ev
@@ -75,6 +65,21 @@
       :stack-mode (and (logbitp 6 value-mask) stack-mode)
       :sibling above-sibling)))
 
+(defmethod event-process :after ((event destroy-notify) (widget base-widget))
+  (with-slots (window) event
+    (with-slots ((caw current-active-widget)) *root*
+      (when caw
+	(if (or (eq widget caw) (eq (lookup-widget window) caw))
+	    (dismiss-move-resize *root*)
+	    (return-from event-process nil))))
+    (when (or (decoration-p widget) (application-p (lookup-widget window)))
+      (if (eq *focus-type* :on-click)
+	  (give-focus-to-next-widget-in-desktop)
+          (multiple-value-bind (x y s child) (xlib:query-pointer *root-window*)
+	    (declare (ignore x y s))
+	    (let ((e (make-event :enter-notify :kind :inferior :mode :normal)))
+	      (event-process e (or (lookup-widget child) *root*))))))))
+
 ;; Specialized ones.
 
 ;;; Events for the root window
@@ -84,8 +89,7 @@
       (with-slots (icon) (lookup-widget (event-window event))
 	(when icon (uniconify icon))
 	(xlib:map-window (event-window event)))
-      (xlib:with-server-grabbed (*display*)
-	(procede-decoration (event-window event)))))
+      (procede-decoration (event-window event))))
 
 (defmethod event-process ((event unmap-notify) (root root))
   (declare (ignorable root))
@@ -103,12 +107,9 @@
 	 (setf (wm-state (get-child widget :application :window t)) 3))))))
 
 (defmethod event-process ((event destroy-notify) (root root))
-  (xlib:with-server-grabbed (*display*)
-    (let ((app (lookup-widget (event-window event))))
-      (when (and (application-p app) (not (application-master app)))
-	(ignore-errors (update-lists app 0 root))
-	(mapc #'remove-widget (list app (application-icon app)))
-	(xlib:destroy-window (widget-window (application-icon app)))))))
+  (let ((app (lookup-widget (event-window event))))
+    (when (and (application-p app) (not (application-master app)))
+      (remove-widget app))))
 
 (defmethod event-process ((event enter-notify) (root root))
   (with-slots (resize-status move-status) root
@@ -160,26 +161,25 @@
 
 (defmethod event-process ((event motion-notify) (root root))
   (declare (optimize (speed 3)))
-  (with-slots
-	(move-status resize-status (master current-active-decoration)) root
+  (with-slots (move-status resize-status (widget current-active-widget)) root
     (when (or move-status resize-status)
-      (if (decoration-active-p master)
+      (if (slot-value widget 'active-p)
 	  (when (event-hint-p event)
 	    (cond (move-status
-		   (move-widget master event *verbose-move* *move-mode*))
+		   (move-widget widget event *verbose-move* *move-mode*))
 		  (resize-status
-		   (resize master event *verbose-resize* *resize-mode*)))
+		   (resize widget event *verbose-resize* *resize-mode*)))
 	    (xlib:query-pointer (widget-window root)))
 	  (progn
 	    (format t "The pointer has been frozen !!~%")
-	    (setf (decoration-active-p master) t)
+	    (setf (slot-value widget 'active-p) t)
 	    (event-process (make-event :button-release) root))))))
 
 (defmethod event-process ((event button-release) (root root))
-  (with-slots (move-status resize-status (master current-active-decoration)
+  (with-slots (move-status resize-status (widget current-active-widget)
 	       menu1 menu2 menu3 window-menu) root
-    (cond (move-status (finish-move master *verbose-move* *move-mode*))
-	  (resize-status (finish-resize master *verbose-resize* *resize-mode*))
+    (cond (move-status (finish-move widget *verbose-move* *move-mode*))
+	  (resize-status (finish-resize widget *verbose-resize* *resize-mode*))
 	  (t
 	   (with-slots (code) event
 	     (when window-menu
@@ -190,14 +190,17 @@
 	       (when (= code 2) (setf menu2 nil))))))))
 
 (defmethod event-process :after ((event button-release) (root root))
-  (with-slots (move-status resize-status current-active-decoration) root
+  (with-slots (move-status resize-status current-active-widget) root
     (when (or move-status resize-status)
       (xlib:ungrab-server *display*)
       (xlib:ungrab-pointer *display*)
-      (setf (decoration-active-p current-active-decoration) nil)
-      (setf (values current-active-decoration move-status resize-status) nil))))
+      (setf (slot-value current-active-widget 'active-p) nil)
+      (setf (values current-active-widget move-status resize-status) nil))))
 
 ;;; Events for master (type: decoration)
+
+(defmethod event-process ((event map-request) (master decoration))
+  (xlib:map-window (event-window event)))
 
 (defmethod event-process ((event configure-notify) (master decoration))
   (with-slots ((master-window event-window) (app-window window)) event
@@ -215,9 +218,6 @@
 (defmethod event-process ((event unmap-notify) (master decoration))
   (xlib:unmap-window (widget-window master)))
 
-(defmethod event-process ((event map-request) (master decoration))
-  (xlib:map-window (event-window event)))
-
 (defmethod event-process ((event map-notify) (master decoration))
   (with-slots ((app-window window) (master-window event-window)) event
     (when (application-p (lookup-widget app-window))
@@ -230,13 +230,8 @@
 	      (wm-state app-window) 1)))))
 
 (defmethod event-process ((event destroy-notify) (master decoration))
-  (with-event-mask (*root-window*)
-    (xlib:with-server-grabbed (*display*)
-      (xlib:destroy-window (widget-window master))
-      (ignore-errors (update-lists (get-child master :application) 0 *root*))
-      (mapc #'remove-widget (cons master (decoration-children master)))
-      (xlib:destroy-window (get-child master :icon :window t))      
-      (dismiss-move-resize *root*))))
+  (xlib:destroy-window (widget-window master))
+  (mapc #'remove-widget (cons master (decoration-children master))))
 
 (defmethod event-process ((event visibility-notify) (master decoration))
   (event-process event (get-child master :application)))
@@ -260,8 +255,8 @@
       (set-focus input-model window (event-time event)))))
 
 (defmethod event-process ((event button-press) (application application))
-  (put-on-top application)
-  (xlib:allow-events *display* :replay-pointer))
+  (unwind-protect (put-on-top application)
+    (xlib:allow-events *display* :replay-pointer)))
 
 (defmethod event-process ((event focus-out) (application application))
   (with-slots (master) application
@@ -276,7 +271,7 @@
       (setf (netwm:net-active-window *root-window*) window))))
 
 (defmethod event-process ((event property-notify) (app application))
-  (with-slots (window master type) app
+  (with-slots (window master type transient-for) app
     (case (event-atom event)
       (:wm_normal_hints
        (when master
@@ -292,13 +287,14 @@
       ((:_net_wm_strut_partial :_net_wm_strut)
        (when (eq type :_net_wm_window_type_dock)
 	 (update-workarea-property *root*)))
-      (:wm_state
-       (update-lists app (car (wm-state window)) *root*)))))
+      (:wm_state (update-lists app (car (wm-state window)) *root*))
+      (:wm_transient_for (computes-transient-for app)))))
 
 (defmethod event-process ((event client-message) (application application))
   (with-slots (data type) event
     (with-slots (master window iconic-p icon) application
       (case type
+	(:WM_CHANGE_STATE (when (= 3 (aref data 0)) (iconify application)))
 	(:_WIN_STATE
 	 (let* ((to-change (aref data 0))
 		(mask (or (gnome:win-state window :result-type t) 0))
@@ -326,47 +322,31 @@
 	   (when (= 2 mode) (return-from event-process nil)) ; toggle.
 	   (when (= mode (if (member p1 p) 1 0)) (setf p1 nil))
 	   (when (= mode (if (member p2 p) 1 0)) (setf p2 nil))
-	   (macrolet ((or-eql (val &rest vars)
-			`(or ,@(loop for v in vars collect `(eql ,v ,val)))))
-	     (when (or-eql :_net_wm_state_hidden p1 p2)
-	       (if (= mode 0) (uniconify application) (iconify application)))
-	     (when (or-eql :_net_wm_state_fullscreen p1 p2)
-	       (when (fullscreenable-p application)
-		 (setf (fullscreen-mode application) (if (= mode 0) :off :on))))
-	     (when (or-eql :_net_wm_state_maximized_vert p1 p2)
-	       (maximize-window application 2))
-	     (when (or-eql :_net_wm_state_maximized_horz p1 p2)
-	       (maximize-window application 3))
-	     (when (and master (or-eql :_net_wm_state_shaded p1 p2))
-	       (shade master))
-	     (flet ((set-stack-state (s)
-		      (setf (netwm:net-wm-state window)
-			    (if (= 0 mode) (remove s p) (pushnew s p)))))
+	   (flet ((set-netwm-state (s mode)
+		    (setf (netwm:net-wm-state window)
+			  (if (= 0 mode) (setf p (remove s p)) (pushnew s p)))))
+	     (macrolet ((or-eql (val &rest vars)
+			  `(or ,@(loop for v in vars collect `(eql ,v ,val)))))
+	       (when (or-eql :_net_wm_state_hidden p1 p2)
+		 (if (= mode 0) (uniconify application) (iconify application)))
+	       (when (or-eql :_net_wm_state_fullscreen p1 p2)
+		 (when (fullscreenable-p application)
+		   (setf (fullscreen-mode application)
+			 (if (= mode 0) :off :on))))
+	       (when (or-eql :_net_wm_state_maximized_vert p1 p2)
+		 (maximize-window application 2))
+	       (when (or-eql :_net_wm_state_maximized_horz p1 p2)
+		 (maximize-window application 3))
+	       (when (and master (or-eql :_net_wm_state_shaded p1 p2))
+		 (shade master))
+	       (when (or-eql :_net_wm_state_sticky p1 p2)
+		 (set-netwm-state :_net_wm_state_sticky mode))
 	       (when (or-eql :_net_wm_state_above p1 p2)
-		 (set-stack-state :_net_wm_state_above)
+		 (set-netwm-state :_net_wm_state_above mode)
 		 (put-on-top application))
 	       (when (or-eql :_net_wm_state_below p1 p2)
-		 (set-stack-state :_net_wm_state_below)
+		 (set-netwm-state :_net_wm_state_below mode)
 		 (put-on-bottom application))))))
-	(:_NET_WM_DESKTOP
-	 (let* ((cur-desk (window-desktop-num window))
-		(new-desk (aref data 0))
-		(master-window (and master (widget-window master)))
-		(unmap-p (/= new-desk +any-desktop+ (current-desk)))
-		(operation (if unmap-p #'xlib:unmap-window #'xlib:map-window))
-		(focused-p (focused-p application)))
-	   (unless (= cur-desk new-desk)
-	     (when (shaded-p application) (shade application))
-	     (setf (window-desktop-num window) new-desk)
-	     (with-event-mask (*root-window*)
-	       (funcall operation (or master-window window))
-	       (when master-window
-		 (with-event-mask (master-window)
-		   (funcall operation window))))
-	     (when unmap-p
-	       (when (and focused-p (eq *focus-type* :on-click))
-		 (give-focus-to-next-widget-in-desktop))
-	       (setf (application-wants-focus-p application) nil)))))
 	(:_NET_ACTIVE_WINDOW
 	 (cond ((shaded-p application) (shade application))
 	       (iconic-p (uniconify icon)))
@@ -381,9 +361,8 @@
 	     :height (when (logbitp 3 value-mask) (aref data 4))
 	     :gravity (unless (zerop gravity)
 			(svref xlib::*win-gravity-vector* gravity)))))
-	(:_NET_CLOSE_WINDOW (close-widget application))
-	(:WM_CHANGE_STATE
-	 (when (= 3 (aref data 0)) (iconify application)))))))
+	(:_NET_WM_DESKTOP (migrate-application application (aref data 0)))
+	(:_NET_CLOSE_WINDOW (close-widget application))))))
 
 ;;; Events for buttons
 
@@ -444,9 +423,8 @@
 
 ;; Initialize the move process.
 (defmethod event-process ((event button-press) (title title-bar))
-  (with-slots (master armed active-p) title
-    (unless (event-send-event-p event)
-      (initialize-move master event))))
+  (unless (event-send-event-p event)
+    (initialize-move (button-master title) event)))
 
 ;; Start the movement.
 (defmethod event-process ((event motion-notify) (title title-bar))

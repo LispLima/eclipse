@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.14 2004/01/06 16:52:48 ihatchondo Exp $
+;;; $Id: gestures.lisp,v 1.15 2004/01/15 15:35:34 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -289,7 +289,7 @@
 
 (defun mouse-stroke-for-move-and-resize (event &key action)
   (let ((widget (lookup-widget (event-child event))))
-    (unless (decoration-p widget)
+    (unless (or (decoration-p widget) (application-p widget))
       (return-from mouse-stroke-for-move-and-resize nil))
     (when (eq *focus-type* :on-click)
       (focus-widget widget 0))
@@ -338,6 +338,7 @@
       (unless *depth*
 	(initialize-circulate-window root-win (xlib:drawable-display root-win)))
       (unless *windows* (return-from circulate-window-up-and-down nil))
+      (setf *windows* (loop for w in *windows* if (lookup-widget w) collect w))
       (circulate-window
           (lookup-widget root-win)
 	  :direction direction

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.33 2004/01/21 17:48:36 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.34 2004/01/23 15:41:43 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -64,12 +64,15 @@
 	      (aref wmsh 4) (aref wmsh 5)
 	      (+ hm (aref wmsh 6)) (+ vm (aref wmsh 7))))))
 
-(defmethod focused-p ((master decoration))
-  (focused-p (get-child master :application)))
-
 (defmethod focus-widget ((master decoration) timestamp)
   (with-slots (window input-model) (get-child master :application)
     (set-focus input-model window timestamp)))
+
+(defmethod focused-p ((master decoration))
+  (focused-p (get-child master :application)))
+
+(defmethod widget-position-fix-p ((master decoration))
+  (widget-position-fix-p (get-child master :application)))
 
 (defmethod shaded-p ((widget decoration))
   (with-slots (window) (get-child widget :application)
@@ -373,25 +376,33 @@
 	(setf (drawable-sizes window)
 	      (values (- width hmargin) (- height vmargin)))))))
 
-(defun initial-coordinates (app-window top-margin left-margin)
+(defun initial-coordinates (app-window frame-style)
   "Returns as multiple values the decoration initial coordinates."
   (let ((hint (ignore-errors (xlib:wm-normal-hints app-window))))
-    (if (and hint (xlib:wm-size-hints-user-specified-position-p hint))
-	(values (- (xlib:wm-size-hints-x hint) left-margin)
-		(- (xlib:wm-size-hints-y hint) top-margin))
-	(multiple-value-bind (x y) (window-position app-window)
-	  (values (max 0 (- x left-margin)) (max 0 (- y top-margin)))))))
-
+    (with-slots (top-margin left-margin vmargin hmargin) frame-style
+      (if (and hint (xlib:wm-size-hints-user-specified-position-p hint))
+	  (let ((x (xlib:wm-size-hints-x hint))
+		(y (xlib:wm-size-hints-y hint)))
+	    (case (xlib:wm-size-hints-win-gravity hint)
+	      (:north-east (values (- x hmargin) y))
+	      (:south-east (values (- x hmargin) (- y vmargin)))
+	      (:south-west (values x  (- y vmargin)))
+	      (:static (values (- x left-margin) (- y top-margin)))
+	      (t (values x y))))
+	  (multiple-value-bind (x y) (window-position app-window)
+	    (values (max 0 (- x left-margin)) (max 0 (- y top-margin))))))))
+  
 (defun make-decoration (app-window application &key theme)
-  (let* ((default (root-decoration-theme *root*))
-	 (dstyle (find-decoration-frame-style default app-window))
-	 (style (find-decoration-frame-style (or theme default) app-window)))
+  (unless theme (setf theme (root-decoration-theme *root*)))
+  (let* ((dstyle (find-decoration-frame-style theme app-window))
+	 (style dstyle))
+    (when (member :_net_wm_state_fullscreen (netwm:net-wm-state app-window))
+      (setf style (theme-default-style (lookup-theme "no-decoration"))))
     (with-slots (hmargin vmargin left-margin top-margin background) style
       (multiple-value-bind (wm-sizes gravity) 
 	  (recompute-wm-normal-hints app-window hmargin vmargin)
 	(multiple-value-bind (width height) (drawable-sizes app-window)
-	  (multiple-value-bind (x y)
-	      (initial-coordinates app-window top-margin left-margin)
+	  (multiple-value-bind (x y) (initial-coordinates app-window style)
 	    (let* ((window (xlib:create-window
 			       :parent (xlib:drawable-root app-window)
 			       :x x :y y
@@ -552,9 +563,15 @@
   nil)
 
 (defmethod menu-3-process ((event pointer-event) (w base-widget) &rest rest)
-  (declare (ignore rest))
+  (declare (ignore event w rest))
   (xlib:ungrab-pointer *display*)
   t)
+
+(defmethod menu-3-process ((ev motion-notify) (ap application) &key key)
+  (when (application-active-p ap)
+    (when (eql key :move)
+      (activate-move-resize ap *root* 'move-status *move-mode* *verbose-move*))
+    t))
 
 (defmethod menu-3-process ((ev motion-notify) (master decoration) &key key)
   (when (decoration-active-p master)
@@ -566,24 +583,39 @@
 	       master *root* 'move-status *move-mode* *verbose-move*)))
     t))
 
+(defmethod menu-3-process ((event enter-notify) (app application) &rest rest)
+  (declare (ignorable event rest))
+  (with-slots (window) (or (application-master app) app)
+    (xlib:grab-pointer window +pointer-event-mask+ :cursor *cursor-2*))
+  nil)
+
 (defmethod menu-3-process ((event enter-notify) (master decoration) &rest rest)
-  (declare (ignore rest))
+  (declare (ignorable event rest))
   (with-slots (window) master
     (xlib:grab-pointer window +pointer-event-mask+ :cursor *cursor-2*))
   nil)
 
+(defmethod menu-3-process ((event leave-notify) (app application) &rest rest)
+  (declare (ignore event rest))
+  (unless (application-master app) (xlib:ungrab-pointer *display*))
+  nil)
+
 (defmethod menu-3-process ((event leave-notify) (master decoration) &rest rest)
-  (declare (ignore rest))
+  (declare (ignore event master rest))
   (xlib:ungrab-pointer *display*)
   nil)
 
+(defmethod menu-3-process ((ev button-press) (app application) &key key)
+  (with-slots (master window) app
+    (case key
+      (:kill (kill-client-window window))
+      (:close (close-widget app))
+      (:resize (when master (initialize-resize master nil ev)))
+      (:move (initialize-move (or master app) ev)))
+    (when (member key '(:close :kill)) (xlib:ungrab-pointer *display*))))
+
 (defmethod menu-3-process ((ev button-press) (master decoration) &key key)
-  (case key
-    (:kill (kill-client-window (get-child master :application :window t)))
-    (:close (close-widget (get-child master :application)))
-    (:resize (initialize-resize master nil ev))
-    (:move (initialize-move master ev)))
-  (when (or (eq key :close) (eq key :kill)) (xlib:ungrab-pointer *display*)))
+  (menu-3-process ev (get-child master :application) :key key))
 
 (defun define-menu-3 (action)
   (lambda ()
@@ -680,12 +712,12 @@
 	  when (gethash win client-list) collect win into wins
 	  finally (setf (netwm:net-client-list-stacking window) wins))))
 
-(defun window-not-decorable-p (window)
-  "Return T if a window `should' not be decorated. Typically splash screen, 
+(defun window-not-decorable-p (window &optional type)
+  "Return T if a window `should' not be decorated. Typically, a splash screen,
   a desktop (e.g. nautilus) or a dock (e.g. gnome panels) will be assumed as
-  non-decorable windows. Such as windows holding the motif_wm_hints with the
+  non-decorable windows, as well as windows holding the motif_wm_hints with the
   flag `no decoration at all'."
-  (let ((netwm-type (netwm:net-wm-window-type window)))
+  (let ((netwm-type (or type (netwm:net-wm-window-type window))))
     (or (eql (motif-wm-decoration window) :OFF)
 	(member :_net_wm_window_type_splash netwm-type)
 	(member :_net_wm_window_type_desktop netwm-type)
@@ -693,37 +725,31 @@
 
 (defun procede-decoration (window)
   "Decore, if necessary, add/update properties, map or not, etc a window."
-  (let* ((scr-num (current-desk))
+  (let* ((rw (xlib:drawable-root window))
+	 (scr-num (current-vscreen rw))
 	 (application (create-application window nil))
 	 (win-workspace (or (window-desktop-num window) +any-desktop+))
-	 (stick-p (stick-p window))
-	 (theme (if (member :_net_wm_state_fullscreen
-			    (netwm:net-wm-state window))
-		    (lookup-theme "no-decoration")
-		    (root-decoration-theme *root*))))
+	 (stick-p (stick-p window)))
     (xlib:add-to-save-set window)
-    (unless (or stick-p
-		(< -1 win-workspace (number-of-virtual-screens *root-window*)))
+    (unless (or stick-p	(< -1 win-workspace (number-of-virtual-screens rw)))
       (setf win-workspace scr-num))
     (setf (window-desktop-num window) win-workspace)
-    (cond ((window-not-decorable-p window)
+    (cond ((not (or (= win-workspace scr-num) stick-p))
+	   (with-event-mask (rw)
+	     (setf (wm-state window) 1)
+	     (xlib:unmap-window window)
+	     (unless (window-not-decorable-p window)
+	       (decore-application window application :map nil))
+	     (update-lists application 1 *root*)))
+	  ((window-not-decorable-p window (application-type application))
 	   (setf (wm-state window) 1)
-	   (if (or (= win-workspace scr-num) stick-p)
-	       (xlib:map-window window)
-	       (with-event-mask (*root-window*)
-	   	 (xlib:unmap-window window))))
-	  ((or (= win-workspace scr-num) stick-p)
-	   (decore-application window application :theme theme))
-	  (t (with-event-mask (*root-window*)
-	       (xlib:unmap-window window)
-	       (decore-application window application :map nil :theme theme)
-	       (setf (wm-state window) 1)
-	       (update-lists application 1 *root*))))
+	   (xlib:map-window window))
+	  (t (decore-application window application :map t)))
     (with-slots (wants-focus-p input-model type) application
-      (unless (eq :_net_wm_window_type_desktop type)
+      (unless (member :_net_wm_window_type_desktop type)
 	(unless (eq input-model :no-input)
 	  (setf wants-focus-p *focus-new-mapped-window*)))
-      (when (eq :_net_wm_window_type_dock type)
+      (when (member :_net_wm_window_type_dock type)
 	(update-workarea-property *root*)))))
 
 ;;;; The main loop.
@@ -747,7 +773,7 @@
 			       (cons "Close" (define-menu-3 :close))
 			       (cons "Kill" (define-menu-3 :kill)))))
 
-    ;; Queue events for dressing windows already displayed at start time.
+    ;; Dress windows already displayed at start time.
     (flet ((ignorable-window-p (window)
 	     (let* ((wmh (xlib:get-property window :WM_HINTS))
 		    (initial-state (and wmh (logbitp 1 (car wmh)) (third wmh)))
@@ -760,13 +786,10 @@
 		(and (not wm-state)
 		     (eq (xlib:window-map-state window) :unmapped))))))
 
-      (xlib:with-event-queue (*display*)
-	(mapc #'(lambda (window)
-		  (unless (ignore-errors (ignorable-window-p window))
-		    (xlib:queue-event *display*
-				      :map-request
-				      :event-window *root-window*
-				      :window window)))
+      (xlib:with-server-grabbed (*display*)
+	(mapc (lambda (w)
+		(unless (ignore-errors (ignorable-window-p w))
+		  (procede-decoration w)))
 	      (xlib:query-tree *root-window*))))
 
     ;; Main loop
@@ -776,7 +799,8 @@
 	    (let ((event (get-next-event *display* :discard-p t :timeout 2)))
 	      (when event
 		(with-slots (event-window) event
-		  (event-process event (lookup-widget event-window))))
+		  (event-process event (lookup-widget event-window)))
+		(xlib:display-finish-output *display*))
 	      (when pt:preprogrammed-tasks (pt:execute-preprogrammed-tasks))
 	      (with-slots (sm-conn) *root*
 		(when sm-conn (handle-session-manager-request sm-conn *root*)))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.32 2004/01/22 22:44:24 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.33 2004/01/23 15:38:16 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -70,6 +70,10 @@
    "Returns true if the widget is shaded in the sens of the extended window
     manager specification."))
 
+(defgeneric widget-position-fix-p (widget)
+  (:documentation "Returns T if one of the state :win_state_fixed_position
+   :_net_wm_state_sticky is set for the widget."))
+
 (defgeneric root-manager (widget)
   (:documentation
    "Returns the root-window child that is the place holder for indicating that
@@ -101,7 +105,8 @@
   (define-null-method focus-widget widget timestamp)
   (define-null-method repaint widget theme-name focus)
   (define-null-method root-manager widget)
-  (define-null-method shaded-p widget))
+  (define-null-method shaded-p widget)
+  (define-null-method widget-position-fix-p widget))
 
 (defmethod remove-widget ((widget base-widget))
   (remhash (widget-window widget) *widget-table*))
@@ -131,9 +136,9 @@
   ((resize-status :initform nil :accessor root-resize-status)
    (move-status :initform nil :accessor root-move-status)
    (default-cursor :initform nil :accessor root-default-cursor)
-   (current-active-decoration :initform nil)
+   (current-active-widget :initform nil)
    (decoration-theme :initform nil :accessor root-decoration-theme)
-   (properties-manager-window :initform nil :initarg :manager)
+   (properties-manager-window :initarg :manager :reader root-manager)
    (menu1 :initform nil)
    (menu2 :initform nil)
    (menu3 :initform nil)
@@ -142,17 +147,16 @@
    (desktop :initform nil :accessor root-desktop)
    (sm-conn :initform nil :accessor root-sm-conn)))
 
-(defmethod root-manager ((root root))
-  (slot-value root 'properties-manager-window))
-
-(defmethod get-root-desktop ((root root) &optional window-p)
+(defmethod root-desktop ((root root) &optional window-p)
   (with-slots (desktop) root
     (when (first desktop)
       (if window-p (widget-window (first desktop)) (first desktop)))))
+
 (defmethod add-desktop-application ((root root) (desktop base-widget))
-  (push desktop (root-desktop root)))
+  (push desktop (slot-value root 'desktop)))
+
 (defmethod remove-desktop-application ((root root) (desktop base-widget))
-  (setf (root-desktop root) (delete desktop (root-desktop root))))
+  (setf (root-desktop root) (delete desktop (slot-value root 'desktop))))
 
 (defmethod focus-widget ((root root) timestamp)
   (declare (ignorable timestamp))
@@ -160,11 +164,11 @@
   (setf (netwm:net-active-window (widget-window root)) :none))
 
 (defun dismiss-move-resize (root)
-  (with-slots (resize-status move-status current-active-decoration) root
+  (with-slots (resize-status move-status current-active-widget) root
     (when (or *verbose-move* *verbose-resize*) (undraw-geometry-info-box))
-    (when (or (and (eql *move-mode* :opaque) move-status)
-	      (and (eql *resize-mode* :opaque) resize-status))
-      (setf (values move-status resize-status current-active-decoration) nil)
+    (when (or move-status resize-status)
+      (setf (values move-status resize-status current-active-widget) nil)
+      (xlib:ungrab-server *display*)
       (xlib:ungrab-pointer *display*))))
 
 (defun close-sm-connection (root &key (exit-p t))
@@ -183,6 +187,7 @@
 
 (defclass application (base-widget)
   ((master :initarg :master :reader application-master)
+   (active-p :initform nil :accessor application-active-p)
    (input-model :initform nil :initarg :input :reader application-input-model)
    (icon :initform nil :initarg :icon :reader application-icon)
    (iconic-p :initform nil :accessor application-iconic-p)
@@ -190,12 +195,34 @@
    (wants-focus-p :initform nil :accessor application-wants-focus-p)
    (initial-geometry :initform (make-geometry) :initarg :initial-geometry)
    (full-geometry :initform (make-geometry) :initarg :full-geometry)
-   (type :initarg :type :accessor application-type)))
+   (type :initarg :type :accessor application-type)
+   (transient-for :initarg :transient-for :accessor application-transient-for)
+   (dialogs :initform nil :accessor application-dialogs)))
 
-(defmethod remove-widget :after ((app application))
-  (case (application-type app)
-    (:_net_wm_window_type_desktop (remove-desktop-application *root* app))
-    (:_net_wm_window_type_dock (update-workarea-property *root*))))
+(defmethod application-dialogs ((application application))
+  (labels ((find-all-dialogs (leader)
+	     (loop for dialog in (reverse (slot-value leader 'dialogs))
+		   append (cons dialog (find-all-dialogs dialog)))))
+    (let* ((leader (application-leader application))
+	   (dialogs (find-all-dialogs leader)))
+      (if (eq leader application) dialogs (cons leader dialogs)))))
+
+(defmethod (setf application-wants-iconic-p) :after (value (app application))
+  (loop for dialog in (application-dialogs app)
+	do (setf (slot-value dialog 'wants-iconic-p) value)))
+
+(defmethod remove-widget :after ((application application))
+  (with-slots (type transient-for icon) application
+    (cond ((member :_net_wm_window_type_desktop type)
+	   (remove-desktop-application *root* application))
+	  ((member :_net_wm_window_type_dock type)
+	   (update-workarea-property *root*)))
+    (when transient-for
+      (with-slots (dialogs) transient-for
+	(setf dialogs (delete application dialogs))))
+    (remove-widget icon)
+    (ignore-errors (update-lists application 0 *root*))
+    (ignore-errors (xlib:destroy-window (widget-window icon)))))
 
 (defmethod close-widget ((application application))
   (with-slots (window) application
@@ -219,6 +246,11 @@
 (defmethod shaded-p ((widget application))
   (member :_net_wm_state_shaded (netwm:net-wm-state (widget-window widget))))
 
+(defmethod widget-position-fix-p ((application application))
+  (with-slots (window) application
+    (or (member :win_state_fixed_position (gnome:win-state window))
+	(member :_net_wm_state_sticky (netwm:net-wm-state window)))))
+
 (defmethod shade ((application application))
   (with-slots (master) application
     (and master (shade master))))
@@ -231,7 +263,7 @@
 
 (defmethod put-on-bottom ((widget application))
   (with-slots (master window) widget
-    (let ((desk-w (get-root-desktop *root* t)))
+    (let ((desk-w (root-desktop *root* t)))
       (setf (window-priority (if master (widget-window master) window) desk-w)
 	    (if desk-w :above :below)))))
 
@@ -283,6 +315,36 @@
 	   (setf prop (delete :_net_wm_state_fullscreen prop)))
        (setf (netwm:net-wm-state window) prop))))
 
+(defun application-leader (application)
+  "Returns the \"leader\" of an application. The leader is computed 
+  recursively from the transient-for application hint."
+  (with-slots (transient-for) application
+    (if transient-for (application-leader transient-for) application)))
+
+(defun migrate-application (application new-screen-number)
+  "Put an application, all its related dialogs and the top-level it is
+  transient-for (if any) to the a new virtual screen."
+  (with-slots (master window transient-for) application
+    (let* ((focused-p (focused-p application))
+	   (unmap-p (/= new-screen-number +any-desktop+ (current-desk)))
+	   (operation (if unmap-p #'xlib:unmap-window #'xlib:map-window)))
+      (flet ((migrate (application)
+	       (with-slots (master window) application
+		 (when (shaded-p application) (shade application))
+		 (setf (window-desktop-num window) new-screen-number)
+		 (with-event-mask (*root-window*)
+		   (let ((master-window (when master (widget-window master))))
+		     (funcall operation (or master-window window))
+		     (when master-window
+		       (with-event-mask (master-window)
+			 (funcall operation window)))))
+		 (setf (application-wants-focus-p application) nil))))
+	(unless (= (window-desktop-num window) new-screen-number)
+	  (mapc #'migrate (application-dialogs application))
+	  (unless transient-for (migrate application))
+	  (when (and unmap-p focused-p (eq *focus-type* :on-click))
+	    (give-focus-to-next-widget-in-desktop)))))))
+
 (defun undecore-application (application &key state)
   (with-slots (window master icon) application
     (if master
@@ -294,6 +356,14 @@
       (setf (wm-state window) state)
       (when (= state 0)
 	(delete-properties window +properties-to-delete-on-withdrawn+)))))
+
+(defun computes-transient-for (application)
+  (with-slots (transient-for (win window)) application
+    (let ((transient (lookup-widget (ignore-errors (xlib:transient-for win)))))
+      (setf transient-for 
+	    (when (and transient (not (eq *root* transient)))
+	      (push application (slot-value transient 'dialogs))
+	      transient)))))
 
 (defun find-input-model (window)
   "Returns the input model keyword of this window according to ICCCM (4.1.7)."
@@ -326,10 +396,11 @@
 		:window window :master master :input input :type type
 		:initial-geometry initial-geometry
 		:full-geometry (copy-geometry initial-geometry))))
-    (ignore-errors 
+    (ignore-errors
+      (computes-transient-for app)
       (create-icon app master)
       (if (or desktop-p dock-p)
-	  (let* ((prec-desk (get-root-desktop *root* t))
+	  (let* ((prec-desk (root-desktop *root* t))
 		 (stack-mode (if prec-desk :above :below))
 		 (netwm-state (ignore-errors (netwm:net-wm-state window))))
 	    (pushnew :_net_wm_state_skip_pager netwm-state)
@@ -389,15 +460,15 @@
       (xlib:with-gcontext (gctxt :tile pix :fill-style :tiled :ts-x x :ts-y y)
 	(xlib:draw-rectangle window gctxt x y width height t))))
 
-;; When calling this function arguments non optional are
-;; :parent :x :y :width :height
-;; the others are optional.
 (defun create-button (button-type &key parent x y width height
 				  item background master (border-width 0)
 				  (border *black*)
 				  (gravity :north-west)
 				  (cursor (root-default-cursor *root*))
 				  (event-mask +std-button-mask+))
+  ;; When calling this function arguments non optional are
+  ;; :parent :x :y :width :height
+  ;; the others are optional.
   (when (and (not (xlib:cursor-p cursor)) (keywordp cursor))
     (setf cursor (get-x-cursor *display* cursor)))
   (make-instance
@@ -458,9 +529,9 @@
 	(setf x (+ w 20))))
     (draw-centered-text window gcontext item-to-draw :color *black* :x x)))
 
-;; Self destructing message box after 2 seconds.
 (defun timed-message-box (window &rest messages)
-  "Map a message box, of parent `window'. Its life time is 2 seconds."
+  "Map a small box, of parent `window',  displaying the given string messages.
+  This box will automatically destroyed two seconds after being mapped."
   (with-slots (window) (create-message-box messages :parent window)
     (xlib:map-window window)
     (pt:arm-timer 2 (lambda ()
@@ -505,11 +576,7 @@
 (defmethod (setf button-active-p) :after (value (button push-button))
   (declare (ignorable value))
   (with-slots (window master) button
-    ;; We may have irrelevant invokation of this method when it's invoked
-    ;; after a close-widget has been done (such as after clicking on the 
-    ;; close button of a decoration or something similar). To avoid
-    ;; inconsistant X requests we'll ensure that the widget still exists.
-    (when (and (decoration-p master) (lookup-widget window))
+    (when (decoration-p master)
       (with-slots (name) (decoration-frame-style master)
 	(repaint button name (focused-p master))))))
 
@@ -689,7 +756,7 @@
   (with-gensym (p sibling)
     `(let ((,p ,priority) ,sibling)
        (when (eq ,priority :below)
-	 (setf ,sibling (get-root-desktop *root* t)
+	 (setf ,sibling (root-desktop *root* t)
 	       ,p (if ,sibling :above :below)))
        (setf (xlib:window-priority (widget-window ,icon) ,sibling) ,p))))
 
@@ -698,8 +765,8 @@
 
 (defmethod remove-widget :after ((widget icon))
   (with-slots (pixmap-to-free) widget
-    (when pixmap-to-free
-      (xlib:free-pixmap pixmap-to-free))))
+    (and pixmap-to-free (xlib:free-pixmap pixmap-to-free))
+    (setf pixmap-to-free nil)))
 
 (defmethod repaint ((widget icon) theme-name focus)
   (declare (ignorable theme-name focus))
@@ -709,33 +776,42 @@
 
 (defmethod iconify ((application application))
   (icon-box-update)
-  (with-slots (window iconic-p wants-focus-p icon master) application
-    (when (shaded-p application)
-      (shade application))
-    (setf iconic-p t wants-focus-p t)
-    (when (eq (xlib:window-map-state window) :unmapped)
-      (setf (wm-state window) 3))
-    (xlib:unmap-window window)
-    (when master
-      (xlib:unmap-window (widget-window master)))
-    (when (stringp (slot-value icon 'item-to-draw))
-      (setf (slot-value icon 'item-to-draw) (wm-icon-name window)))
-    (when *icon-hints*
-      (xlib:map-window (widget-window icon))
-      (setf (icon-priority icon) :below))
+  (flet ((_iconify_ (application &optional (map-icons *icon-hints*))
+	   (with-slots (window iconic-p wants-focus-p icon master) application
+	     (when (shaded-p application)
+	       (shade application))
+	     (setf iconic-p t wants-focus-p t)
+	     (when (eq (xlib:window-map-state window) :unmapped)
+	       (setf (wm-state window) 3))
+	     (xlib:unmap-window window)
+	     (when master
+	       (xlib:unmap-window (widget-window master)))
+	     (when (stringp (slot-value icon 'item-to-draw))
+	       (setf (slot-value icon 'item-to-draw) (wm-icon-name window)))
+	     (when map-icons
+	       (xlib:map-window (widget-window icon))
+	       (setf (icon-priority icon) :below)))))
+    (with-slots (transient-for) application
+      (let ((seq (application-dialogs application)))
+	(mapc (lambda (a) (_iconify_ a nil)) (if transient-for (cdr seq) seq))  
+	(_iconify_ (if transient-for (car seq) application))))
     (when (eq *focus-type* :on-click)
       (give-focus-to-next-widget-in-desktop))))
 
 (defmethod uniconify ((icon icon))
-  (with-slots (application desiconify-p) icon
-    (when (shaded-p application)
-      (shade application))
-    (setf desiconify-p nil)
-    (with-slots (window) application
-      (setf (window-desktop-num window)
-	    (if (stick-p window) +any-desktop+ (current-desk))))
-    (unmap-icon-window icon)
-    (xlib:map-window (widget-window application))))
+  (flet ((_uniconify_ (application)
+	   (with-slots (icon window) application
+	     (when (shaded-p application)
+	       (shade application))
+	     (setf (icon-desiconify-p icon) nil)
+	     (setf (window-desktop-num window)
+		   (if (stick-p window) +any-desktop+ (current-desk)))
+	     (unmap-icon-window icon)
+	     (xlib:map-window window))))
+    (with-slots (application) icon
+      (unless (application-transient-for application)
+	(_uniconify_ application))
+      (mapc #'_uniconify_ (application-dialogs application)))))
 
 (defmethod unmap-icon-window ((icon icon))
   (with-slots (window master application) icon

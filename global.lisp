@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.18 2004/01/20 16:09:59 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.19 2004/02/02 09:43:58 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -73,6 +73,7 @@
 (defparameter *close-display-p* t)
 (defparameter *menu-1-items* nil)
 (defparameter *change-desktop-message-active-p* t)
+(defparameter *save-and-restore-pointer-position-during-workspace-switch* nil)
 (defparameter *verbose-move* t)
 (defparameter *verbose-resize* t)
 (defparameter *verbose-window-cycling* t)

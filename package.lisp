@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.13 2004/01/07 12:48:28 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.14 2004/01/15 15:35:34 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -118,7 +118,7 @@
    "GEOMETRY-X"				  ;function
    "GEOMETRY-Y"				  ;function
    "GET-MAX-ITEM-WIDTH"			  ;function
-   "GET-SCREEN-CONTENT"                   ;function
+   "SCREEN-CONTENT"                       ;function
    "GET-VISIBLE-WINDOWS"		  ;function
    "GIVE-FOCUS-TO-NEXT-WIDGET-IN-DESKTOP" ;function
    "HIGHLIGHT"				  ;function
@@ -259,7 +259,6 @@
    "FREE-FRAME-STYLE"			  ;generic function
    "GET-CHILD"				  ;generic function
    "GET-PIXMAP"				  ;generic function
-   "GET-ROOT-DESKTOP"			  ;generic function
    "ICON-APPLICATION"			  ;generic function
    "ICON-CREATION-TIME"			  ;generic function
    "ICON-DESICONIFY-P"			  ;generic function
@@ -323,6 +322,7 @@
    "DEFTYPEDPARAMETER"			  ;macro
    "ID->ATOM-NAME"			  ;macro
    "WITH-ROOT-CURSOR"			  ;macro
+   "WITH-GENSYM"                          ;macro
 
    "+ANY-DESKTOP+"			  ;constant
    "+APPLICATION-MASK+"                   ;constant
@@ -343,25 +343,35 @@
    "*DISPLAY*"				  ;variable
    "*ECLIPSE-DIRECTORY*"		  ;variable
 
-   ;; user custom.
-   "*CHANGE-DESKTOP-MESSAGE-ACTIVE-P*"	  ;variable
-   "*CLOSE-DISPLAY-P*"			  ;variable
-   "*CYCLE-ICONS-P*"                      ;variable
-   "*DOUBLE-CLICK-SPEED*"                 ;variable
-   "*FOCUS-TYPE*"			  ;variable
-   "*FOCUS-NEW-MAPPED-WINDOW*"		  ;variable
-   "*FOCUS-WHEN-WINDOW-CYCLE*"		  ;variable
-   "*ICON-BOX-SORT-FUNCTION*"		  ;variable
-   "*ICON-HINTS*"			  ;variable
-   "*MAXIMIZE-FILL*"                      ;variable
-   "*MAXIMIZE-MODIFIER*"                  ;variable
-   "*MENU-1-ITEMS*"			  ;variable
-   "*MOVE-MODE*"			  ;variable
-   "*RESIZE-MODE*"			  ;variable
-   "*SCREEN-EDGE-RESISTANT-P*"            ;variable
-   "*STANDARD-WINDOW-EDGE-RESISTANT-P*"   ;variable
-   "*VERBOSE-MOVE*"			  ;variable
-   "*VERBOSE-RESIZE*"			  ;variable
-   "*VERBOSE-WINDOW-CYCLING*"             ;variable
-   "*WARP-POINTER-WHEN-CYCLE*"		  ;variable   
+   ;; user custom variables.
+   "*CHANGE-DESKTOP-MESSAGE-ACTIVE-P*"	  
+   "*CLOSE-DISPLAY-P*"			  
+   "*CYCLE-ICONS-P*"                      
+   "*DOUBLE-CLICK-SPEED*"                 
+   "*FOCUS-TYPE*"			  
+   "*FOCUS-NEW-MAPPED-WINDOW*"		  
+   "*FOCUS-WHEN-WINDOW-CYCLE*"		  
+   "*ICON-BOX-SORT-FUNCTION*"		  
+   "*ICON-HINTS*"			  
+   "*MAXIMIZE-FILL*"                      
+   "*MAXIMIZE-MODIFIER*"                  
+   "*MENU-1-ITEMS*"			  
+   "*MOVE-MODE*"			  
+   "*RESIZE-MODE*"			  
+   "*SAVE-AND-RESTORE-POINTER-POSITION-DURING-WORKSPACE-SWITCH*"
+   "*SCREEN-EDGE-RESISTANT-P*"            
+   "*STANDARD-WINDOW-EDGE-RESISTANT-P*"   
+   "*VERBOSE-MOVE*"			  
+   "*VERBOSE-RESIZE*"			  
+   "*VERBOSE-WINDOW-CYCLING*"             
+   "*WARP-POINTER-WHEN-CYCLE*"   
    ))
+
+(defpackage "ECLIPSE-EXTENSIONS"
+  (:nicknames eclipse-ext)
+  (:use clx-extensions eclipse-internals common-lisp)
+  (:size 50)
+  (:documentation
+   "This is the package definition for in which Eclipse extensions should be
+   definied. If you want to write an extension for eclipse export in this
+   package all the external symbols that your extension provides."))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.12 2004/01/29 00:43:58 ihatchondo Exp $
+;;; $Id: move-resize.lisp,v 1.13 2004/01/29 00:50:59 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -64,20 +64,19 @@
 	        :parent *root-window* :x 0 :y 0 :width 100 :height 100)))
     (setf *clone* (make-decoration win (create-application win nil)))))
 
-(defun update-clone (master)
-  (multiple-value-bind (x y w h) (window-geometry (widget-window master))
-    (with-slots (window wm-size-hints frame-style) *clone*
-      (setf wm-size-hints (decoration-wm-size-hints master)
-	    frame-style (decoration-frame-style master)
-	    (drawable-sizes window) (values w h)
-	    (window-position window) (values x y)))))
+(defun update-*clone* (x y w h decoration-frame-style &optional wm-hints)
+  (with-slots (window wm-size-hints frame-style) *clone*
+    (setf wm-size-hints wm-hints
+	  frame-style decoration-frame-style
+	  (drawable-sizes window) (values w h)
+	  (window-position window) (values x y))))
 
 (defun draw-window-grid (window gctxt dest-window)
   "Draw a 3x3 grid representing the future window geometry on the dest-window."
   (declare (optimize (speed 3) (safety 0)))
   (multiple-value-bind (x y width height) (window-geometry window)
-    (declare (type (signed-byte 16) x y)
-	     (type (unsigned-byte 16) width height))
+    (declare (type (signed-byte 16) x y))
+    (declare (type (unsigned-byte 16) width height))
     (decf width) (decf height)
     (xlib:with-gcontext (gctxt :function 8 :subwindow-mode :include-inferiors)
       (xlib:draw-rectangle dest-window gctxt x y width height)
@@ -91,32 +90,48 @@
 		  (+ x w) y (+ w x) (+ y height)
 		  (+ x (* 2 w)) y (+ x (* 2 w)) (+ y height)))))))
 
-(defun activate-move-resize (master root status mode verbose-p)
+(defun activate-move-resize (widget root status mode verbose-p)
   "Sets some internal values for the future move or resize animations."
-  (with-slots (resize-status move-status current-active-decoration window) root
-    (with-slots ((master-window window) gcontext active-p) master
+  (with-slots (resize-status move-status current-active-widget window) root
+    (with-slots ((widget-window window) gcontext active-p) widget
       (when (and active-p (not (or resize-status move-status)))
 	(or *clone* (initialize-clone))
-	(update-clone master)
+	(update-clone widget)
 	(grab-root-pointer)
 	(setf (slot-value root status) t
-	      current-active-decoration master)
+	      current-active-widget widget)
 	(when verbose-p
 	  (initialize-geometry-info-box)
-	  (multiple-value-bind (x y w h) (window-geometry master-window)
-	    (if (eq status 'resize-status)
+	  (multiple-value-bind (x y w h) (window-geometry widget-window)
+	    (if (and (eq status 'resize-status) (decoration-p widget))
 		(multiple-value-bind (a b c d iw ih bw bh)
-		    (decoration-wm-hints master)
+		    (decoration-wm-hints widget)
 		  (declare (ignore a b c d))
 		  (display-geometry (/ (- w bw) iw) (/ (- h bh) ih)))
 		(display-coordinates x y))))
 	(when (eq mode :box)
 	  (xlib:grab-server *display*)
-	  (draw-window-grid master-window gcontext window))))))
+	  (draw-window-grid widget-window gcontext window))))))
+
+(defgeneric update-clone (widget)
+  (:documentation "Initilize a widget clone for move/resize animations."))
+
+(defmethod update-clone ((application application))
+  (multiple-value-bind (x y w h) (window-geometry (widget-window application))
+    (update-*clone*
+        x y w h (theme-default-style (lookup-theme "no-decoration")))))
+
+(defmethod update-clone ((master decoration))
+  (multiple-value-bind (x y w h) (window-geometry (widget-window master))
+    (with-slots (frame-style wm-size-hints) master
+      (update-*clone* x y w h frame-style wm-size-hints))))
 
 ;;;; Resize.
 
 (defparameter *card-point* :se)
+
+(defgeneric resize-from (widget)
+  (:documentation "Resize a decoration or an application depending on widget"))
 
 (defun initialize-resize (master edge pointer-event)
   "Initialize the internal settings for the resize process."
@@ -137,33 +152,6 @@
 	((:se :sw) (setf *card-point* :south))
 	((:east :west) (setf *card-point* nil))))
     (setf (decoration-active-p master) (if *card-point* t nil))))
-
-(defgeneric resize-from (widget)
-  (:documentation 
-   "Resize an application or a master according to the given master or
-    application respectively."))
-
-(defmethod resize-from ((master decoration))
-  (declare (optimize (speed 3) (safety 0)))
-  (with-slots (window frame-style) master
-    (let ((hmargin (style-hmargin frame-style))
-	  (vmargin (style-vmargin frame-style)))
-      (declare (type (unsigned-byte 16) hmargin vmargin))
-      (multiple-value-bind (w h) (drawable-sizes window)
-	(declare (type xlib:card16 w h))
-	(setf (drawable-sizes (get-child master :application :window t))
-	      (values (- w hmargin) (- h vmargin)))))))
-
-(defmethod resize-from ((application application))
-  (declare (optimize (speed 3) (safety 0)))
-  (with-slots (window master) application
-   (let ((hmargin (style-hmargin (decoration-frame-style master)))
-	 (vmargin (style-vmargin (decoration-frame-style master))))
-     (declare (type (unsigned-byte 16) hmargin vmargin))
-     (multiple-value-bind (w h) (drawable-sizes window)
-       (declare (type xlib:card16 w h))
-       (setf (drawable-sizes (widget-window master))
-	     (values (+ w hmargin) (+ h vmargin)))))))
 
 (defun where-is-pointer (widget)
   "Initialize the resize process when activated from one the decoration edge." 
@@ -206,31 +194,17 @@
 (defun check-size (size base inc min-size max-size)
   "If the given size respects all the given constraints, then return size. 
   Otherwise returns the nearest satisfying size."
-  (declare (optimize (speed 3) (safety 0))
-	   (type xlib:card16 size base inc min-size max-size))
+  (declare (optimize (speed 3) (safety 0)))
+  (declare (type xlib:card16 size base inc min-size max-size))
   (if (< min-size size max-size)
       (let ((k (mod (- size base) inc)))
 	(declare (type xlib:card16 k))
 	(if (= k 0) size (+ inc (- size k))))
       (max min-size (min size max-size))))
 
-(defmethod resize ((master decoration) (event motion-notify)
-		   &optional verbose-p mode)
-  (declare (optimize (speed 3) (safety 0))
-	   (inline update-edges-geometry %resize%))
-  (if (eql mode :opaque)
-      (with-event-mask ((slot-value master 'window))
-	(%resize% master event verbose-p)
-	(update-edges-geometry master)
-	(resize-from master))
-      (with-slots (window gcontext) *clone*
-	(draw-window-grid window gcontext *root-window*)
-	(%resize% *clone* event verbose-p)
-	(draw-window-grid window gcontext *root-window*))))	
-
 (defun %resize% (master motion-notify-event verbose-p)
-  (declare (optimize (speed 3) (safety 0))
-	   (inline check-size))
+  (declare (optimize (speed 3) (safety 0)))
+  (declare (inline check-size))
   (let* ((master-win (widget-window master))
 	 (root-x (event-root-x motion-notify-event))
 	 (root-y (event-root-y motion-notify-event)))
@@ -238,8 +212,8 @@
     (decf root-x *delta-x*)
     (decf root-y *delta-y*)
     (multiple-value-bind (x y width height) (window-geometry master-win)
-      (declare (type xlib:int16 x y)
-	       (type xlib:card16 width height))
+      (declare (type xlib:int16 x y))
+      (declare (type xlib:card16 width height))
       (multiple-value-bind (tmp-width tmp-height new-x new-y)
 	  (ecase *card-point*
 	    (:north (values width (+ height (- y root-y)) x root-y))
@@ -251,8 +225,8 @@
 	    (:west (values (+ width (- x root-x)) height root-x y))
 	    (:nw (values (+ width (- x root-x)) (+ height (- y root-y))
 			 root-x root-y)))
-	(declare (type xlib:int16 new-x new-y)
-		 (type xlib:card16 tmp-width tmp-height))
+	(declare (type xlib:int16 new-x new-y))
+	(declare (type xlib:card16 tmp-width tmp-height))
 	(multiple-value-bind (minw minh maxw maxh incw inch basew baseh)
 	    (decoration-wm-hints master)
 	  (declare (type xlib:card16 minw minh maxw maxh incw inch basew baseh))
@@ -272,11 +246,10 @@
 	      (setf (drawable-sizes master-win)
 		    (values new-width new-height)))))))))
 
-;; Finish the resize process:
-;; call when button-release on root
-;; and when root-resize-status is not nil.
 (defun finish-resize (master &optional verbose-p mode)
   "Terminate the resize work. (undraw grid, geometry infos, ...)"
+  ;; Finish the resize process:
+  ;; called when button-release on root and root-resize-status is not nil.
   (with-slots (window gcontext) master
     (when (and (decoration-active-p master) (eql mode :box))
       (draw-window-grid (widget-window *clone*) gcontext *root-window*)
@@ -288,9 +261,52 @@
   (when verbose-p (undraw-geometry-info-box))
   (setf *card-point* nil))
 
+(defmethod resize-from ((master decoration))
+  (declare (optimize (speed 3) (safety 0)))
+  (with-slots (window frame-style) master
+    (let ((hmargin (style-hmargin frame-style))
+	  (vmargin (style-vmargin frame-style)))
+      (declare (type (unsigned-byte 16) hmargin vmargin))
+      (multiple-value-bind (w h) (drawable-sizes window)
+	(declare (type xlib:card16 w h))
+	(setf (drawable-sizes (get-child master :application :window t))
+	      (values (- w hmargin) (- h vmargin)))))))
+
+(defmethod resize-from ((application application))
+  (declare (optimize (speed 3) (safety 0)))
+  (with-slots (window master) application
+   (let ((hmargin (style-hmargin (decoration-frame-style master)))
+	 (vmargin (style-vmargin (decoration-frame-style master))))
+     (declare (type (unsigned-byte 16) hmargin vmargin))
+     (multiple-value-bind (w h) (drawable-sizes window)
+       (declare (type xlib:card16 w h))
+       (setf (drawable-sizes (widget-window master))
+	     (values (+ w hmargin) (+ h vmargin)))))))
+
+(defmethod resize ((master decoration) (event motion-notify)
+		   &optional verbose-p mode)
+  (declare (optimize (speed 3) (safety 0)))
+  (declare (inline update-edges-geometry %resize%))
+  (if (eql mode :opaque)
+      (with-event-mask ((slot-value master 'window))
+	(%resize% master event verbose-p)
+	(update-edges-geometry master)
+	(resize-from master))
+      (with-slots (window gcontext) *clone*
+	(draw-window-grid window gcontext *root-window*)
+	(%resize% *clone* event verbose-p)
+	(draw-window-grid window gcontext *root-window*))))	
+
 ;;;; Move.
 
 (defvar *screen-windows* nil)
+
+(defgeneric initialize-move (widget event)
+  (:documentation "Initialize internal values for animating the future widget
+    movements."))
+
+(defgeneric finalize-move (widget)
+  (:documentation "finalize (send synthetic configure-notify ..."))
 
 (defun region-intersect-region-p (x y w h x2 y2 w2 h2)
   "Returns true if the rectangular regions, described by the two four-uple
@@ -306,12 +322,14 @@
   a list of window that should not be used."
   (declare (optimize (speed 3) (safety 0)))
   (declare (type (signed-byte 16) x y))
-  (declare (inline region-intersect-region-p))
   (declare (type (unsigned-byte 16) w h))
+  (declare (inline region-intersect-region-p))
   (loop for win in *screen-windows*
-	for master = (application-master (lookup-widget win))
+	for widget = (lookup-widget win)
+	for master = (when widget (application-master widget))
 	when master do (setf win (widget-window master)) end
-	when (and (not (member win windows-to-skip :test #'xlib:window-equal))
+	when (and (or widget master)
+		  (not (member win windows-to-skip :test #'xlib:window-equal))
 		  (multiple-value-bind (x2 y2 w2 h2) (window-geometry win)
 		    (declare (type (signed-byte 16) x2 y2))
 		    (declare (type (unsigned-byte 16) w2 h2))
@@ -364,23 +382,6 @@
 	   (setf y (- scr-h h1)))))
   (values x y))
 
-(defmethod initialize-move ((widget base-widget) (event button-press))
-  "Initialize internal values for animating the future widget movements."
-  (with-slots (window active-p) widget
-    (setf (window-priority window) :above)
-    (setf active-p  t
-	  *delta-x* (- (event-root-x event) (xlib:drawable-x window))
-	  *delta-y* (- (event-root-y event) (xlib:drawable-y window))
-	  *screen-windows*
-	  (screen-content (current-desk) :skip-dock nil :skip-taskbar nil))))
-
-(defmethod initialize-move :after ((master decoration) (event button-press))
-  (let ((app-window (get-child master :application :window t)))
-    (when (or (member :win_state_fixed_position (gnome:win-state app-window))
-	      (member :_net_wm_state_sticky (netwm:net-wm-state app-window)))
-      (setf (decoration-active-p master) nil
-	    *screen-windows* nil))))
-
 (defun move-widget (widget event &optional verbose-p mode)
   (declare (optimize (speed 3) (safety 0)))
   (with-slots (window active-p gcontext) widget
@@ -397,23 +398,42 @@
 	    (multiple-value-setq (new-x new-y)
 	      (perform-root-dock aux new-x new-y))))
 	(when verbose-p (display-coordinates new-x new-y))
-	(if (and (decoration-p widget) (eql mode :box))
+	(if (and (or (decoration-p widget) (application-p widget))
+		 (eql mode :box))
 	    (with-slots (window) *clone*	    
 	      (draw-window-grid window gcontext *root-window*)
 	      (setf (window-position window) (values new-x new-y))
 	      (draw-window-grid window gcontext *root-window*))
 	    (setf (window-position window) (values new-x new-y)))))))
 
-(defun finish-move (master &optional verbose-p mode) 
-  "Terminate the move work. (undraw grid, geometry infos, ..."
-  (when (eql mode :box)
-    (with-slots (window gcontext) *clone*
-      (draw-window-grid window gcontext *root-window*)
-      (setf (window-position (widget-window master)) (window-position window))))
-  (setf (decoration-active-p master) nil)
-  (when verbose-p (undraw-geometry-info-box))
+(defun finish-move (widget &optional verbose-p mode) 
+  "Terminate the move work (undraw grid, geometry infos, ...)."
+  (with-slots ((widget-window window) active-p) widget
+    (when (eql mode :box)
+      (with-slots (window gcontext) *clone*
+	(draw-window-grid window gcontext *root-window*)
+	(setf (window-position widget-window) (window-position window))))
+    (setf active-p nil)
+    (when verbose-p (undraw-geometry-info-box)))
+  (setf *screen-windows* nil)
+  (finalize-move widget))
+
+(defmethod initialize-move ((widget base-widget) (event button-press))
+  (with-slots (window active-p) widget
+    (setf (window-priority window) :above)
+    (unless (widget-position-fix-p widget)
+      (setf active-p  t
+	    *delta-x* (- (event-root-x event) (xlib:drawable-x window))
+	    *delta-y* (- (event-root-y event) (xlib:drawable-y window))
+	    *screen-windows* (screen-content (current-desk)
+					     :skip-dock nil
+					     :skip-taskbar nil)))))
+
+(defmethod finalize-move ((master decoration))
   (when (get-child master :title-bar)
     (with-slots (armed active-p) (get-child master :title-bar)
       (setf armed nil active-p nil)))
-  (send-configuration-notify (get-child master :application :window t))
-  (setf *screen-windows* nil))
+  (send-configuration-notify (get-child master :application :window t)))
+
+(defmethod finalize-move ((application application))
+  (send-configuration-notify (widget-window application)))

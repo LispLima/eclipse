@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.22 2004/01/22 22:02:54 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.23 2004/02/02 09:43:58 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -158,6 +158,66 @@
 
 ;;;; Miscellaneous functions.
 
+(defun set-window-priority (stack-mode window sibling)
+  (when (member :_net_wm_window_type_desktop (netwm:net-wm-window-type window))
+    (return-from set-window-priority stack-mode))
+  (flet ((lookup-app-w (widget)
+	   (when (decoration-p widget)
+	     (get-child widget :application :window t)))
+	 (first (windows &optional above-p)
+	   (car (if above-p (last windows) windows)))
+	 (restack (app sib-app priority)
+	   (let* ((window (widget-window (or (application-master app) app)))
+		  (sm (when sib-app (application-master sib-app)))
+		  (sibling (when sib-app (widget-window (or sm sib-app)))))
+	     (unless (xlib:window-equal window sibling)
+	       (setf (xlib:window-priority window sibling) priority)))))
+    (let* ((win (or (lookup-app-w (lookup-widget window)) window))
+	   (sib (or (lookup-app-w (lookup-widget sibling)) sibling))
+	   (widget (lookup-widget win))
+	   (above-p (eq stack-mode :above))
+	   (wnwm-state (netwm:net-wm-state win))
+	   (snwm-state (and sib (netwm:net-wm-state sib))))
+      (if (not (application-p widget))
+	  (setf (xlib:window-priority window sibling) stack-mode)
+	  (multiple-value-bind (b m a) (screen-windows-layers win)
+	    (when (application-transient-for widget)
+	      (with-slots ((lw window)) (application-leader widget)
+		(setf wnwm-state (nconc wnwm-state (netwm:net-wm-state lw)))))
+	    (cond ((member :_net_wm_state_below wnwm-state)
+		   (unless (member sib b :test #'xlib:window-equal)
+		     (setf sib (first (or b m a) (and b above-p)))
+		     (unless b (setf stack-mode :below))))
+		  ((member :_net_wm_state_above wnwm-state)
+		   (unless (member sib a :test #'xlib:window-equal)
+		     (unless (member :_net_wm_state_fullscreen snwm-state)
+		       (setf sib (first a above-p))
+		       (unless a (setf stack-mode :above)))))
+		  ((member :_net_wm_state_fullscreen wnwm-state)
+		   (when (member sib b :test #'xlib:window-equal)
+		     (setf sib (first (or m a)))
+		     (setf stack-mode :below)))
+		  ((not (member sib m :test #'xlib:window-equal))
+		   (setf sib (first (or m b a) (if m above-p b)))
+		   (unless m (setf stack-mode (if b :above :below)))))
+	    (when (or b m a)
+	      (with-slots ((tr transient-for)) widget
+		(loop with seq = (application-dialogs widget)
+		      for sib-app = (lookup-widget sib) then a
+		      for priority = stack-mode then :below
+		      for a in (reverse seq) do (restack a sib-app priority)
+		      finally (unless tr (restack widget sib-app priority))))
+	      (update-client-list-stacking *root*))
+	    stack-mode)))))
+
+(defun grab-root-pointer (&key cursor owner-p confine-to)
+  (xlib:grab-pointer
+      *root-window*
+      +pointer-event-mask+
+      :confine-to confine-to
+      :cursor (or cursor (root-default-cursor *root*))
+      :owner-p owner-p))
+
 (defun send-wm-protocols-client-message (window atom &rest data)
   "Send a client-message of type :wm-protocol to the specified window
   with data being the given atom plus the rest of the function args."
@@ -231,7 +291,7 @@
   virtual screen that the given `window' argument belongs to. The given
   window will be filtered."
   (loop with n = (if (eql i +any-desktop+) (current-desk) i)
-	for w in (screen-content n)
+	for w in (screen-content n :skip-taskbar nil)
         for nwm-state = (netwm:net-wm-state w)
         unless (xlib:window-equal w window)
           if (member :_net_wm_state_above nwm-state) collect w into aboves
@@ -244,51 +304,7 @@
   guaranty that stacking order constraints described in the extended window
   manager protocol will be respected. Then invokes update-client-list-stacking
   to reflect the new order in all the root properties that are involved in."
-  (with-gensym (above-p wnwm-state snwm-state win sib b m a stack-mode)
-    `(flet ((lookup-app-w (widget)
-	      (when (decoration-p widget)
-		(get-child widget :application :window t)))
-	    (first (windows &optional above-p)
-	      (car (if above-p (last windows) windows))))
-       (let* ((,stack-mode ,priority)
-	      (,win (or (lookup-app-w (lookup-widget ,window)) ,window))
-	      (,sib (or (lookup-app-w (lookup-widget ,sibling)) ,sibling))
-	      (,above-p (eq ,priority :above))
-	      (,wnwm-state (netwm:net-wm-state ,win))
-	      (,snwm-state (and ,sib (netwm:net-wm-state ,sib))))
-	 (if (not (application-p (lookup-widget ,win)))
-	     (setf (xlib:window-priority ,window ,sibling) ,priority)
-	     (multiple-value-bind (,b ,m ,a) (screen-windows-layers ,win)
-	       (cond ((member :_net_wm_state_below ,wnwm-state)
-		      (unless (member ,sib ,b :test #'xlib:window-equal)
-			(setf ,sib (first (or ,b ,m ,a) (and ,b ,above-p)))
-			(unless ,b (setf ,stack-mode :below))))
-		     ((member :_net_wm_state_above ,wnwm-state)
-		      (unless (member ,sib ,a :test #'xlib:window-equal)
-			(unless (member :_net_wm_state_fullscreen ,snwm-state)
-			  (setf ,sib (first ,a ,above-p))
-			  (unless ,a (setf ,stack-mode :above)))))
-		     ((member :_net_wm_state_fullscreen ,wnwm-state)
-		      (when (member ,sib ,b :test #'xlib:window-equal)
-			(setf ,sib (first (or ,m ,a)))
-			(setf ,stack-mode :below)))
-		     ((not (member ,sib ,m :test #'xlib:window-equal))
-		      (setf ,sib (first (or ,m ,b ,a) (if ,m ,above-p ,b)))
-		      (unless ,m (setf ,stack-mode (if ,b :above :below)))))
-	       (when (and ,sib (application-master (lookup-widget ,sib)))
-		 (with-slots (master) (lookup-widget ,sib)
-		   (setf ,sib (widget-window master))))
-	       (when (or ,b ,m ,a)
-		 (setf (xlib:window-priority ,window ,sib) ,stack-mode)
-		 (update-client-list-stacking *root*))))))))
-
-(defun grab-root-pointer (&key cursor owner-p confine-to)
-  (xlib:grab-pointer
-      *root-window*
-      +pointer-event-mask+
-      :confine-to confine-to
-      :cursor (or cursor (root-default-cursor *root*))
-      :owner-p owner-p))
+  `(set-window-priority ,priority ,window ,sibling))
 
 (defun update-workarea-property (root)
   "computes and sets the _net_workarea property for the root-window."
@@ -328,6 +344,43 @@
   (lambda ()
     (handler-case (%run-program% program arguments)
       (error () (timed-message-box *root-window* "Wrong application name")))))
+
+(defun eclipse-desktop-pointer-positions (window &optional desk-num)
+  "Returns the value of the property named _eclipse_desktop_pointer_positions
+  if no desk-num is suplied. Otherwise returns as a multiple value the previous
+  pointer position for the given desk-num."
+  (let ((prop (xlib:get-property
+	          window
+		  :_eclipse_desktop_pointer_positions
+		  :start (if desk-num (* 2 desk-num) 0)
+		  :end  (when desk-num (+ 2 (* 2 desk-num))))))
+      (if (and prop desk-num) (values-list prop) prop)))
+
+(defsetf eclipse-desktop-pointer-positions (window desk-num) (x y)
+  "Sets to x y the pointer position for the given desk-num."
+  (with-gensym (prop)
+    `(let ((,prop (eclipse-desktop-pointer-positions ,window)))
+       (setf (elt ,prop (* ,desk-num 2)) ,x)
+       (setf (elt ,prop (1+ (* ,desk-num 2))) ,y)
+       (xlib:change-property 
+	   ,window :_eclipse_desktop_pointer_positions ,prop :CARDINAL 32))))
+
+(defun initialize-eclipse-desktop-pointer-positions (root)
+  "Initialize the _eclipse_desktop_pointer_positions property. If the 
+  property already exists then previous value is keeped and extended or
+  cuted according to the number of virtual screens."
+  (with-slots ((rw window)) root
+    (xlib:intern-atom 
+        (xlib:drawable-display rw)
+	"_ECLIPSE_DESKTOP_POINTER_POSITIONS")
+    (let* ((prop (eclipse-desktop-pointer-positions rw))
+	   (n (* 2 (number-of-virtual-screens rw)))
+	   (diff (- n (length prop))))
+      (if (>= diff 0)
+	  (setf prop (nconc prop (make-list diff :initial-element 0)))
+	  (setf prop (subseq prop 0 n)))
+      (xlib:change-property
+          rw :_eclipse_desktop_pointer_positions prop :CARDINAL 32))))
 
 (defun make-viewport-property (n)
   (make-list (* 2 n) :initial-element 0))

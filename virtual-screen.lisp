@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.17 2004/01/15 00:00:11 ihatchondo Exp $
+;;; $Id: virtual-screen.lisp,v 1.18 2004/01/20 16:10:00 ihatchondo Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -86,6 +86,7 @@
 	 (setf (netwm:net-desktop-viewport window) (make-viewport-property ,n)
 	       (gnome:win-workspace-count window) ,n
 	       (netwm:net-number-of-desktops window) ,n)
+	 (initialize-eclipse-desktop-pointer-positions *root*)
 	 (update-workarea-property *root*)))))
 
 (defun input-focus (display)
@@ -98,14 +99,14 @@
 	finally (return w)))
 
 (defmethod change-vscreen ((root root) &key direction n)
-  (with-slots (window) root
-    (let* ((nb-vscreens (number-of-virtual-screens window))
-	   (cur (netwm:net-current-desktop window))
+  (with-slots ((rw window)) root
+    (let* ((nb-vscreens (number-of-virtual-screens rw))
+	   (cur (netwm:net-current-desktop rw))
 	   (new (if direction (mod (funcall direction cur 1) nb-vscreens) n)))
       (unless (integerp new)
 	(error "No destination given to change-vscreen~%"))
       (when (and (< -1 new nb-vscreens) (/= cur new))
-	(with-event-mask (window)
+	(with-event-mask (rw)
 	  ;; If focus policy is on click: save the latest focused application.
 	  (when (eq *focus-type* :on-click)
 	    (let ((widget (lookup-widget (input-focus *display*))))
@@ -113,17 +114,21 @@
 		(setf (application-wants-focus-p widget) t))))
 	  (xlib:set-input-focus *display* :pointer-root :pointer-root)
 	  (xlib:with-server-grabbed (*display*)
-	    (with-pointer-grabbed (window nil)
+	    (with-pointer-grabbed (rw nil)
 	      (map-or-unmap-vscreen #'xlib:unmap-window cur)
 	      (map-or-unmap-vscreen #'xlib:map-window new))))
-	(setf (gnome:win-workspace window) new
-	      (netwm:net-current-desktop window) new)
+	(setf (gnome:win-workspace rw) new
+	      (netwm:net-current-desktop rw) new)
+	(when *save-and-restore-pointer-position-during-workspace-switch*
+	  (setf (eclipse-desktop-pointer-positions rw cur)
+		(xlib:query-pointer rw))
+	  (multiple-value-call #'xlib:warp-pointer
+	    rw (eclipse-desktop-pointer-positions rw new)))
 	(when (eq *focus-type* :on-click)
 	  (give-focus-to-next-widget-in-desktop))
 	(when *change-desktop-message-active-p*
-	  (timed-message-box window
-			     (or (nth new (workspace-names window))
-				 (format nil "WORKSPACE ~D" new))))))))
+	  (timed-message-box rw (or (nth new (workspace-names rw))
+				    (format nil "WORKSPACE ~D" new))))))))
 
 (defun screen-content (scr-num 
 		       &key (predicate #'window-belongs-to-vscreen-p) iconify-p
@@ -138,8 +143,7 @@
      window screen-number iconify-p skip-taskbar-p skip-desktop-p skip-dock-p."
   (loop with i = (if (eql scr-num +any-desktop+) (current-desk) scr-num)
 	for w in (query-application-tree *root-window*)
-	when (funcall 
-	         predicate w i iconify-p skip-taskbar skip-desktop skip-dock)
+	if (funcall predicate w i iconify-p skip-taskbar skip-desktop skip-dock)
 	collect w))
 
 (defun give-focus-to-next-widget-in-desktop ()
