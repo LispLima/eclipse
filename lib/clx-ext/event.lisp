@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: event.lisp,v 1.6 2004/03/10 17:16:27 ihatchondo Exp $
+;;; $Id: event.lisp,v 1.7 2004/08/08 12:30:43 ihatchondo Exp $
 ;;;
 ;;; Add on for CLX to have some CLOS events.
 ;;; This file is part of Eclipse.
@@ -198,18 +198,14 @@
 (initialize-event-table)
 
 (defgeneric make-event (event-key &rest args)
-  (:documentation "returns an new event of type given by event-key"))
+  (:documentation "returns an new event of type given by event-key")
+  (:method (event-key &rest args)
+    (declare (ignore args))))
 
 (defgeneric re-initialize-event (event-key &rest args)
-  (:documentation "re-initialize the event of type given by event-key"))
-
-(defmethod make-event (event-key &rest args)
-  (declare (ignorable event-key args))
-  (values))
-
-(defmethod re-initialize-event (event-key &rest args)
-  (declare (ignorable event-key args))
-  (values))
+  (:documentation "re-initialize the event of type given by event-key")
+  (:method (event-key &rest args)
+    (declare (ignore args))))
 
 ;;; Macro constructor
 
@@ -235,32 +231,27 @@
 (defmacro class-initargs (class)
   `(loop for slot in (class-slots ,class) collect (car (slot-initargs slot))))
 
-(defmacro keywds->names (keywords)
-  `(mapcar #'(lambda (k) (intern (symbol-name k))) ,keywords))
-
 (macrolet ((define-make-event-function ()
-  `(progn
-    ,@(loop for event-key across xlib::*event-key-vector*
-	    for class = (find-class (intern (symbol-name event-key)) nil)
-	    for initargs = (when class (class-initargs class))
-	    when class
-	    collect
-	    `(defmethod make-event ((,(gensym) (eql ,event-key))
-				    &key ,@(keywds->names initargs)
-				    &allow-other-keys)
-	       (make-instance
-		   ',(intern (symbol-name event-key))
-		   ,@(loop for key in initargs
-			   for sym = (intern (symbol-name key))
-			   collect key collect sym)))
-	    and collect
-	     `(defmethod re-initialize-event ((,(gensym) (eql ,event-key))
-					      &key ,@(keywds->names initargs)
-					      &allow-other-keys)
-	        (let ((event (gethash ,event-key *events*)))
-		  ,@(loop for slot in (keywds->names initargs) 
-			  collect `(setf (slot-value event ',slot) ,slot))
-		  event))))))
+  (flet ((make-initarg-key-value-pair (initargs)
+	   (loop for k in initargs collect k collect (intern (symbol-name k))))
+	 (make-arg-list (event-key initargs)
+	   `((,(gensym) (eql ,event-key))
+	     &key ,@(mapcar #'(lambda (k) (intern (symbol-name k))) initargs)
+	     &allow-other-keys)))
+    `(progn
+       ,@(loop for event-key across xlib::*event-key-vector*
+	       for class = (find-class (intern (symbol-name event-key)) nil)
+	       for initargs = (when class (class-initargs class))
+	       when class
+	       collect
+	       `(defmethod make-event ,(make-arg-list event-key initargs)
+		  (make-instance ',(intern (symbol-name event-key))
+		      ,@(make-initarg-key-value-pair initargs)))
+	       and collect
+	       `(defmethod re-initialize-event
+		    ,(make-arg-list event-key initargs)
+		  (reinitialize-instance (gethash ,event-key *events*)
+		      ,@(make-initarg-key-value-pair initargs))))))))
   (define-make-event-function))
 
 ;;;; New event-processing function
@@ -285,4 +276,3 @@
   (xlib:process-event display :handler #'clos-event-handler
 		      :timeout timeout :peek-p peek-p
 		      :discard-p discard-p :force-output-p force-output-p))
-

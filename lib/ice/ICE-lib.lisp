@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-lib.lisp,v 1.7 2004/07/12 21:22:56 ihatchondo Exp $
+;;; $Id: ICE-lib.lisp,v 1.8 2004/12/14 17:58:20 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -24,17 +24,17 @@
 
 (defclass ice-connection () 
   ((input-buffer 
-    :initarg :input-buffer :type buffer
-    :accessor connection-input-buffer)
+     :initarg :input-buffer :type buffer
+     :accessor connection-input-buffer)
    (output-buffer
-    :initarg :output-buffer :type buffer
-    :accessor connection-output-buffer)
+     :initarg :output-buffer :type buffer
+     :accessor connection-output-buffer)
    (input-byte-order
-    :initform :MSBFirst :type ice-byte-order
-    :accessor connection-input-byte-order)
+     :initform :MSBFirst :type ice-byte-order
+     :accessor connection-input-byte-order)
    (output-byte-order
-    :initform :MSBFirst :type ice-byte-order
-    :accessor connection-output-byte-order)
+     :initform :MSBFirst :type ice-byte-order
+     :accessor connection-output-byte-order)
    (ice-vendor
      :initarg :ice-vendor :type string
      :accessor ice-vendor)
