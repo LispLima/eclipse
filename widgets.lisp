@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.22 2003/12/03 14:34:34 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.23 2003/12/04 14:28:36 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -152,6 +152,11 @@
   (push desktop (root-desktop root)))
 (defmethod remove-desktop-application ((root root) (desktop base-widget))
   (setf (root-desktop root) (delete desktop (root-desktop root))))
+
+(defmethod focus-widget ((root root) timestamp)
+  (declare (ignorable timestamp))
+  (xlib:set-input-focus *display* :pointer-root :pointer-root)
+  (setf (netwm:net-active-window (widget-window root)) :none))
 
 (defun dismiss-move-resize (root)
   (with-slots (resize-status move-status current-active-decoration) root

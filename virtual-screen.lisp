@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.14 2003/11/24 16:42:59 ihatchondo Exp $
+;;; $Id: virtual-screen.lisp,v 1.15 2003/12/04 14:52:48 ihatchondo Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -155,8 +155,8 @@
 	finally 
 	  (typecase focus-dest
 	    (application (put-on-top focus-dest))
-	    (xlib:window (focus-widget (lookup-widget focus-dest) 0))
-	    (t (xlib:set-input-focus *display* :pointer-root :pointer-root)))))
+	    (xlib:window (focus-widget (lookup-widget focus-dest) nil))
+	    (t (focus-widget *root* nil)))))
 
 (defmethod circulate-window
     ((root root) &key direction (nth 0) icon-p windows (desk (current-desk)))
