@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.9 2003/09/12 01:15:16 hatchond Exp $
+;;; $Id: misc.lisp,v 1.10 2003/09/16 14:24:41 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -129,7 +129,7 @@
   (or (= (or (window-desktop-num window) -1) +any-desktop+)
       (logbitp 0 (or (gnome:win-state window :result-type t) 0))))
 
-;;;; Miscellenious functions.
+;;;; Miscellaneous functions.
 
 (defun send-wm-protocols-client-message (window atom &rest data)
   "Send a client-message of type :wm-protocol to the specified window
