@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.6 2003/05/13 14:54:01 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.7 2003/05/14 08:56:17 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -163,8 +163,7 @@
 (defgeneric remove-widget (widget))
 (defgeneric close-widget (widget))
 (defgeneric focus-widget (widget timestamp))
-(defgeneric draw-on-focus-in (widget))
-(defgeneric draw-on-focus-out (widget))
+(defgeneric repaint (widget theme-name focus))
 (defgeneric root-manager (widget))
 
 (macrolet ((define-null-method (name &rest args)
@@ -175,8 +174,7 @@
   (define-null-method remove-widget widget)
   (define-null-method close-widget widget)
   (define-null-method focus-widget widget timestamp)
-  (define-null-method draw-on-focus-in widget)
-  (define-null-method draw-on-focus-out widget)
+  (define-null-method repaint widget theme-name focus)
   (define-null-method root-manager widget))
 
 (defmethod remove-widget ((widget base-widget))
@@ -260,7 +258,13 @@
     (set-focus input-model window timestamp)))
 
 (defmethod focused-p ((application application))
-  (xlib:window-equal (widget-window application) (xlib:input-focus *display*)))
+  (loop with window = (widget-window application)
+	with foc = (xlib:input-focus *display*)
+	until (or (xlib:window-equal window foc) (not (xlib:window-p foc)))
+	do (multiple-value-bind (children parent) (xlib:query-tree foc)
+	     (declare (ignore children))
+	     (setq foc parent))
+	finally (return (xlib:window-equal window foc))))
 
 (defsetf full-screen-mode (application) (mode)
   `(with-slots (window initial-geometry master) ,application
@@ -340,8 +344,9 @@
 (defconstant +std-button-mask+
   '(:button-press :button-release :button-motion :owner-grab-button :exposure))
 
-(defmethod draw-on-focus-in ((button button))
-  (with-slots (master item-to-draw window gcontext) button
+(defmethod repaint ((widget button) theme-name (focus t))
+  (declare (ignorable theme-name focus))
+  (with-slots (master item-to-draw window gcontext) widget
     (xlib:clear-area window)
     (typecase item-to-draw
       (string (draw-centered-text window gcontext item-to-draw))
@@ -350,8 +355,9 @@
 	  (xlib:with-gcontext (gcontext :tile item-to-draw :fill-style :tiled)
 	    (xlib:draw-rectangle window gcontext 0 0 width height t)))))))
 
-(defmethod draw-on-focus-out ((button button))
-  (xlib:clear-area (widget-window button)))
+(defmethod repaint ((widget button) theme-name (focus null))
+  (declare (ignorable theme-name focus))
+  (xlib:clear-area (widget-window widget)))
 
 (defun button-p (widget)
   (typep widget 'button))
@@ -411,6 +417,12 @@
 		(window-position window) (values x y)
 		(slot-value box 'item-to-draw) message))))))
 
+(defmethod repaint ((widget box-button) theme-name focus)
+  (declare (ignorable theme-name focus))
+  (with-slots (window item-to-draw gcontext) widget
+    (xlib:clear-area window)
+    (draw-centered-text window gcontext item-to-draw :color *black*)))
+
 ;; Self destructing message box after 2 seconds.
 (defun timed-message-box (window &rest messages)
   (with-slots (window) (create-message-box messages :parent window)
@@ -421,7 +433,7 @@
 		      (xlib:destroy-window window)))))
 
 ;;;; Push button
-;; Every body knows what a push button is.
+;; Everybody knows what a push button is.
 
 (defclass push-button (button)
   ((armed :initform nil :accessor button-armed)
@@ -596,6 +608,12 @@
 		(setf (xlib:drawable-x icon-window) basex
 		      (xlib:drawable-y icon-window) basey))))
 	    (setq prev-icon-window icon-window)))))))
+
+(defmethod repaint ((widget icon) theme-name focus)
+  (declare (ignorable theme-name focus))
+  (with-slots (window item-to-draw gcontext) widget
+    (xlib:clear-area window)
+    (draw-centered-text window gcontext item-to-draw :color *white*)))
 
 (defmethod iconify ((application application))
   (icon-box-update)

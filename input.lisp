@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.6 2003/05/13 14:54:01 hatchond Exp $
+;;; $Id: input.lisp,v 1.7 2003/05/14 08:56:17 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -284,7 +284,7 @@
 (defmethod event-process ((event focus-out) (application application))
   (with-slots (master) application
     (when (and master (not (eql (event-mode event) :while-grabbed)))
-      (draw-unfocused-decoration master))))
+      (dispatch-repaint master :focus nil))))
 
 (defmethod event-process ((event focus-in) (application application))
   (with-slots (master window) application
@@ -293,7 +293,7 @@
       ;; if focus policy is on-click.
       (when (eq *focus-type* :on-click)
 	(vs:restack-window window (vs:nth-vscreen (root-vscreens *root*))))
-      (when master (draw-focused-decoration master))
+      (when master (dispatch-repaint master :focus t))
       (setf (netwm:net-active-window *root-window*) window))))
 
 (defmethod event-process ((event property-notify) (app application))
@@ -348,31 +348,32 @@
 	     ;; win_state_maximized_horiz
 	     (when (logbitp 3 to-change) (maximize-window master 3)))))
 	(:_NET_WM_STATE
-         (let ((action (aref data 0))
+         (let ((mode (aref data 0))
 	       (prop (netwm:net-wm-state window))
 	       (prop1 (id->atom-name (aref data 1)))
 	       (prop2 (unless (zerop (aref data 2))
 			(id->atom-name (aref data 2)))))
-	   (case action
+	   (case mode
 	     (0 (setf prop (remove prop1 prop))
 		(when prop2 (setf prop (remove prop2 prop))))
-	     (1 (push prop1 prop)
-		(when prop2 (push prop2 prop))))
-	   (setf (netwm:net-wm-state window) prop)
+	     (1 (pushnew prop1 prop)
+		(when prop2 (pushnew prop2 prop))))
 	   (when (or (eq prop1 :_net_wm_state_hidden)
 		     (eq prop2 :_net_wm_state_hidden))
-	     (if (= action 0) (uniconify application) (iconify application)))
+	     (if (= mode 0) (uniconify application) (iconify application)))
 	   (when (or (eql prop1 :_net_wm_state_fullscreen)
 		     (eql prop2 :_net_wm_state_fullscreen))
-	     (when (fullscreenable-p application)
-	       (setf (full-screen-mode application) (if (= action 0) :off :on))))
+	     (if (fullscreenable-p application)
+		 (setf (full-screen-mode application) (if (= mode 0) :off :on))
+		 (setf prop (remove :_net_wm_state_fullscreen prop))))
 	   (when master
 	     (when (or (eql prop1 :_net_wm_state_maximized_vert)
 		       (eql prop2 :_net_wm_state_maximized_vert))
 	       (maximize-window master 2))
 	     (when (or (eql prop1 :_net_wm_state_maximized_horz)
 		       (eql prop2 :_net_wm_state_maximized_horz))
-	       (maximize-window master 3)))))
+	       (maximize-window master 3)))
+	   (setf (netwm:net-wm-state window) prop)))
 	(:_NET_WM_DESKTOP
 	 (let* ((cur-desk (gnome:win-workspace window))
 		(new-desk (aref data 0))
@@ -390,21 +391,14 @@
 
 ;;; Events for buttons
 
-(defun redraw-icon-and-box-button (exposure-event button &key (color *white*))
-  (when (zerop (event-count exposure-event))
-    (with-slots (window item-to-draw gcontext) button
-      (xlib:clear-area window)
-      (draw-centered-text window gcontext item-to-draw :color color))))
-
 (defmethod event-process ((event exposure) (button button))
   (when (zerop (event-count event))
     (with-slots (master) button
-      (if (or (not master) (focused-p master))
-	  (draw-on-focus-in button)
-          (draw-on-focus-out button)))))
+      (let ((name (theme-name (root-decoration-theme *root*))))
+	(repaint button name (and master (focused-p master)))))))
 
 (defmethod event-process ((event exposure) (box box-button))
-  (redraw-icon-and-box-button event box :color *black*))
+  (repaint box (theme-name (root-decoration-theme *root*)) nil))
 
 (defmethod event-process ((event button-release) (close close-button))
   (close-widget (get-child (button-master close) :application)))
@@ -483,7 +477,7 @@
 ;;; events for an icon
 
 (defmethod event-process ((event exposure) (icon icon))
-  (redraw-icon-and-box-button event icon))
+  (repaint icon (theme-name (root-decoration-theme *root*)) nil))
 
 (defmethod event-process ((event button-press) (icon icon))
   (setf (icon-desiconify-p icon) t

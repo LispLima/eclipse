@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: themer.lisp,v 1.1 2002/11/07 14:54:27 hatchond Exp $
+;;; $Id: themer.lisp,v 1.2 2003/05/14 08:56:17 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -21,6 +21,12 @@
 (in-package :ECLIPSE-INTERNALS)
 
 (defparameter *themes* (make-hash-table :test #'equal))
+
+(declaim (inline lookup-theme))
+(defun lookup-theme (name)
+  "return named theme or nil"
+  (declare (optimize (speed 3) (safety 1)))
+  (gethash name *themes*))
 
 (defclass frame-style ()
   ((title-bar-position
@@ -221,28 +227,46 @@
   (values))
 
 (defun free-theme (name)
+  "Release all X resources that are associated with the named theme."
   (with-slots (default-style transient-style) (gethash name *themes*)
     (and default-style (free-frame-style default-style))
     (and transient-style (free-frame-style transient-style)))
-  (remhash name *themes*))
+  (remhash name *themes*)
+  (unuse-package name))
 
 (defun load-theme (root-window name)
-  (fmakunbound 'initialize-frame)
-  (setf name (ensure-theme-directory-exists name))
-  (load (concatenate 'string name "theme.o"))
-  (or (gethash name *themes*) (initialize-frame name root-window)))
+  "loads and returns theme named by parameter name. Themes are cached."
+  (unless (gethash name *themes*)
+    (fmakunbound 'initialize-frame)
+    (setf name (ensure-theme-directory-exists name))
+    (load (concatenate 'string name "theme.o"))
+    (setf name (theme-name (initialize-frame name root-window))))
+  (use-package (format nil "~:@(~A~)-ECLIPSE-THEME" name))
+  (gethash name *themes*))
 
 (defun make-keyword (string)
   (intern (with-standard-io-syntax (string-upcase string)) :keyword))
 
 (defmacro define-theme ((theme-name) (&rest forms))
   (flet 
-      ((define-style (style-to-define items &optional style)
-	 `(with-slots (pixmap-table frame-item-pixmaps nb-buttons
-		       top-margin bottom-margin left-margin right-margin
-		       vmargin hmargin top-left-w top-left-h
-		       top-right-w top-right-h bottom-right-w bottom-right-h
-		       bottom-left-w bottom-left-h) ,style-to-define
+      ((define-style (style-to-define items directory window &optional style)
+	 `(with-slots ((pixmap-table eclipse::pixmap-table)
+		       (frame-item-pixmaps eclipse::frame-item-pixmaps)
+		       (nb-buttons eclipse::nb-buttons)
+		       (top-margin eclipse::top-margin)
+		       (bottom-margin eclipse::bottom-margin)
+		       (left-margin eclipse::left-margin)
+		       (right-margin eclipse::right-margin)
+		       (vmargin eclipse::vmargin)
+		       (hmargin eclipse::hmargin)
+		       (top-left-w eclipse::top-left-w)
+		       (top-left-h eclipse::top-left-h)
+		       (top-right-w eclipse::top-right-w)
+		       (top-right-h eclipse::top-right-h)
+		       (bottom-right-w eclipse::bottom-right-w)
+		       (bottom-right-h eclipse::bottom-right-h)
+		       (bottom-left-w eclipse::bottom-left-w)
+		       (bottom-left-h eclipse::bottom-left-h)) ,style-to-define
 	    ,@(loop for (key names) in items
 		    for array = (make-array 3 :initial-element nil)
 		    when (eq key :custom)
@@ -253,28 +277,32 @@
 		    nconc  
 		     (loop for name in names
 			   for i from 0
-			   for k = (make-keyword name)
+			   for k = (eclipse::make-keyword name)
 			   for pix = (gensym)
 			   for form = 
 			    `(let ((,pix 
-				    (or ,(and style `(get-pixmap ,style ,k))
-					(load-pnm->pixmap dir ,name window))))
+				    (or ,(and style 
+					      `(eclipse:get-pixmap ,style ,k))
+					(eclipse:load-pnm->pixmap 
+					    ,directory ,name ,window))))
 			       (setf (gethash ,k pixmap-table) ,pix)
 			       (setf (aref ,array ,i) ,pix))
 			   collect form))
 	    (multiple-value-setq (top-left-w top-left-h)
-	      (frame-item-sizes ,style-to-define :top-left))
+	      (eclipse:frame-item-sizes ,style-to-define :top-left))
 	    (multiple-value-setq (top-right-w top-right-h)
-	      (frame-item-sizes ,style-to-define :top-right))
+	      (eclipse:frame-item-sizes ,style-to-define :top-right))
 	    (multiple-value-setq (bottom-right-w bottom-right-h)
-	      (frame-item-sizes ,style-to-define :bottom-right))
+	      (eclipse:frame-item-sizes ,style-to-define :bottom-right))
 	    (multiple-value-setq (bottom-left-w bottom-left-h)
-	      (frame-item-sizes ,style-to-define :bottom-left))
-	    (setf top-margin (frame-item-height ,style-to-define :top)
-	          bottom-margin (frame-item-height ,style-to-define :bottom)
-	          left-margin (frame-item-width ,style-to-define :left)
-		  right-margin (frame-item-width ,style-to-define :right)
-		  hmargin (+ left-margin right-margin)
+	      (eclipse:frame-item-sizes ,style-to-define :bottom-left))
+	    (setf top-margin (eclipse:frame-item-height ,style-to-define :top))
+	    (setf bottom-margin 
+	          (eclipse:frame-item-height ,style-to-define :bottom))
+	    (setf left-margin (eclipse:frame-item-width ,style-to-define :left))
+	    (setf right-margin
+	          (eclipse:frame-item-width ,style-to-define :right))
+	    (setf hmargin (+ left-margin right-margin)
 		  vmargin (+ top-margin bottom-margin))))
 
        (parse-args (args)
@@ -301,20 +329,22 @@
 	    (fs2 (gensym)))
 	`(defun initialize-frame (dir window)
 	   (let ((,fs1 ,(and items1 `(make-instance 
-				         ',(intern (symbol-name style1)) 
+				         ',(intern (symbol-name style1)
+						   "ECLIPSE-INTERNALS") 
 				         :title-bar-position ,title-pos1
 				         :parts-to-redraw-on-focus
 				         ',parts-to-redraw-on-focus1)))
 		 (,fs2 ,(and items2 `(make-instance
-				         ',(intern (symbol-name style2)) 
+				         ',(intern (symbol-name style2)
+						   "ECLIPSE-INTERNALS") 
 				         :title-bar-position ,title-pos2
 				         :parts-to-redraw-on-focus
 				         ',parts-to-redraw-on-focus2))))
 	     ,(unless items2 `(declare (ignorable ,fs2)))
-	     ,(when items1 (define-style fs1 items1))
-	     ,(when items2 (define-style fs2 items2 fs1))
-	     (setf (gethash ,theme-name *themes*)
-		   (make-instance 'theme 
+	     ,(when items1 (define-style fs1 items1 `dir `window))
+	     ,(when items2 (define-style fs2 items2 `dir `window fs1))
+	     (setf (gethash ,theme-name eclipse::*themes*)
+		   (make-instance 'eclipse::theme 
 				  :name ,theme-name 
 				  ,@(and style1 `(,style1 ,fs1))
 				  ,@(and style2 `(,style2 ,fs2))))))))))

@@ -1,4 +1,12 @@
-(in-package :ECLIPSE-INTERNALS)
+(common-lisp:in-package :common-lisp-user)
+
+(defpackage "COOLCLEAN-ECLIPSE-THEME"
+  (:use eclipse clx-ext common-lisp)
+  (:size 10)
+  (:export repaint initialize-frame)
+  (:documentation ""))
+
+(in-package "COOLCLEAN-ECLIPSE-THEME")
 
 (define-theme ("CoolClean")
   ((:default-style
@@ -29,8 +37,12 @@
      (:right ("right"))
      (:left ("left")))))
 
-(defmethod draw-on-focus-in ((button title-bar))
-  (with-slots (window item-to-draw gcontext master) button
+(defmethod repaint ((widget title-bar) (name (eql "CoolClean")) (focus t))
+  (declare (ignorable name focus))
+  (with-slots ((window eclipse::window)
+	       (item-to-draw eclipse::item-to-draw)
+	       (gcontext eclipse::gcontext)
+	       (master eclipse::master)) widget
     (multiple-value-bind (width height) (drawable-sizes window)
       (with-slots (frame-style) master
 	(let ((top-pix (get-pixmap frame-style :top-active)))
@@ -38,7 +50,10 @@
 	    (xlib:draw-rectangle window gcontext 0 0 width height t)))))
     (draw-centered-text window gcontext item-to-draw :color *white* :x 5)))
 
-(defmethod draw-on-focus-out ((button title-bar))
-  (with-slots (window item-to-draw gcontext) button
+(defmethod repaint ((widget title-bar) (name (eql "CoolClean")) (focus null))
+  (declare (ignorable name focus))
+  (with-slots ((window eclipse::window)
+	       (item-to-draw eclipse::item-to-draw)
+	       (gcontext eclipse::gcontext)) widget
     (xlib:clear-area window)
     (draw-centered-text window gcontext item-to-draw :color *white* :x 5)))

@@ -1,4 +1,12 @@
-(in-package :ECLIPSE-INTERNALS)
+(common-lisp:in-package :common-lisp-user)
+
+(defpackage "BRUSHED-METAL-ECLIPSE-THEME"
+  (:use eclipse clx-ext common-lisp)
+  (:size 10)
+  (:export repaint initialize-frame)
+  (:documentation ""))
+
+(in-package "BRUSHED-METAL-ECLIPSE-THEME")
 
 (define-theme ("brushed-metal")
   ((:default-style
@@ -31,7 +39,9 @@
      (:left ("t-left-i" "t-left-a")))))
 
 (defun default-draw-on-focus-in (title-bar frame-style)
-  (with-slots (window item-to-draw gcontext) title-bar
+  (with-slots ((window eclipse::window)
+	       (item-to-draw eclipse::item-to-draw)
+	       (gcontext eclipse::gcontext)) title-bar
     (xlib:clear-area window)
     (let ((top-pix (get-pixmap frame-style :top-a))
 	  (left (get-pixmap frame-style :title-left-a))
@@ -46,7 +56,9 @@
     (draw-centered-text window gcontext item-to-draw :color *black* :x 12)))
 
 (defun default-draw-on-focus-out (title-bar frame-style)
-  (with-slots (window item-to-draw gcontext) title-bar
+  (with-slots ((window eclipse::window)
+	       (item-to-draw eclipse::item-to-draw)
+	       (gcontext eclipse::gcontext)) title-bar
     (xlib:clear-area window)
     (let ((left (get-pixmap frame-style :title-left-i))
 	  (right (get-pixmap frame-style :title-right-i))
@@ -58,24 +70,25 @@
     (draw-centered-text window gcontext item-to-draw :color *black* :x 12)))
 
 (defun transient-draw-on-focus-in (title-bar frame-style)
-  (with-slots (window item-to-draw gcontext) title-bar
+  (with-slots ((window eclipse::window)
+	       (item-to-draw eclipse::item-to-draw)
+	       (gcontext eclipse::gcontext)) title-bar
     (xlib:clear-area window)
     (xlib:with-gcontext 
 	(gcontext :tile (get-pixmap frame-style :t-top-a) :fill-style :tiled)
       (multiple-value-bind (width height) (drawable-sizes window)
 	(xlib:draw-rectangle window gcontext 0 0 width height t)))))
 
-(defun transient-draw-on-focus-out (title-bar)
-  (xlib:clear-area (widget-window title-bar)))
-
-(defmethod draw-on-focus-in ((button title-bar))
-  (with-slots (frame-style) (button-master button)
+(defmethod repaint ((widget title-bar) (name (eql "brushed-metal")) (focus t))
+  (declare (ignorable name focus))
+  (with-slots (frame-style) (button-master widget)
     (typecase frame-style
-      (default-style (default-draw-on-focus-in button frame-style))
-      (transient-style (transient-draw-on-focus-in button frame-style)))))
+      (default-style (default-draw-on-focus-in widget frame-style))
+      (transient-style (transient-draw-on-focus-in widget frame-style)))))
 
-(defmethod draw-on-focus-out ((button title-bar))
-  (with-slots (frame-style) (button-master button)
+(defmethod repaint ((wget title-bar) (name (eql "brushed-metal")) (focus null))
+  (declare (ignorable name focus))
+  (with-slots (frame-style) (button-master wget)
     (typecase frame-style
-      (default-style (default-draw-on-focus-out button frame-style))
-      (transient-style (transient-draw-on-focus-out button)))))
+      (default-style (default-draw-on-focus-out wget frame-style))
+      (transient-style (xlib:clear-area (widget-window wget))))))

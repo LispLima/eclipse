@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.11 2003/05/13 14:54:01 hatchond Exp $
+;;; $Id: wm.lisp,v 1.12 2003/05/14 08:56:17 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -81,8 +81,7 @@
 	    (decoration-base-width master) (decoration-base-height master))))
 
 (defmethod focused-p ((master decoration))
-  (with-slots (window) (get-child master :application)
-    (xlib:window-equal window (xlib:input-focus *display*))))
+  (focused-p (get-child master :application)))
 
 (defmethod focus-widget ((master decoration) timestamp)
   (with-slots (window input-model) (get-child master :application)
@@ -115,13 +114,13 @@
 (defun decoration-p (widget)
   (typep widget 'decoration))
 
-(defun draw-focused-decoration (master)
-  (mapc #'(lambda (k) (draw-on-focus-in (get-child master k)))
-	(style-parts-to-redraw-on-focus (decoration-frame-style master))))
-
-(defun draw-unfocused-decoration (master)
-  (mapc #'(lambda (k) (draw-on-focus-out (get-child master k)))
-	(style-parts-to-redraw-on-focus (decoration-frame-style master))))
+(defmethod dispatch-repaint ((master decoration) 
+			     &key (focus (focused-p master)))
+  (declare (optimize (speed 3) (safety 1)))
+  (let ((name (theme-name (root-decoration-theme *root*))))
+    (declare (type string name))
+    (mapc #'(lambda (k) (repaint (get-child master k) name focus))
+	  (style-parts-to-redraw-on-focus (decoration-frame-style master)))))
 
 (defun title-bar-horizontal-p (master)
   (eq :horizontal (style-title-bar-direction (decoration-frame-style master))))

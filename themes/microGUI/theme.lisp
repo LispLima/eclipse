@@ -1,6 +1,14 @@
-(in-package :ECLIPSE-INTERNALS)
+(common-lisp:in-package :common-lisp-user)
 
-(define-theme ("microGUI")
+(defpackage "MICROGUI-ECLIPSE-THEME"
+  (:use eclipse clx-ext common-lisp)
+  (:size 10)
+  (:export repaint initialize-frame)
+  (:documentation ""))
+
+(in-package "MICROGUI-ECLIPSE-THEME")
+
+(eclipse:define-theme ("microGUI")
   ((:default-style
      ()
      (:parts-to-redraw-on-focus 
@@ -35,7 +43,10 @@
      (:left ("t-left")))))
 
 (defun redraw-title-bar (button top-pix curv-pix)
-  (with-slots (window gcontext item-to-draw master) button
+  (with-slots ((window eclipse::window)
+	       (gcontext eclipse::gcontext)
+	       (item-to-draw eclipse::item-to-draw)
+	       (master eclipse::master)) button
     (xlib:clear-area window)
     (let ((w (+ 10 (text-width (xlib:gcontext-font gcontext) item-to-draw)))
 	  (h (xlib:drawable-height window))
@@ -46,16 +57,18 @@
 	(xlib:draw-rectangle window gcontext w 0 pix-w h t))
       (draw-centered-text window gcontext item-to-draw :color *white* :x 5))))
 
-(defmethod draw-on-focus-in ((button title-bar))
-  (with-slots (frame-style) (button-master button)
+(defmethod repaint ((widget title-bar) (name (eql "microGUI")) (focus t))
+  (declare (ignorable name focus))
+  (with-slots ((frame-style eclipse::frame-style)) (button-master widget)
     (when (default-style-p frame-style)
-      (redraw-title-bar button
+      (redraw-title-bar widget
 			(get-pixmap frame-style :top-blue)
 			(get-pixmap frame-style :top-curves)))))
 
-(defmethod draw-on-focus-out ((button title-bar))
-  (with-slots (frame-style) (button-master button)
-    (when (default-style-p frame-style)
-      (redraw-title-bar button
+(defmethod repaint ((widget title-bar) (name (eql "microGUI")) (focus null))
+  (declare (ignorable name focus))
+  (with-slots ((frame-style eclipse::frame-style)) (button-master widget)
+    (when (default-style-p frame-style)    
+      (redraw-title-bar widget
 			(get-pixmap frame-style :top-blue-inactive)
 			(get-pixmap frame-style :top-curves-inactive)))))

@@ -1,4 +1,12 @@
-(in-package :ECLIPSE-INTERNALS)
+(common-lisp:in-package :common-lisp-user)
+
+(defpackage "STEP-ECLIPSE-THEME"
+  (:use eclipse clx-ext common-lisp)
+  (:size 10)
+  (:export repaint initialize-frame)
+  (:documentation ""))
+
+(in-package "STEP-ECLIPSE-THEME")
 
 (define-theme ("Step")
   ((:default-style
@@ -25,16 +33,23 @@
      (:right ("side"))
      (:left ("side")))))
 
-(defmethod draw-on-focus-in ((button title-bar))
-  (with-slots (window item-to-draw gcontext master) button
+(defmethod repaint ((widget title-bar) (name (eql "Step")) (focus t))
+  (declare (ignorable name focus))
+  (with-slots ((window eclipse::window)
+	       (item-to-draw eclipse::item-to-draw)
+	       (gcontext eclipse::gcontext)
+	       (master eclipse::master)) widget
     (multiple-value-bind (width height) (drawable-sizes window)
-      (with-slots (frame-style) master
+      (with-slots ((frame-style eclipse::frame-style)) master
 	(let ((top-pix (get-pixmap frame-style :top-active)))
 	  (xlib:with-gcontext (gcontext :tile top-pix :fill-style :tiled)
 	    (xlib:draw-rectangle window gcontext 0 0 width height t)))))
     (draw-centered-text window gcontext item-to-draw :color *white*)))
 
-(defmethod draw-on-focus-out ((button title-bar))
-  (with-slots (window item-to-draw gcontext) button
+(defmethod repaint ((widget title-bar) (name (eql "Step")) (focus null))
+  (declare (ignorable name focus))
+  (with-slots ((window eclipse::window)
+	       (item-to-draw eclipse::item-to-draw)
+	       (gcontext eclipse::gcontext)) widget
     (xlib:clear-area window)
     (draw-centered-text window gcontext item-to-draw :color *white*)))

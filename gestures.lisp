@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.2 2003/03/16 00:38:55 hatchond Exp $
+;;; $Id: gestures.lisp,v 1.3 2003/03/17 11:13:17 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -253,8 +253,8 @@
     (handler-bind
         ((error #'(lambda (condition)
 		    (declare (ignorable condition))
-		    (format t "Can't realize key-combo ~A~%" name)
-		    (format t " modifiers : ~A~% key : ~A~%" modifiers keys)
+		    (format *stderr* "Can't realize key-combo ~A~%" name)
+		    (format *stderr* " mods : ~A~% key : ~A~%" modifiers keys)
 		    (throw 'keystroke-definition nil))))
       (let ((ks (make-keystroke name keys modifiers default-modifiers-p fun)))
 	(when (stroke-equal ks (gethash name *keystrokes*))
@@ -274,8 +274,8 @@
     (handler-bind
         ((error #'(lambda (condition)
 		    (declare (ignorable condition))
-		    (format t "Can't realize mouse-combo ~A~%" name)
-		    (format t " modifiers : ~A~% key : ~A~%" modifiers button)
+		    (format *stderr* "Can't realize mouse-combo ~A~%" name)
+		    (format *stderr* " mods : ~A~% key : ~A~%" modifiers button)
 		    (throw 'mouse-stroke-definition nil))))
       (let ((ms (make-mouse-stroke 
 		    name button modifiers default-modifiers-p fun)))
