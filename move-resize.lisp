@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.15 2004/03/09 19:26:27 ihatchondo Exp $
+;;; $Id: move-resize.lisp,v 1.16 2004/04/27 17:43:40 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -176,17 +176,17 @@
     (let ((corners '#(#.'#(:nw :north :nw :west) #.'#(:north :ne :east :ne)
 		      #.'#(:se :east :se :south) #.'#(:west :sw :south :sw))))
       (declare (type (simple-array (simple-array keyword (4)) (4)) corners))
-      (labels ((find (x y rx ry w h)
+      (labels ((find-c (x y rx ry w h)
 		 (if (<= x rx (+ x (floor w 2)))
 		     (if (<= y ry (+ y (floor h 2))) 0 3)
 		     (if (<= y ry (+ y (floor h 2))) 1 2)))
 	       (get-card (x y rx ry w h)
-		 (let ((corner (find x y rx ry w h)))
+		 (let ((corner (find-c x y rx ry w h)))
 		   (setf w (floor w 2))
 		   (setf h (floor h 2))
 		   (when (or (= corner 1) (= corner 2)) (incf x w))
 		   (when (or (= corner 2) (= corner 3)) (incf y h))
-		   (aref (aref corners corner) (find x y rx ry w h)))))
+		   (aref (aref corners corner) (find-c x y rx ry w h)))))
 	(setf *card-point* (get-card x y root-x root-y width height))
 	(when (member *card-point* '(:ne :east :se)) (incf x width))
 	(when (member *card-point* '(:se :south :sw)) (incf y height))

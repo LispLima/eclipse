@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.29 2004/03/10 17:13:14 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.30 2004/06/18 22:01:53 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -164,7 +164,7 @@
   (flet ((lookup-app-w (widget)
 	   (when (decoration-p widget)
 	     (get-child widget :application :window t)))
-	 (first (windows &optional above-p)
+	 (first-win (windows &optional above-p)
 	   (car (if above-p (last windows) windows)))
 	 (restack (app sib-app priority)
 	   (let* ((window (widget-window (or (application-master app) app)))
@@ -189,21 +189,21 @@
 	    ;; Find the correct sibling and reset the priority if needed.
 	    (cond ((member :_net_wm_state_below wnwm-state)
 		   (unless (member sib below-layer :test #'xlib:window-equal)
-		     (setf sib (first (or below-layer std-layer above-layer)
+		     (setf sib (first-win (or below-layer std-layer above-layer)
 				      (and below-layer above-p)))
 		     (unless below-layer (setf stack-mode :below))))
 		  ((member :_net_wm_state_above wnwm-state)
 		   (unless (member sib above-layer :test #'xlib:window-equal)
 		     (unless (member :_net_wm_state_fullscreen snwm-state)
-		       (setf sib (first above-layer above-p))
+		       (setf sib (first-win above-layer above-p))
 		       (unless above-layer (setf stack-mode :above)))))
 		  ((member :_net_wm_state_fullscreen wnwm-state)
 		   (when (member sib below-layer :test #'xlib:window-equal)
-		     (setf sib (first (or std-layer above-layer)))
+		     (setf sib (first-win (or std-layer above-layer)))
 		     (setf stack-mode :below)))
 		  ((not (member sib std-layer :test #'xlib:window-equal))
-		   (setf sib (first (or std-layer below-layer above-layer)
-				    (if std-layer above-p below-layer)))
+		   (setf sib (first-win (or std-layer below-layer above-layer)
+					(if std-layer above-p below-layer)))
 		   (unless std-layer
 		     (setf stack-mode (if below-layer :above :below)))))
 	    ;; If application is not alone, update its priority.
