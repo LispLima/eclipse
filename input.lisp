@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.5 2003/04/07 13:35:32 hatchond Exp $
+;;; $Id: input.lisp,v 1.6 2003/05/13 14:54:01 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -46,6 +46,21 @@
 	 (register-all-keystrokes)
 	 (register-all-mouse-strokes)))
       (:pointer nil))))
+
+;; handle the selection clear, to be able to stop window managing when needed.
+(defmethod event-process ((event selection-clear) null-widget)
+  (declare (ignorable null-widget))
+  (with-slots (event-window selection) event
+    (when (and (xlib:window-equal event-window (root-manager *root*))
+	       (string= selection +xa-wm+))
+      (loop for val being each hash-value in *widget-table*
+	    when (application-p val) do (undecore-application val))
+      (xlib:display-finish-output *display*)
+      (setf (xlib:window-event-mask *root-window*) '())
+      (xlib:destroy-window (root-manager *root*))
+      (xlib:display-finish-output *display*)
+      (xlib:close-display *display*)
+      (%quit%))))
 
 (defmethod event-process ((event configure-request) (widget base-widget))
   (declare (ignorable widget)) ;; should only be root ?
@@ -299,7 +314,7 @@
       (:WM_STATE
        (update-lists app (car (wm-state window)) *root*)))))
 
-(defun fullscreenable (application) 
+(defun fullscreenable-p (application) 
   (with-slots (window) application
     (let ((hint (ignore-errors (xlib:wm-normal-hints window))))
       (symbol-macrolet ((max-w (xlib:wm-size-hints-max-width hint))
@@ -349,7 +364,7 @@
 	     (if (= action 0) (uniconify application) (iconify application)))
 	   (when (or (eql prop1 :_net_wm_state_fullscreen)
 		     (eql prop2 :_net_wm_state_fullscreen))
-	     (when (fullscreenable application)
+	     (when (fullscreenable-p application)
 	       (setf (full-screen-mode application) (if (= action 0) :off :on))))
 	   (when master
 	     (when (or (eql prop1 :_net_wm_state_maximized_vert)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.6 2003/04/07 13:35:32 hatchond Exp $
+;;; $Id: global.lisp,v 1.7 2003/05/13 14:54:01 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -58,6 +58,7 @@
 (defvar *root-window* nil)
 (defvar *gcontext* nil)
 (defvar *widget-table* (make-hash-table))
+(defvar +xa-wm+ nil)
 
 ;; Default value of all the "customisable" environment variables
 (defparameter *close-display-p* t)

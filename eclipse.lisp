@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.3 2002/11/12 17:13:01 hatchond Exp $
+;;; $Id: eclipse.lisp,v 1.4 2003/04/07 13:35:32 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -27,6 +27,65 @@
 
 ;;; Initializations and Main.
 
+;; ICCCM section 2.8
+(defun initialize-manager (display root-window)
+  (setf +xa-wm+ (format nil "WM_S~A" (xlib:display-display display)))
+  (xlib:intern-atom display +xa-wm+)
+  (let ((managing-since)
+	(old-wm (xlib:selection-owner display +xa-wm+))
+	(manager (xlib:create-window :parent root-window 
+				     :override-redirect :on
+				     :width 1 :height 1
+				     :x -5 :y -5)))
+    (when old-wm
+      (setf (xlib:window-event-mask old-wm) '(:structure-notify)))
+
+    ;; Get a valid timestamp.
+    (with-event-mask (manager '(:property-change))
+      (xlib:change-property manager :wm_name '(0) :string 8)
+      (xlib:event-case (display :force-output-p t :discard-p t)
+        (:property-notify (window time)
+	  (when (xlib:window-equal window manager) (setf managing-since time)))
+	(t nil)))
+
+    ;; Ask for selection ownership, and wait for the old owner destruction.
+    (setf (xlib:selection-owner display +xa-wm+ managing-since) manager)
+    (when old-wm
+      (xlib:event-case (display :force-output-p t :discard-p t :timeout 10)
+        (:destroy-notify (window) (xlib:window-equal window old-wm))
+	(t nil)))
+
+    ;; Are we the selection owner after all ?
+    (unless (xlib:window-equal manager (xlib:selection-owner display +xa-wm+))
+      (format *error-output* 
+	      "ICCCM Error : failed to aquire selection ownership~%")
+      (%quit%))
+
+    ;; Check if a non ICCCM complient window manager is not running.
+    (flet ((handle-redirect-error (condition)
+	   (declare (ignorable condition))
+	   (format *error-output* "Redirect error - another WM is running~%")
+	   (xlib:close-display display)
+	   (%quit%)))
+      (handler-bind ((error #'handle-redirect-error)) ; xlib:access-error
+	(setf (xlib:window-event-mask root-window)
+	      '(:substructure-redirect :button-press :button-release
+		:focus-change :key-release :substructure-notify
+		:owner-grab-button :key-press :enter-window :leave-window))
+      (xlib:display-finish-output display)))
+
+    ;; Notify all the other X clients of the new manager.
+    (xlib:send-event root-window
+		     :client-message
+		     '(:structure-notify)
+		     :window root-window
+		     :type :MANAGER
+		     :format 32
+		     :data (list managing-since 
+				 (xlib:find-atom display +xa-wm+)
+				 (xlib:window-id manager)))
+    manager))
+
 (defun initialize-root (display root-window)
   (flet ((handle-redirect-error (condition)
 	   (declare (ignorable condition))
@@ -43,15 +102,16 @@
 (defun initialize (display-specification)
   (multiple-value-bind (display screen)
       (open-clx-display display-specification)
-    (let ((colormap (xlib:screen-default-colormap screen))
-	  (root-window (xlib:screen-root screen))
-	  (menu-font (xlib:open-font display "fixed")))
+    (let* ((colormap (xlib:screen-default-colormap screen))
+	   (root-window (xlib:screen-root screen))
+	   (manager (initialize-manager display root-window))
+	   (menu-font (xlib:open-font display "fixed")))
       (initialize-root display root-window)
       (setf *display* display)
       ;; Specific for X display
       (setf (xlib:display-error-handler display) #'default-handler
 	    (xlib:display-after-function display) #'xlib:display-force-output)
-      (setf *root* (make-instance 'root :window root-window)
+      (setf *root* (make-instance 'root :window root-window :manager manager)
 	    *root-window* root-window
 	    (root-default-cursor *root*) (get-x-cursor *display* :xc_left_ptr))
       ;; init all gnome properties on root.

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.4 2003/04/07 13:35:32 hatchond Exp $
+;;; $Id: misc.lisp,v 1.5 2003/05/13 14:54:01 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -66,6 +66,10 @@
 
 (defun make-view-port-property ()
   (make-list (* 2 *nb-vscreen*) :initial-element 0))
+
+(defun window-transient-p (app-window)
+  (or (xlib:transient-for app-window)
+      (member :_net_wm_window_type_dialog (netwm:net-wm-state app-window))))
 
 (defun wm-state (window)
   (xlib:get-property window :WM_STATE))

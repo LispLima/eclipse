@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.10 2003/03/21 09:54:48 hatchond Exp $
+;;; $Id: wm.lisp,v 1.11 2003/05/13 14:54:01 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -600,12 +600,16 @@
   (unwind-protect 
     (let ((application (create-application win nil))
 	  (win-workspace (or (gnome-desktop-num win) +any-desktop+))
-	  (stick-p (stick-p win)))
+	  (stick-p (stick-p win))
+	  (netwm-type (netwm:net-wm-window-type win)))
       (xlib:add-to-save-set win)
       (unless (or stick-p (< -1 win-workspace *nb-vscreen*))
 	(setf win-workspace (vs:current-screen vscreens)))
       (setf (window-desktop-num win) win-workspace)
-      (cond ((eql (motif-wm-decoration win) :OFF)
+      (cond ((or (eql (motif-wm-decoration win) :OFF)
+		 (member :_net_wm_window_type_splash netwm-type)
+		 (member :_net_wm_window_type_desktop netwm-type)
+		 (member :_net_wm_window_type_dock netwm-type))
 	     (setf (wm-state win) 1)
 	     (if (or (= win-workspace (vs:current-screen vscreens)) stick-p)
 		 (xlib:map-window win)
@@ -616,15 +620,10 @@
 	    (t (with-event-mask (*root-window*)
 		 (decore-application win application :map nil)
 		 (update-lists application 1 *root*))))
-      (if (member :_net_wm_window_type_desktop (netwm:net-wm-window-type win))
-	  (let* ((prec-desk (get-root-desktop *root* t))
-		 (stack-mode (if prec-desk :above :below)))
-	    (add-desktop-application *root* application)
-	    (xlib:ungrab-button win :any :modifiers #x8000)
-	    (setf (xlib:window-priority win prec-desk) stack-mode))
-	  (with-slots (wants-focus-p input-model) application
-	    (unless (eq input-model :no-input)	      
-	      (setf wants-focus-p *focus-new-mapped-window*)))))))
+      (unless (member :_net_wm_window_type_desktop netwm-type)
+	(with-slots (wants-focus-p input-model) application
+	  (unless (eq input-model :no-input)	      
+	    (setf wants-focus-p *focus-new-mapped-window*)))))))
 
 ;;;; The main loop.
 

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: $
+;;; $Id: themer.lisp,v 1.1 2002/11/07 14:54:27 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -198,7 +198,7 @@
 
 (defun find-decoration-frame-style (theme window)
   (with-slots (default-style transient-style) theme
-    (if (ignore-errors (xlib:transient-for window))
+    (if (ignore-errors (window-transient-p window))
 	(or transient-style default-style)
 	default-style)))
 

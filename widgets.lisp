@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.5 2003/03/21 09:54:47 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.6 2003/05/13 14:54:01 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -165,6 +165,7 @@
 (defgeneric focus-widget (widget timestamp))
 (defgeneric draw-on-focus-in (widget))
 (defgeneric draw-on-focus-out (widget))
+(defgeneric root-manager (widget))
 
 (macrolet ((define-null-method (name &rest args)
 	     (let ((%name% (with-standard-io-syntax (format nil "~A" name))))
@@ -175,10 +176,14 @@
   (define-null-method close-widget widget)
   (define-null-method focus-widget widget timestamp)
   (define-null-method draw-on-focus-in widget)
-  (define-null-method draw-on-focus-out widget))
+  (define-null-method draw-on-focus-out widget)
+  (define-null-method root-manager widget))
 
 (defmethod remove-widget ((widget base-widget))
   (remhash (widget-window widget) *widget-table*))
+
+(defmethod root-manager ((widget base-widget))
+  (root-manager (lookup-widget (xlib:drawable-root (widget-window widget)))))
 
 (defun base-widget-p (widget)
   (typep widget 'base-widget))
@@ -197,6 +202,7 @@
    (default-cursor :initform nil :accessor root-default-cursor)
    (current-active-decoration :initform nil)
    (decoration-theme :initform nil :accessor root-decoration-theme)
+   (properties-manager-window :initform nil :initarg :manager)
    (menu1 :initform nil)
    (menu2 :initform nil)
    (menu3 :initform nil)
@@ -204,6 +210,9 @@
    (client-list :initform (make-hash-table))
    (desktop :initform nil :accessor root-desktop)
    (vscreens :initform (create-eclipse-virtual-screens) :reader root-vscreens)))
+
+(defmethod root-manager ((root root))
+  (slot-value root 'properties-manager-window))
 
 (defmethod get-root-desktop ((root root) &optional window-p)
   (with-slots (desktop) root
@@ -293,11 +302,25 @@
 
 (defun create-application (window master)
   (let* ((input (find-input-model window))
+	 (type (ignore-errors (netwm:net-wm-window-type window)))
+	 (desktop-p (member :_net_wm_window_type_desktop type))
+	 (dock-p (member :_net_wm_window_type_dock type))
 	 (app (make-instance 
 	         'application :window window :master master :input input)))
     (ignore-errors 
       (create-icon app (or master *root*))
-      (grab-button window :any '(:button-press) :sync-pointer-p t)
+      (if (or desktop-p dock-p)
+	  (let* ((prec-desk (get-root-desktop *root* t))
+		 (stack-mode (if prec-desk :above :below))
+		 (netwm-state (ignore-errors (netwm:net-wm-state window))))
+	    (push :_net_wm_state_skip_pager netwm-state)
+	    (push :_net_wm_state_skip_taskbar netwm-state)
+	    (when desktop-p
+	      (add-desktop-application *root* app)
+	      (setf (xlib:window-priority window prec-desk) stack-mode))
+	    (setf (netwm:net-wm-state window) netwm-state
+		  (window-desktop-num window) +any-desktop+))
+	  (grab-button window :any '(:button-press) :sync-pointer-p t))
       (setf (xlib:window-event-mask window) 
 	    (if (eq input :no-input) +unfocusable-mask+ +focusable-mask+)))
     app))
