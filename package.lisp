@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.5 2003/09/07 01:35:44 hatchond Exp $
+;;; $Id: package.lisp,v 1.6 2003/09/12 01:16:10 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -118,7 +118,6 @@
    "GET-SCREEN-CONTENT"                   ;function
    "GET-VISIBLE-WINDOWS"		  ;function
    "GIVE-FOCUS-TO-NEXT-WIDGET-IN-DESKTOP" ;function
-   "GNOME-DESKTOP-NUM"			  ;function
    "HIGHLIGHT"				  ;function
    "HOME-SUBDIRECTORY"			  ;function
    "ICON-BOX-UPDATE"			  ;function
@@ -202,7 +201,7 @@
    "UPDATE-TITLE-BAR-SIZES"		  ;function
    "WHERE-IS-POINTER"			  ;function
    "WIDGET->FRAME-ITEM-KEY"               ;function
-   "WINDOW-DESKTOP-NUM"			  ;setf function
+   "WINDOW-DESKTOP-NUM"			  ;function, setf
    "WINDOW-NOT-DECORABLE-P"               ;function
    "WINDOW-PRIORITY"                      ;setf function
    "WINDOW-TRANSIENT-P"			  ;function

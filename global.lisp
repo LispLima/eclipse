@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.8 2003/05/14 08:56:17 hatchond Exp $
+;;; $Id: global.lisp,v 1.9 2003/08/28 14:50:35 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -100,7 +100,7 @@ NIL corresponds to the default which is to sort on order of creation
 
 (defmacro deftypedparameter (type symbol value &optional documentation)
   "define a parameter with the same syntax and behavior as defparameter 
-except that its type must be given first."
+   except that its type must be given first."
   `(progn
      (defparameter ,symbol ,value ,documentation)
      (declaim (type ,type ,symbol))))

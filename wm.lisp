@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.16 2003/09/08 15:40:31 hatchond Exp $
+;;; $Id: wm.lisp,v 1.17 2003/09/12 09:10:02 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -566,7 +566,7 @@
 (defun raise-window (window)
   (lambda ()
     (case (first (wm-state window))
-      (1 (change-vscreen *root* :n (gnome-desktop-num window)))
+      (1 (change-vscreen *root* :n (window-desktop-num window)))
       (3 (uniconify (slot-value (lookup-widget window) 'icon))))
     (put-on-top (lookup-widget window))))
 
@@ -598,7 +598,7 @@
 	  (add (cons "Close  " (lambda () (close-widget appli))))
 	  (add (cons (%shade%)  (lambda () (shade master))))
 	  (add (cons (%maximize%) (lambda () (maximize-window appli 1))))
-	  (if (= (or (gnome-desktop-num window) -1) +any-desktop+)
+	  (if (= (or (window-desktop-num window) -1) +any-desktop+)
 	      (add (cons "Un-pin" (%send-message% (current-desk))))
 	      (add (cons "Pin   " (%send-message% +any-desktop+))))
 	  (add (cons "Send to" (%sendTO%))))))
@@ -654,7 +654,7 @@
 (defun procede-decoration (window)
   (let ((scr-num (current-desk))
 	(application (create-application window nil))
-	(win-workspace (or (gnome-desktop-num window) +any-desktop+))
+	(win-workspace (or (window-desktop-num window) +any-desktop+))
 	(stick-p (stick-p window))
 	(netwm-type (netwm:net-wm-window-type window)))
     (xlib:add-to-save-set window)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.13 2003/09/12 01:29:57 hatchond Exp $
+;;; $Id: input.lisp,v 1.14 2003/09/12 09:10:02 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -219,37 +219,37 @@
 
 (defmethod event-process ((event configure-notify) (master decoration))
   (when (application-p (lookup-widget (event-window event)))
-    (with-slots ((ev-win event-window) window x y) event
+    (with-slots ((master-win event-window) (app-window window) x y) event
       (with-slots (left-margin top-margin) (decoration-frame-style master)
-	(multiple-value-bind (old-x old-y) (window-position window)
+	(multiple-value-bind (old-x old-y) (window-position app-window)
 	  (when (eql (decoration-application-gravity master) :static)
 	    (decf x left-margin) (decf y top-margin))
-	  (unless (= old-x left-margin) (setf (xlib:drawable-x ev-win) x))
-	  (unless (= old-y top-margin) (setf (xlib:drawable-y ev-win) y)))
-	  (resize-from (get-child master :application))
-	(with-event-mask (ev-win)
+	  (unless (= old-x left-margin) (setf (xlib:drawable-x master-win) x))
+	  (unless (= old-y top-margin) (setf (xlib:drawable-y master-win) y)))
+	  (resize-from (lookup-widget app-window))
+	(with-event-mask (master-win)
 	  (update-edges-geometry master)
-	  (setf (window-position window) (values left-margin top-margin))
-	  (send-configuration-notify window))))))
+	  (setf (window-position app-window) (values left-margin top-margin))
+	  (send-configuration-notify app-window))))))
 
 (defmethod event-process ((event reparent-notify) (master decoration))
   (unless (xlib:window-equal (event-event-window event) (event-parent event))
     (event-process (make-event :destroy-notify) master)))
 
 (defmethod event-process ((event unmap-notify) (master decoration))
-  (with-slots (event-window) event
-    (xlib:unmap-window event-window)))
+  (with-slots (window) master
+    (xlib:unmap-window window)))
 
 (defmethod event-process ((event map-notify) (master decoration))
-  (with-slots (window event-window) event
-    (when (application-p (lookup-widget window))
-      (unless (eq (xlib:window-map-state window) :unmapped)
+  (with-slots ((app-window window) (master-window event-window)) event
+    (when (application-p (lookup-widget app-window))
+      (unless (eq (xlib:window-map-state app-window) :unmapped)
 	(unmap-icon-window (get-child master :icon))
-	(xlib:map-window event-window)
-	(setf (window-priority event-window) :above
-	      (wm-state window) 1)
-	(setf (window-desktop-num window)
-	      (if (stick-p window) +any-desktop+ (current-desk)))))))
+	(xlib:map-window master-window)
+	(setf (window-priority master-window) :above
+	      (wm-state app-window) 1)
+	(setf (window-desktop-num app-window)
+	      (if (stick-p app-window) +any-desktop+ (current-desk)))))))
 
 (defmethod event-process ((event destroy-notify) (master decoration))
   (with-event-mask (*root-window*)
@@ -363,7 +363,7 @@
 	     (when (or-eql :_net_wm_state_below p1 p2)
 	       (put-on-bottom application)))))
 	(:_NET_WM_DESKTOP
-	 (let* ((cur-desk (gnome-desktop-num window))
+	 (let* ((cur-desk (window-desktop-num window))
 		(new-desk (aref data 0))
 		(master-window (and master (widget-window master))))
 	   (unless (= cur-desk new-desk)
@@ -441,14 +441,14 @@
   (with-slots (active-p) (button-master edge)
     (if active-p (setf active-p nil) (event-process event *root*))))
 
-;; initialize the move process.
+;; Initialize the move process.
 (defmethod event-process ((event button-press) (title title-bar))
   (with-slots (master armed active-p) title
     (setf (window-priority (widget-window master)) :above)
     (unless (event-send-event-p event)
       (initialize-move master event))))
 
-;; start the movement.
+;; Start the movement.
 (defmethod event-process ((event motion-notify) (title title-bar))
   (with-slots (move-status resize-status current-active-decoration) *root*
     (with-slots (window gcontext active-p) (button-master title)
@@ -475,7 +475,7 @@
       (with-slots (input-model window) (get-child master :application)
 	(set-focus input-model window (event-time event))))))
 
-;;; events for an icon
+;;; Events for an icon
 
 (defmethod event-process ((event exposure) (icon icon))
   (repaint icon (theme-name (root-decoration-theme *root*)) nil))

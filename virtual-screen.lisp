@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.6 2003/09/11 00:01:31 hatchond Exp $
+;;; $Id: virtual-screen.lisp,v 1.7 2003/09/12 09:10:02 hatchond Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -24,7 +24,7 @@
 ;;;; Private
 
 (defun window-belongs-to-vscreen-p (window scr-num iconify-p)
-  (let ((n (or (gnome-desktop-num window) -1))
+  (let ((n (or (window-desktop-num window) -1))
 	(wm-state (car (wm-state window)))
 	(netwm-type (netwm:net-wm-window-type window)))
     (and (or (= n scr-num) (= n +any-desktop+))
@@ -38,7 +38,7 @@
   (loop for widget being each hash-value in *widget-table*
 	when (application-p widget) do
 	  (with-slots (window master) widget
-	    (when (and (eq (gnome-desktop-num window) scr-num)
+	    (when (and (eq (window-desktop-num window) scr-num)
 		       (eq (car (wm-state window)) 1))
 	      (funcall fun (if master (widget-window master) window))))))
 
@@ -65,7 +65,7 @@
 	   (loop for widget being each hash-value in *widget-table*
 		 when (application-p widget) do
 	           (with-slots ((win window)) widget
-		     (let ((i (or (ignore-errors (gnome-desktop-num win)) -1)))
+		     (let ((i (or (ignore-errors (window-desktop-num win)) -1)))
 		       (when (and (>= i ,n) (/= i +any-desktop+))
 			 (setf (window-desktop-num win) (1- ,n)))))))
 	 (cond ((> cur (1- ,n))	(change-vscreen *root* :n (1- ,n)))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.8 2003/09/10 23:56:19 hatchond Exp $
+;;; $Id: misc.lisp,v 1.9 2003/09/12 01:15:16 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -29,12 +29,20 @@
 		    "~/"))
        directory))
 
+
+;;;; Helpers macros.
+
 (defmacro screen-width ()
   `(xlib:screen-width (xlib:display-default-screen *display*)))
+
 (defmacro screen-height ()
   `(xlib:screen-height (xlib:display-default-screen *display*)))
-(defmacro id->atom-name (id) `(xlib:atom-name *display* ,id))
-(defmacro atom-name->id (name) `(xlib:find-atom *display* ,name))
+
+(defmacro id->atom-name (id)
+  `(xlib:atom-name *display* ,id))
+
+(defmacro atom-name->id (name)
+ `(xlib:find-atom *display* ,name))
 
 (defmacro with-root-cursor ((new-cursor) &body body)
   `(unwind-protect
@@ -60,14 +68,11 @@
 (make-error-handler (wrong-name :verbose nil)
   (timed-message-box *root-window* "Wrong application name"))
 
-(defun run-application (program &rest arguments)
-  (lambda ()
-    (catch 'wrong-name
-      (handler-bind ((error #'handle-wrong-name-condition))
-	(%run-program% program arguments)))))
-
-(defun make-viewport-property (n)
-  (make-list (* 2 n) :initial-element 0))
+;;;; Property readers.
+;; They are not defined in the clx-ext package, because we customize them
+;; to allow a single manipulation for all properties that appears in the 
+;; gnome and netwm protocols, or because it partially reads a property to
+;; returns the part that is interesting in a window manager point of view.
 
 (defun window-transient-p (app-window)
   (or (xlib:transient-for app-window)
@@ -107,7 +112,7 @@
       (ignore-errors (xlib:wm-icon-name window))
       "incognito"))
 
-(defun gnome-desktop-num (window)
+(defun window-desktop-num (window)
   (or (netwm:net-wm-desktop window) (gnome:win-workspace window)))
 
 (defsetf window-desktop-num (window) (n)
@@ -115,14 +120,20 @@
 	 (netwm:net-wm-desktop ,window) ,n))
 
 (defun motif-wm-decoration (window)
+  "Returns the state (or :on :off) of the :_MOTIF_WM_HINT property that
+   indicates the application wants or not to be decorated."
   (let ((prop (xlib:get-property window :_MOTIF_WM_HINTS)))
     (or (and prop (logbitp 1 (first prop)) (zerop (third prop)) :OFF) :ON)))
 
 (defun stick-p (window)
-  (or (= (or (gnome-desktop-num window) -1) +any-desktop+)
+  (or (= (or (window-desktop-num window) -1) +any-desktop+)
       (logbitp 0 (or (gnome:win-state window :result-type t) 0))))
 
+;;;; Miscellenious functions.
+
 (defun send-wm-protocols-client-message (window atom &rest data)
+  "Send a client-message of type :wm-protocol to the specified window
+   with data being the given atom plus the rest of the function args."
   (xlib:send-event window
 		   :client-message
 		   nil
@@ -132,6 +143,9 @@
 		   :data (cons (atom-name->id atom) data)))
 
 (defsetf window-priority (window &optional sibling) (priority)
+  "Set the window priority such as (setf xlib:window-priority) but 
+   also invoke update-client-list-stacking to reflect the priority
+   change in all the root properties that are involved in."
   `(progn
      (setf (xlib:window-priority ,window ,sibling) ,priority)
      (update-client-list-stacking *root*)))
@@ -145,6 +159,9 @@
       :owner-p owner-p))
 
 (defun query-application-tree (root-window)
+  "Returns the children of the specified root-window as if all applications
+   where undecorated. The children are returned as a sequence of windows in
+   current stacking order, from bottom-most (first) to top-most (last)."
   (loop for window in (xlib:query-tree root-window)
 	for obj = (lookup-widget window)
 	for appw = (typecase obj
@@ -153,7 +170,22 @@
 	when appw collect appw))
 
 (defun delete-properties (window properties)
+  "Delete a list of properties on the specified window."
   (mapc #'(lambda (prop) (xlib:delete-property window prop)) properties))
+
+(defun run-application (program &rest arguments)
+  "Returns a lambda of zero arguments which when funcalled will try to 
+   run the program named `program' with arguments `arguments'. If the 
+   invocation failed a pop-up window will appear reporting the error."
+  (lambda ()
+    (catch 'wrong-name
+      (handler-bind ((error #'handle-wrong-name-condition))
+	(%run-program% program arguments)))))
+
+(defun make-viewport-property (n)
+  (make-list (* 2 n) :initial-element 0))
+
+;;;; Geometry structure and accessors.
 
 (defstruct geometry
   (x 0 :type (signed-byte 16))
