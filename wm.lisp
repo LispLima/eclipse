@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.14 2003/08/28 14:50:35 hatchond Exp $
+;;; $Id: wm.lisp,v 1.15 2003/08/29 09:37:16 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -187,8 +187,8 @@
 		     :width width :height height
 		     :event-mask '(:owner-grab-button . #.+push-button-mask+)
 		     :gcontext gcontext
-		     :x (if horizontal-p 0 (ash (- tw width) -1))
-		     :y (if horizontal-p (ash (- th height) -1) 0)))))))))
+		     :y (if horizontal-p (ash (- th height) -1) (- th height))
+		     :x (if horizontal-p 0 (ash (- tw width) -1))))))))))
 
 (defun make-buttons-bar (master parent-window)
   (with-slots (children frame-style gcontext) master
