@@ -2,6 +2,8 @@
 #
 # Script to start a nested X server (Xnest) session.  Good for WM hacking.
 #
+# $Id$
+#
 # Copyfnord (K) 3168, James A. Crippen <james@unlambda.com>
 # This file is in the public domain.  It's just a throwaway.  No
 # warranties expressed or implied.  If it breaks you get to keep
