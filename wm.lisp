@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.48 2005/01/18 23:22:44 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.49 2005/02/10 23:45:44 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -147,6 +147,7 @@
 	    (make-title-bar master (wm-name app-win))
 	    (update-edges-geometry master)
 	    (xlib:map-subwindows window))
+	  (setf (application-frame-style application) astyle)
 	  (cond ((shaded-p application)
 		 (if (title-bar-horizontal-p master)
 		     (unless (= 0 vm) (setf (xlib:drawable-height window) vm))
@@ -426,6 +427,7 @@
       (xlib:map-subwindows master-window))
     (with-event-mask (master-window (when map +decoration-event-mask+))
       (xlib:reparent-window window master-window left-margin top-margin))
+    (setf (application-frame-style application) (decoration-frame-style master))
     (when map (xlib:map-window window))
     master))
 
@@ -663,7 +665,8 @@
 
 (defun procede-decoration (window)
   "Decore, if necessary, add/update properties, map or not, etc a window."
-  (let* ((rw (xlib:drawable-root window))
+  (let* ((time (or (ignore-errors (netwm:net-wm-user-time window)) 1))
+	 (rw (xlib:drawable-root window))
 	 (scr-num (current-vscreen rw))
 	 (application (create-application window nil))
 	 (win-workspace (or (window-desktop-num window) +any-desktop+))
@@ -685,7 +688,7 @@
 	  (t (decore-application window application :map t)))
     (with-slots (wants-focus-p input-model type) application
       (unless (member :_net_wm_window_type_desktop type)
-	(unless (eq input-model :no-input)
+	(unless (or (zerop time) (eq input-model :no-input))
 	  (setf wants-focus-p *focus-new-mapped-window*)))
       (when (member :_net_wm_window_type_dock type)
 	(update-workarea-property *root*)))))

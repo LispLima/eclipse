@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.20 2005/01/16 23:22:23 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.21 2005/02/17 19:19:22 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -485,4 +485,4 @@
 
 (defsetf net-frame-extents (window) (left right top bottom)
   `(change-property ,window :_NET_FRAME_EXTENTS
-       (list ,left ,right ,top ,bottom) :cardinal 32))
+       (vector ,left ,right ,top ,bottom) :cardinal 32))

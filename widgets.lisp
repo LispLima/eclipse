@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.44 2005/01/16 23:25:59 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.45 2005/02/10 23:45:44 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -361,6 +361,11 @@
 		(drawable-sizes app-window) (geometry-sizes new-g)))
       ;; Update property. 
       (setf (netwm:net-wm-state app-window) prop))))
+
+(defsetf application-frame-style (application) (frame-style)
+  `(with-slots (left-margin right-margin top-margin bottom-margin) ,frame-style
+     (setf (netwm:net-frame-extents (widget-window ,application))
+           (values left-margin right-margin top-margin bottom-margin))))
 
 (defsetf fullscreen-mode (application) (mode)
   "Mode may be (or :on :off). Put or remove application in or from fullscreen."

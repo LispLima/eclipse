@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.27 2005/01/05 23:13:07 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.28 2005/01/16 23:25:59 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -36,7 +36,8 @@
   '(:_net_client_list :_net_client_list_stacking :_net_number_of_desktops
     :_net_current_desktop :_net_active_window :_net_close_window :_net_workarea
     :_net_wm_desktop :_net_wm_window_type :_net_desktop_names
-    :_net_restack_window :_net_moveresize_window
+    :_net_restack_window :_net_moveresize_window :_net_wm_user_time
+    :_net_request_frame_extents :_net_frame_extents 
     :_net_wm_strut_partial :_net_wm_state :_net_wm_strut
     :_net_wm_window_type_desktop :_net_wm_window_type_dock
     :_net_wm_window_type_toolbar :_net_wm_window_type_menu
@@ -66,7 +67,7 @@
 (defvar *root* nil)
 (defvar *root-window* nil)
 (defvar *gcontext* nil)
-(defvar *widget-table* (make-hash-table))
+(defvar *widget-table* (make-hash-table :test #'eq))
 (defvar +xa-wm+ nil)
 
 ;; Default value of all the "customisable" environment variables

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.42 2005/02/10 23:45:44 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.43 2005/02/12 02:04:37 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -71,6 +71,19 @@
 	    (let ((e (make-event :enter-notify :kind :nonlinear :mode :normal)))
 	      (event-process e (or (lookup-widget child) *root*))))))))
 
+(defmethod event-process ((event client-message) window)
+  (when (xlib:window-p window)
+    (case (event-type event) 
+      (:_net_request_frame_extents
+       (with-slots (left-margin right-margin top-margin bottom-margin)
+	   (find-decoration-frame-style
+	       (if (window-not-decorable-p window)
+		   (lookup-theme "no-decoration")
+		   (root-decoration-theme *root*))
+	       window)
+	 (setf (netwm:net-frame-extents window)
+	       (values left-margin right-margin top-margin bottom-margin)))))))
+
 ;; Specialized ones.
 
 (defmethod event-process ((e selection-clear) (w standard-property-holder))
@@ -133,11 +146,11 @@
   (let ((data (event-data event)))
     (declare (type client-message-data data))
     (case (event-type event)
-      ((or :_WIN_WORKSPACE :_NET_CURRENT_DESKTOP)
+      ((or :_win_workspace :_net_current_desktop)
        (change-vscreen root :n (aref data 0)))
-      (:_NET_NUMBER_OF_DESKTOPS 
+      (:_net_number_of_desktops 
        (setf (number-of-virtual-screens) (aref data 0)))
-      (:WM_PROTOCOLS
+      (:wm_protocols
        (when (eq :wm_delete_window (id->atom-name (aref data 0)))
 	 (close-widget (lookup-widget (event-event-window event))))))))
 
@@ -265,9 +278,10 @@
 
 (defmethod event-process ((event focus-out) (application application))
   (with-slots (master) application
-    (with-slots (mode) event
+    (with-slots (mode kind) event
       (unless (or (not master) (eql mode :while-grabbed) (eql mode :grab))
-	(dispatch-repaint master :focus nil)))))
+	(unless (eql kind :inferior)
+	  (dispatch-repaint master :focus nil))))))
 
 (defmethod event-process ((event focus-in) (application application))
   (with-slots (master window) application
@@ -374,7 +388,14 @@
 	(:_net_active_window
 	 (cond ((shaded-p application) (shade application))
 	       (iconic-p (uniconify icon)))
-	 (focus-widget application nil))
+	 (with-slots ((pwindow window)) (root-property-holder *root*)
+	   (let* ((length (length data))
+		  (source (if (> length 0) (aref data 0) 0))
+		  (time (if (> length 1) (aref data 1) 0))
+		  (wtime (or (netwm:net-wm-user-time pwindow) 0)))
+	     (unless (or (= source 1) (> wtime time 0))
+	       (setf (netwm:net-wm-user-time pwindow) time)
+	       (focus-widget application time)))))
 	(:_net_wm_desktop (migrate-application application (aref data 0)))
 	(:_net_close_window (close-widget application))))))
 
