@@ -1,5 +1,5 @@
 # -*- Mode: Makefile -*-
-# $Id: Makefile.in,v 1.8 2003/11/05 09:12:43 ihatchondo Exp $
+# $Id: Makefile.in,v 1.9 2004/02/26 16:23:52 ihatchondo Exp $
 #
 # Makefile for Eclipse window manager.
 
@@ -10,12 +10,16 @@ CORENAME = @CORENAME@
 COREDIR = @COREDIR@
 PRG = eclipse
 
+# lisp argument name for starting with a specific image :
+core_switch= @core_switch@
 # lisp argument name for evaluating forms :
-eval_form = @eval_form@
+eval_switch = @eval_switch@
 # lisp argument name for loading file :
 load_switch = @load_switch@
 # lisp function for saving a system image :
 save_lisp = @save_lisp@
+# list quit form :
+quit_form = @quit_form@
 
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
@@ -42,42 +46,49 @@ themes = microGUI Step brushed-metal CoolClean
 setconfig = cl-user::*eclipse-eclipsedir* "$(eclipsedir)/" \
 	    cl-user::*eclipse-initfile* "$(initfile)"
 
+exit = \#+allegro (excl:exit)\
+       \#+clisp (\#+lisp=cl ext:quit \#-lisp=cl lisp:quit)\
+       \#+cmu (unix:unix-exit 0)\
+       \#+gcl (lisp:bye)\
+       \#+lispworks (lw:quit)\
+       \#+lucid (lcl:quit)\
+       \#+sbcl (sb-ext:quit :unix-status 0)\
+       ${quit_form}
+
 
 all:	compile themes core
 
 compile:
-	$(LISP) $(INITCORE) ${load_switch} compile.lisp
+	$(LISP) $(INITCORE) ${load_switch} system.lisp			\
+		${eval_switch}  "(progn					\
+			           (eclipse-system:compile-eclipse-system)\
+			           ${exit})"\
 
 core:	
-	if test ! ${usecore} = no;					 \
-        then $(LISP) $(INITCORE)					 \
-                     ${load_switch} system.lisp				 \
-                     ${eval_form} '(setq $(setconfig))'			 \
-                     ${eval_form}  "(progn				 \
-			              (operate-on-system :eclipse :load) \
-			              (${save_lisp} \"${CORENAME}\"))";	 \
+	if test ! ${usecore} = no;					\
+        then $(LISP) $(INITCORE) ${load_switch} system.lisp		\
+                     ${eval_switch} '(setq $(setconfig))'		\
+                     ${eval_switch} "(progn				\
+			               (eclipse-system:load-eclipse-system)\
+			               (${save_lisp} \"${CORENAME}\"))";\
 	fi
-
 
 .PHONY: themes
 
 themes:
 	@for theme in ${themes}; do tmp=$$tmp\"themes/$$theme/\"; done;	\
 	$(LISP) $(INITCORE) ${load_switch} system.lisp			\
-		${eval_form} "(progn 					\
-				(compile-themes $$tmp)			\
-				#+:cmu(ext:quit)			\
-				#+:allegro(excl:exit))"
-
+		${eval_switch} "(progn 					\
+				  (eclipse-system:compile-themes $$tmp)\
+				  ${exit})"
 
 clean: clean-fasl clean-core clean-themes
 
 clean-fasl:
-	$(LISP) $(INITCORE) ${load_switch} system.lisp ${eval_form}	\
+	$(LISP) $(INITCORE) ${load_switch} system.lisp ${eval_switch}	\
 	 "(progn							\
-	    (operate-on-system :eclipse :clean)				\
-	    #+:cmu(ext:quit)						\
-	    #+:allegro(excl:exit))"
+	    (eclipse-system:clean-eclipse-system)\
+	    ${exit})";\
 	/bin/rm -f *.err
 
 clean-core:

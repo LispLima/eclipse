@@ -1,5 +1,5 @@
 -*- Mode: Text; Syntax: ANSI-English; Package: CL-USER; Base: 10. -*-
-$Id: README,v 1.3 2002/11/07 14:54:27 hatchond Exp $
+$Id: README,v 1.4 2003/04/07 13:59:49 hatchond Exp $
 
 				    ECLIPSE
 
@@ -53,11 +53,24 @@ shell $ ./configure
 shell $ make
 shell $ make install
 
-should work. (at least for CMUCL)
+should work. (at least for CMUCL and SBCL)
 
 See ./configure --help for options that can be used.
 
 The particular --enable and --with options recognized:
+
+  --with-core-switch=arg  
+     your lisp command line argument to start a specific image
+     for example -core for cmucl or --core for sbcl
+
+  --with-load-switch=arg  lisp command line argument to load a file
+  --with-eval-switch=arg  lisp command line argument to eval forms
+  --with-save-lisp=name   lisp function name to save a lisp image
+  --with-quit-form=form   lisp form to exit your lisp system
+  --with-lisp-system=feature  lisp system feature name (:cmu, :sbcl, ...)
+     Use this option when your lisp system is one of the known systems
+     (currently sbcl or cmucl) but its executable name is not the usual 
+     one. (cmucl executable name is lisp, sbcl one is sbcl for example).
 
   --with-initfile=FILE    where to find your eclipse startup file
   --with-lisp=DIR or FILE where to find your lisp system

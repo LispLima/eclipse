@@ -1,7 +1,20 @@
-# $Id: configure.in,v 1.5 2003/09/04 11:53:52 hatchond Exp $
+# $Id: configure.in,v 1.6 2004/01/12 11:22:05 ihatchondo Exp $
+
 AC_INIT()
 
+# macro
+AC_DEFUN(WM_MSG,[AC_MSG_WARN([*** $1])])
+
+# implementation dependant lisp system args :
+core_switch=""
+load_switch=""
+eval_switch=""
+# implementation dependant lisp functions :
+save_lisp=""
+quit_form=""
+
 eclipsedir=${libdir}/eclipse
+lisp_system=""
 
 SRC=`pwd`
 LISP=""
@@ -10,71 +23,153 @@ CORENAME="eclipse.core"
 COREDIR=${eclipsedir}
 ARGS=""
 initfile=".eclipse"
-usecore="no"
+usecore="yes"
 gnome_entry_dir=""
 interp=""
-
-# implementation dependant lisp system args : (default is for cmucl) 
-with_image="-core"
-load_switch="-load"
-eval_form="-eval"
-save_lisp="save-lisp"
 
 # standard tests
 AC_SYS_INTERPRETER
 AC_PROG_INSTALL
 
+# with and enable args.
+
+AC_ARG_ENABLE(compile-into-core,
+[  --enable-compile-into-core=[yes|no]  compile to core],
+if test "$enableval" = no 
+then usecore=no
+else usecore=yes
+fi)
+
+AC_ARG_WITH(core-switch,
+[  --with-core-switch=arg  lisp command line argument to start a specific image],
+if test -n "$withval"; 
+then if test "$withval" = "yes" -o "$withval" = "no"; then :;
+     else core_switch="$withval"; fi
+fi)
+
+AC_ARG_WITH(load-switch,
+[  --with-load-switch=arg  lisp command line argument to load a file],
+if test -n "$withval"; 
+then if test "$withval" = "yes" -o "$withval" = "no"; then :;
+     else load_switch="$withval"; fi
+fi)
+
+AC_ARG_WITH(eval-switch,
+[  --with-eval-switch=arg  lisp command line argument to eval forms],
+if test -n "$withval"; 
+then if test "$withval" = "yes" -o "$withval" = "no"; then :;
+     else eval_switch="$withval"; fi
+fi)
+
+AC_ARG_WITH(save-lisp,
+[  --with-save-lisp=name   lisp function name to save a lisp image],
+if test -n "$withval";
+then if test "$withval" = "yes" -o "$withval" = "no"; then :;
+     else save_lisp="$withval"; fi
+fi)
+
+AC_ARG_WITH(quit-form,
+[  --with-quit-form=form   lisp form to exit your lisp system],
+if test -n "$withval"; 
+then if test "$withval" = "yes" -o "$withval" = "no"; then :;
+     else quit_form="$withval"; fi
+fi)
+
+AC_ARG_WITH(lisp-system,
+[  --with-lisp-system=feature  lisp system feature name (:cmu, :sbcl, ...)],
+if test -n "$withval"; 
+then if test "$withval" = "yes" -o "$withval" = "no"; then :;
+     else lisp_system="$withval"; fi
+fi)
+
 AC_ARG_WITH(initfile,
 [  --with-initfile=FILE    where to find your eclipse startup file],
-initfile="$withval")
-
-AC_ARG_WITH(lisp,
-[  --with-lisp=DIR or FILE where to find your lisp system],
-LISP="$withval",
-[AC_PATH_PROG(LISP,lisp)])
-
-AC_ARG_WITH(initcore,
-[  --with-initcore=FILE    the name of the core to use when compiling],
-if test -n "$withval" -a -r "$withval"
-then INITCORE="${with_image} $withval"
+if test -n "$withval"; 
+then if test "$withval" = "yes" -o "$withval" = "no"; then :;
+     else initfile="$withval"; fi
 fi)
 
 AC_ARG_WITH(corename,
 [  --with-corename=FILE    what is the name of the core image to dump],
 if test -n "$withval"
-then CORENAME="$withval"
+then if test "$withval" = "yes" -o "$withval" = "no"; then :;
+     else CORENAME="$withval"; fi
 fi)
 
 AC_ARG_WITH(coredest,
 [  --with-coredest=DIR     what is the destination of the dumped core image],
 if test -n "$withval" -a -d "$withval"
-then COREDIR="$withval"
+then if test "$withval" = "yes" -o "$withval" = "no"; then :;
+     else COREDIR="$withval"; fi
+fi)
+
+AC_ARG_WITH(initcore,
+[  --with-initcore=FILE    the name of the core to use when compiling],
+if test -n "$withval" -a -r "$withval"
+then if test "$withval" = "yes" -o "$withval" = "no"; then :;
+     else INITCORE="${core_switch} $withval"; fi
 fi)
 
 AC_ARG_WITH(gnome_entry_dir,
-[  --with-gnome-entry-dir=[PATH]  path to the gnome WM entries directory.],
+[  --with-gnome-entry-dir=[PATH]  path to the gnome WM entries directory],
 gnome_entry_dir="$withval"
 if test -z "${gnome_entry_dir}"
 then gnome_entry_dir=yes
 fi,
 gnome_entry_dir=yes)
 
-AC_ARG_ENABLE(compile-into-core,
-[  --enable-compile-into-core=[yes|no]  compile to core],
-if test ! "$enableval" = no 
-then usecore=yes
-else usecore=no
-fi)
+AC_ARG_WITH(lisp,
+[  --with-lisp=DIR or FILE where to find your lisp system],
+LISP="$withval",
+# we only know the current name of cmucl and sbcl, please add more.
+[AC_PATH_PROGS(LISP,lisp sbcl)])
 
 #
 # user gave a directory for the lisp system
-if test -n ${LISP} && test -d $LISP
+if test -n $LISP && test -d $LISP
 then LISP=`dirname $LISP/lisp`/lisp
 fi
 
-# no lisp system at all !!!
-if test ! -x ${LISP}
-then
+#
+# Perform final deduction on the lisp system we got.
+# We currently only have information for cmucl and sbcl,
+# so please add more systems.
+#
+if test -x $LISP
+then ### a lisp system was found or specified try to decide which one it is.
+   if test -z "$lisp_system"
+   then case `basename $LISP` in
+          lisp) lisp_system=:cmu;;
+          sbcl) lisp_system=:sbcl;;
+	esac
+   fi
+   # Now checks lisp machine args in case we know them.
+   case "$lisp_system" in 
+     :cmu)
+       if test -z "$load_switch"; then load_switch="-load"; fi
+       if test -z "$core_switch"; then core_switch="-core"; fi
+       if test -z "$eval_switch"; then eval_switch="-eval"; fi
+       if test -z "$save_lisp"; then save_lisp="save-lisp"; fi
+       ;;
+     :sbcl)
+       if test -z "$load_switch"; then load_switch="--load"; fi
+       if test -z "$core_switch"; then core_switch="--core"; fi
+       if test -z "$eval_switch"; then eval_switch="--eval"; fi
+       if test -z "$save_lisp"; then save_lisp="sb-ext:save-lisp-and-die"; fi
+       ;;
+   esac
+   # Verify we have all the infos we need.
+   if test -z "$load_switch" || test -z "$core_switch" || 
+      test -z "$eval_switch" || test -z "$save_lisp"
+   then 
+     WM_MSG(We have a lisp system named: ${LISP}, but:)
+     if test -z "$load_switch"; then WM_MSG(- load switch is missing); fi
+     if test -z "$core_switch"; then WM_MSG(- core switch is missing); fi
+     if test -z "$eval_switch"; then WM_MSG(- eval switch is missing); fi
+     if test -z "$save_lisp"; then WM_MSG(- save-lisp function is missing); fi
+     AC_MSG_ERROR([*** Maybe you want to use --with-<...>-switch])
+   fi
+else ### No lisp system found at all !!!
  AC_MSG_WARN([*** Cannot find a lisp system])
  AC_MSG_ERROR([*** Maybe you want to use --with-lisp])
 fi
@@ -95,16 +190,18 @@ done
 clwm_cv_gnome_entry_dir=${gnome_entry_dir})
 gnome_entry_dir=${clwm_cv_gnome_entry_dir}
 
+#
 # prepare the lisp arguments for the wm loader.
-if test ! ${usecore} = no
+if test ${usecore} = yes
 then
- ARGS="${with_image} ${COREDIR}/${CORENAME}\
-       ${eval_form} \"(eclipse:eclipse \${options})\""
+ ARGS="${core_switch} ${COREDIR}/${CORENAME}\
+       ${eval_switch} \"(eclipse:eclipse \${options})\""
 else
- ARGS="${INITCORE} ${load_switch} ${SRC}/load-eclipse.lisp ${eval_form}\
+ ARGS="${INITCORE} ${load_switch} ${SRC}/load-eclipse.lisp ${eval_switch}\
  \"(start \${options})\""
 fi
 
+#
 # set interp.
 if test $interpval = yes
 then interp="#!"
@@ -122,10 +219,11 @@ AC_SUBST(COREDIR)
 AC_SUBST(SRC)
 AC_SUBST(ARGS)
 AC_SUBST(INSTALL)
-AC_SUBST(eval_form)
-AC_SUBST(with_image)
+AC_SUBST(eval_switch)
+AC_SUBST(core_switch)
 AC_SUBST(load_switch)
 AC_SUBST(save_lisp)
+AC_SUBST(quit_form)
 AC_SUBST(usecore)
 AC_SUBST(initfile)
 AC_SUBST(eclipsedir)
@@ -133,10 +231,10 @@ AC_SUBST(gnome_entry_dir)
 
 AC_OUTPUT([Makefile eclipse load-eclipse.lisp config.lisp])
 
-if test ! ${gnome_entry_dir} = no
-then 
-     printf "creating Eclipse.desktop"
-     cat > Eclipse.desktop <<\EOF
+if test ${gnome_entry_dir} = yes; then :; else
+printf "creating Eclipse.desktop"
+
+cat > Eclipse.desktop <<\EOF
 [[Desktop Entry]]
 Name=Eclipse
 Exec=eclipse
@@ -153,15 +251,22 @@ fi
 #
 # Configuration report
 printf "\n\nConfiguration report\n"
-printf " - install prefix            : ${prefix}.\n"
-printf " - exec prefix               : ${exec_prefix}/bin.\n"
-printf " - eclipse dir               : ${eclipsedir}.\n"
-printf " - eclipse startup file      : ${initfile}.\n"
-printf " - lisp system found         : ${LISP}.\n"
-printf " - use core when compiling   : ${INITCORE}.\n"
-printf " - compile and dump image    : ${usecore}.\n"
+printf " - install prefix            : ${prefix}\n"
+printf " - exec prefix               : ${exec_prefix}/bin\n"
+printf " - eclipse dir               : ${eclipsedir}\n"
+printf " - eclipse startup file      : ${initfile}\n"
+printf " - lisp system found         : ${LISP}\n"
+printf "   - lisp options\n"
+printf "     - lisp feature name     : ${lisp_system}\n"
+printf "     - save-lisp function    : ${save_lisp}\n"
+printf "     - load command line arg : ${load_switch}\n"
+printf "     - eval command line arg : ${eval_switch}\n"
+printf "     - core command line arg : ${core_switch}\n"
+printf "     - lisp quit form        : ${quit_form}\n"
+printf " - use core when compiling   : ${INITCORE}\n"
+printf " - compile and dump image    : ${usecore}\n"
 if test "${usecore}" = yes ; then 
-printf " - image path                : ${COREDIR}/${CORENAME}.\n"
+printf " - image path                : ${COREDIR}/${CORENAME}\n"
 fi
-printf " - create gnome entry        : ${gnome_entry_dir}.\n"
-printf " - installer                 : ${INSTALL}.\n"
+printf " - create gnome entry        : ${gnome_entry_dir}\n"
+printf " - installer                 : ${INSTALL}\n"

@@ -1,18 +1,15 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: load-eclipse.lisp.in,v 1.5 2003/04/07 13:35:32 hatchond Exp $
+;;; $Id: load-eclipse.lisp.in,v 1.6 2004/01/12 11:22:05 ihatchondo Exp $
 ;;;
 ;;; @configure_input@
 ;;; watch out before modify it.
 ;;; It use the MK-DEFSYSTEM for loading the system.
 
-#+cmu #-MK-DEFSYSTEM (load "library:subsystems/defsystem")
-
-#+MK-DEFSYSTEM (use-package "MK")
-
 (progn
   (load "@SRC@/config.lisp")
-  (load "@SRC@/system.lisp")
-  (operate-on-system :eclipse :load))
+  (load "@SRC@/system.lisp"))
+
+(eclipse-system:load-eclipse-system)
 
 (defun start (&key display sm-client-id)
   (handler-case (eclipse:eclipse :display display :sm-client-id sm-client-id)
