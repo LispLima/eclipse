@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.13 2003/10/09 11:36:18 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.14 2003/11/24 13:12:26 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -51,6 +51,9 @@
 
 (defconstant +any-desktop+ #xFFFFFFFF)
 
+(defconstant +default-font-name+ 
+  "-misc-fixed-medium-r-normal--14-110-100-100-c-70-iso8859-1")
+
 (defvar *cursor-2* nil)
 (defvar *display* nil)
 (defvar *root* nil)
@@ -77,8 +80,6 @@
 (defparameter *move-mode* :opaque "values are: :box :opaque")
 (defparameter *resize-mode* :opaque "values are: :box :opaque")
 (defparameter *focus-type* :none "values are: :none :on-click")
-(defparameter *font-name* 
-  "-misc-fixed-medium-r-normal--14-110-100-100-c-70-iso8859-1")
 (defparameter *maximize-fill* nil
  "Indicate if the action of maximizing window should making it filling whether
  the largest area around (excluding overlapped windows) or screen area.")
@@ -95,8 +96,13 @@
   \(aka `icon-sort-creation-order'\).")
 
 (defsetf font-name () (name)
-  `(setf *font-name* ,name
-         (xlib:gcontext-font *gcontext*) (xlib:open-font *display* ,name)))
+  "Set the title bar font to the font named by `name'.
+  The following pattern characters can be used for wildcard matching:
+   #\* Matches any sequence of zero or more characters. 
+   #\? Matches any single character."
+  `(if (xlib:list-font-names *display* ,name)
+       (setf (xlib:gcontext-font *gcontext*) (xlib:open-font *display* ,name))
+       (format *stderr* "~a is not a valid font name or pattern~%" ,name)))
 
 (defsetf decoration-theme (&key free-old-theme-p) (name)
   `(with-slots (decoration-theme) *root*

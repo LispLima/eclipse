@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.10 2003/10/06 17:57:26 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.11 2003/11/13 11:02:05 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -127,11 +127,6 @@
       ;; init all gnome properties on root.
       (init-gnome-compliance display root-window manager)
       (ppm:initialize colormap)
-      ;; load personal configuration file, or the default one.
-      (or (load-config-file (home-subdirectory cl-user::*eclipse-initfile*))
-	  (load-config-file (eclipse-path "eclipserc"))
-	  (format *error-output* "Unable to read a configuration file.~%")
-	  (%quit%))
       ;; Eclipse globals vars.
       (setf *black* (xlib:screen-black-pixel screen)
 	    *white* (xlib:screen-white-pixel screen)
@@ -142,15 +137,18 @@
 	    *max-char-width* (xlib:max-char-width menu-font)
 	    *gcontext* (xlib:create-gcontext
 			  :drawable root-window
-			  :foreground *white*
-			  :background *black*
-			  :fill-style :solid
-			  :line-style :solid
-			  :line-width 1
-			  :exposures :OFF
-			  :font (xlib:open-font display *font-name*)))
+			  :foreground *white* :background *black*
+			  :fill-style :solid  :line-style :solid
+			  :line-width 1 :exposures :OFF))
+      ;; load personal configuration file, or the default one.
+      (or (load-config-file (home-subdirectory cl-user::*eclipse-initfile*))
+	  (load-config-file (eclipse-path "eclipserc"))
+	  (format *error-output* "Unable to read a configuration file.~%")
+	  (%quit%))
       (setf (xlib:window-cursor root-window) (root-default-cursor *root*))
       (setf (slot-value *root* 'gcontext) *gcontext*)
+      (unless (xlib:gcontext-font *gcontext*)
+	(setf (font-name) +default-font-name+))
       (unless (root-decoration-theme *root*) 
 	(setf (decoration-theme) "microGUI"))
       (init-edges-cursors))))

@@ -1,5 +1,5 @@
 .TH Eclipse 1 "(c) 2001 Iban HATCHONDO"
-.\"$Id: eclipse.1,v 1.8 2003/10/06 17:57:27 ihatchondo Exp $
+.\"$Id: eclipse.1,v 1.9 2003/10/09 11:40:39 ihatchondo Exp $
 
 .SH NAME
 eclipse - a window manager in Common Lisp
@@ -214,6 +214,13 @@ is suposed to be equal to the number of virtual screens.
 .TP
 .B\-(setf font-name) font-name-string\ \fIstring\fP
 Sets the font used in title bar to display the application title.
+The following pattern characters can be used for wildcard matching:
+ \fB#\\*\fP Matches any sequence of zero or more characters. 
+ \fB#\\?\fP  Matches any single character. 
+
+For example, the pattern "T?mes Roman" matches the name "Times Roman"
+but not the name "Thames Roman". However, the pattern "T*mes Roman"
+matches both names. 
 
 .SH THEMES
 The image file format is \fBpnm P6\fP.
