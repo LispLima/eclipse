@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.5 2002/11/07 14:54:27 hatchond Exp $
+;;; $Id: wm.lisp,v 1.6 2003/02/03 08:06:32 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -44,19 +44,20 @@
      :accessor decoration-application-gravity)
    ))
 
-(defsetf initial-geometry (master) (x y width height)
-  `(with-slots (initial-geometry) ,master
-     (setf (aref initial-geometry 0) ,x
-	   (aref initial-geometry 1) ,y
-	   (aref initial-geometry 2) ,width
-	   (aref initial-geometry 3) ,height)))
-
 (defconstant +decoration-event-mask+
   '(:substructure-notify :visibility-change :enter-window :owner-grab-button))
 
 (defmethod get-child ((master decoration) label &key window)
   (let ((widget (getf (decoration-children master) label)))
     (if (and widget window) (widget-window widget) widget)))
+
+
+(defsetf initial-geometry (master) (x y width height)
+  `(with-slots (initial-geometry) ,master
+     (setf (aref initial-geometry 0) ,x
+	   (aref initial-geometry 1) ,y
+	   (aref initial-geometry 2) ,width
+	   (aref initial-geometry 3) ,height)))
 
 (defmethod initial-x ((master decoration))
   (aref (slot-value master 'initial-geometry) 0))
@@ -97,7 +98,12 @@
 	    (decoration-base-width master) (decoration-base-height master))))
 
 (defmethod focused-p ((master decoration))
-  (focused-p (get-child master :application)))
+  (with-slots (window) (get-child master :application)
+    (xlib:window-equal window (xlib:input-focus *display*))))
+
+(defmethod focus-widget ((master decoration) timestamp)
+  (with-slots (window input-model) (get-child master :application)
+    (set-focus input-model window timestamp)))
 
 (defmethod (setf decoration-frame-style) :after (frame-style (master decoration))
   (with-slots (window children) master
@@ -398,10 +404,11 @@
 
 (defun maximize-window (master button-code)
   (with-slots (maximized window initial-geometry wm-size-hints) master
-    (let ((app-window (get-child master :application :window t))
-	  (max-w (aref wm-size-hints 2))
-	  (max-h (aref wm-size-hints 3))
-	  new-sizes)
+    (let* ((app-window (get-child master :application :window t))
+	   (prop (ignore-errors (netwm:net-wm-state app-window)))
+	   (max-w (aref wm-size-hints 2))
+	   (max-h (aref wm-size-hints 3))
+	   new-sizes)
       (multiple-value-bind (x y) (window-position window)
 	(multiple-value-bind (w h) (drawable-sizes app-window)
 	  (unless maximized (setf (initial-geometry master) (values x y w h)))
@@ -427,7 +434,30 @@
       (setf (window-position window)
 	    (values (aref new-sizes 0) (aref new-sizes 1)))
       (setf (drawable-sizes app-window)
-	    (values (aref new-sizes 2) (aref new-sizes 3))))))
+	    (values (aref new-sizes 2) (aref new-sizes 3)))
+      (if (getf maximized :vertical)
+	  (pushnew :_net_wm_state_maximized_vert prop)
+	  (setf prop (delete :_net_wm_state_maximized_vert prop)))
+      (if (getf maximized :horizontal)
+	  (pushnew :_net_wm_state_maximized_horz prop)
+	  (setf prop (delete :_net_wm_state_maximized_horz prop)))
+      (setf (netwm:net-wm-state app-window) prop))))
+
+(defsetf full-screen-mode (master) (mode)
+  `(with-slots (window application-gravity) ,master
+     (let ((app-window (get-child ,master :application :window t)))       
+       (if (eq ,mode :on)
+	   (multiple-value-bind (x y) (window-position window)
+	     (multiple-value-bind (w h) (drawable-sizes app-window)
+	       (setf (initial-geometry ,master) (values x y w h)))
+	     (setf application-gravity :static)
+	     (setf (window-position app-window) (values 0 0))
+	     (setf (drawable-sizes app-window) 
+		   (values (screen-width) (screen-height))))
+	   (setf (drawable-sizes app-window)
+		 (values (initial-width ,master) (initial-height ,master))
+		 (window-position window)
+		 (values (initial-x ,master) (initial-y ,master)))))))
 
 ;;;; Focus management. According to ICCCM
 
@@ -454,14 +484,15 @@
 ;;  to perform this action.
 
 ;; protocol for treating events
-(defgeneric menu-3-prcess (event widget &rest rest))
+(defgeneric menu-3-process (event widget &rest rest))
 
 (defmethod menu-3-process (event widget &rest rest)
   (declare (ignorable event widget rest)))
 
-(defmethod menu-3-process ((event button-press) (widget base-widget) &rest rest)
+(defmethod menu-3-process ((event pointer-event) (w base-widget) &rest rest)
   (declare (ignore rest))
-  (xlib:ungrab-pointer *display*))
+  (xlib:ungrab-pointer *display*)
+  t)
 
 (defmethod menu-3-process ((event exposure) (widget base-widget) &rest rest)
   (declare (ignore rest))
@@ -471,7 +502,8 @@
 (defmethod menu-3-process ((ev motion-notify) (master decoration) &key key)
   (when (decoration-active-p master)
     (cond ((eql key :resize)
-	   (where-is-pointer nil)
+	   (with-slots (root-x root-y) ev
+	     (find-corner root-x root-y (widget-window master)))
 	   (event-process ev (get-child master :bottom-right)))
 	  ((eql key :move) (event-process ev (get-child master :title-bar))))
     t))
@@ -500,13 +532,13 @@
     (with-root-cursor (*cursor-2*)
       (destroy-substructure (slot-value *root* 'menu3))
       (loop for event = (get-next-event *display* :force-output-p t)
-	    for widget = (gethash (event-event-window event) *widget-table*)
+	    for widget = (lookup-widget (event-event-window event))
 	    until (menu-3-process event widget :key action)))))
 
 ;;;; Misc.
 
 (defun put-on-top (window)
-  (let ((widget (gethash window *widget-table*)))
+  (let ((widget (lookup-widget window)))
     (when (application-p widget)
       (unless (eq *focus-type* :none)
 	(set-focus (application-input-model widget) window nil))
@@ -519,8 +551,7 @@
     (case (first (wm-state window))
       (1 (unless (eq (vs:current-screen vs) (gnome:win-workspace window))
 	   (change-vscreen vs nil (gnome:win-workspace window))))
-      (3 (with-slots (icon) (gethash window *widget-table*)
-	   (uniconify icon))))
+      (3 (uniconify (slot-value (lookup-widget window) 'icon))))
     (put-on-top window)))
 
 (defun make-menu-button-menu (master)
@@ -552,7 +583,7 @@
     (apply #'make-pop-up *root* menu)))
 
 (defun make-desk-entries (vscreens index)
-  (loop for win in (aref (vs:vscreens vscreens) index)
+  (loop for win across (aref (vs:vscreens vscreens) index)
 	for state = (= 1 (first (wm-state win)))
 	collect (cons (format nil "~:[[ ~A ]~;~A~]" state (wm-name win))
 		      (raise-window win vscreens))))
@@ -594,31 +625,35 @@
 		when (gethash win client-list) collect win into wins
 		finally	(setf (netwm:net-client-list-stacking root) wins)))))))
 
-(defun procede-decoration (window vscreens)
-  (let ((application (create-application window nil))
-	(win-workspace (or (gnome-desktop-num window) +any-desktop+))
-	(stick-p (stick-p window)))
-    (xlib:add-to-save-set window)
-    (unless (or stick-p (< -1 win-workspace *nb-vscreen*))
-      (setf win-workspace (vs:current-screen vscreens)))
-    (setf (window-desktop-num window) win-workspace)
-    (cond ((eql (motif-wm-decoration window) :OFF)
-	   (setf (wm-state window) 1)
-	   (if (or (= win-workspace (vs:current-screen vscreens)) stick-p)
-	       (xlib:map-window window)
-	       (with-event-mask (*root-window*)
-		 (xlib:unmap-window window))))
-	  ((or (= win-workspace (vs:current-screen vscreens)) stick-p)
-	   (decore-application window application))
-	  (t (with-event-mask (*root-window*)
-	       (decore-application window application :map nil)
-	       (update-lists application 1 *root*))))
-    (if (member :_net_wm_window_type_desktop (netwm:net-wm-window-type window))
-	(let* ((prec-desk (get-root-desktop *root* t))
-	       (stack-mode (if prec-desk :above :below)))
-	  (add-desktop-application *root* application)
-	  (xlib:ungrab-button window :any :modifiers #x8000)
-	  (setf (xlib:window-priority window prec-desk) stack-mode)))))
+(defun procede-decoration (win vscreens)
+  (unwind-protect 
+    (let ((application (create-application win nil))
+	  (win-workspace (or (gnome-desktop-num win) +any-desktop+))
+	  (stick-p (stick-p win)))
+      (xlib:add-to-save-set win)
+      (unless (or stick-p (< -1 win-workspace *nb-vscreen*))
+	(setf win-workspace (vs:current-screen vscreens)))
+      (setf (window-desktop-num win) win-workspace)
+      (cond ((eql (motif-wm-decoration win) :OFF)
+	     (setf (wm-state win) 1)
+	     (if (or (= win-workspace (vs:current-screen vscreens)) stick-p)
+		 (xlib:map-window win)
+		 (with-event-mask (*root-window*)
+		   (xlib:unmap-window win))))
+	    ((or (= win-workspace (vs:current-screen vscreens)) stick-p)
+	     (decore-application win application))
+	    (t (with-event-mask (*root-window*)
+		 (decore-application win application :map nil)
+		 (update-lists application 1 *root*))))
+      (if (member :_net_wm_window_type_desktop (netwm:net-wm-window-type win))
+	  (let* ((prec-desk (get-root-desktop *root* t))
+		 (stack-mode (if prec-desk :above :below)))
+	    (add-desktop-application *root* application)
+	    (xlib:ungrab-button win :any :modifiers #x8000)
+	    (setf (xlib:window-priority win prec-desk) stack-mode))
+	  (with-slots (wants-focus-p input-model) application
+	    (unless (eq input-model :no-input)	      
+	      (setf wants-focus-p *focus-new-mapped-window*)))))))
 
 ;;;; The main loop.
 
@@ -644,6 +679,7 @@
 	       (or
 		(eql (xlib:window-override-redirect window) :ON)
 		(eql (xlib:window-map-state window) :UNMAPPED)
+		(member :_net_wm_state_hidden (netwm:net-wm-state window))
 		(and (= 0 (or (car (wm-state window)) 1))
 		     ;; state = WITHDRAWN but the window is mapped
 		     (progn (xlib:unmap-window window) t))
@@ -662,11 +698,11 @@
     (loop
       (catch 'general-error
 	(handler-bind ((end-of-file #'handle-end-of-file-condition)
-		       (error #'handle-general-error-condition))	       
+		       (error #'handle-general-error-condition))
 	  (let ((event (get-next-event *display* :discard-p t :timeout 2)))
 	    (when event
 	      (with-slots (event-window) event
-		(event-process event (gethash event-window *widget-table*)))))
+		(event-process event (lookup-widget event-window)))))
 	  (when pt:preprogrammed-tasks (pt:execute-preprogrammed-tasks))
 	  (case exit
 	    (1 (loop for val being each hash-value in *widget-table*
