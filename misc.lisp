@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: $
+;;; $Id: misc.lisp,v 1.1 2002/11/07 15:06:03 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -71,11 +71,17 @@
   (xlib:get-property window :WM_STATE))
 
 (defsetf wm-state (window &key icon-id) (state)
-  `(xlib:change-property ,window
-			 :WM_STATE
-			 (list ,state ,icon-id)
-			 :WM_STATE
-			 32))
+  (let ((net-wm-state (gensym)))
+    `(let ((,net-wm-state (netwm:net-wm-state ,window)))
+       (if (or (= ,state 3) (= ,state 0))
+	   (pushnew :_net_wm_state_hidden ,net-wm-state)
+           (setf ,net-wm-state (delete :_net_wm_state_hidden ,net-wm-state)))
+       (setf (netwm:net-wm-state ,window) ,net-wm-state)
+       (xlib:change-property ,window
+			     :WM_STATE
+			     (list ,state ,icon-id)
+			     :WM_STATE
+			     32))))
 
 (defun workspace-names (window)
   (or (netwm:net-desktop-names window) (gnome:win-workspace-names window)))
@@ -96,7 +102,7 @@
 (defsetf window-desktop-num (window) (n)
   `(setf (gnome:win-workspace ,window) ,n
 	 (netwm:net-wm-desktop ,window) ,n
-	 (application-desktop-number (gethash ,window *widget-table*)) ,n))
+	 (application-desktop-number (lookup-widget ,window)) ,n))
 
 (defun motif-wm-decoration (window)
   (let ((prop (xlib:get-property window :_MOTIF_WM_HINTS)))
@@ -125,9 +131,9 @@
 
 (defun query-application-tree ()
   (loop for window in (xlib:query-tree *root-window*)
-	for obj = (gethash window *widget-table*)
+	for obj = (lookup-widget window)
 	for app = (typecase obj
-		    (application (widget-window obj))
+		    (application window)
 		    (decoration (get-child obj :application :window t)))
 	when app collect app))
 
