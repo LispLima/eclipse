@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.8 2003/09/16 14:24:41 hatchond Exp $
+;;; $Id: virtual-screen.lisp,v 1.9 2003/10/06 17:57:26 ihatchondo Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -23,16 +23,17 @@
 
 ;;;; Private
 
-(defun window-belongs-to-vscreen-p (window scr-num iconify-p)
-  (let ((n (or (window-desktop-num window) -1))
-	(wm-state (car (wm-state window)))
-	(netwm-type (netwm:net-wm-window-type window)))
-    (and (or (= n scr-num) (= n +any-desktop+))
-	 (or (eq wm-state 1) (and iconify-p (eq wm-state 3)))
-	 (not (member :win_hints_skip_taskbar (gnome:win-hints window)))
-	 (not (member :_net_wm_state_skip_taskbar (netwm:net-wm-state window)))
-	 (not (member :_net_wm_window_type_desktop netwm-type))
-	 (not (member :_net_wm_window_type_dock netwm-type)))))
+(defun window-belongs-to-vscreen-p (win scr-num iconify-p)
+  (when (lookup-widget win)
+    (let ((n (or (window-desktop-num win) -1))
+	  (wm-state (car (wm-state win)))
+	  (netwm-type (netwm:net-wm-window-type win)))
+      (and (or (= n scr-num) (= n +any-desktop+))
+	   (or (eq wm-state 1) (and iconify-p (eq wm-state 3)))
+	   (not (member :win_hints_skip_taskbar (gnome:win-hints win)))
+	   (not (member :_net_wm_state_skip_taskbar (netwm:net-wm-state win)))
+	   (not (member :_net_wm_window_type_desktop netwm-type))
+	   (not (member :_net_wm_window_type_dock netwm-type))))))
 
 (defun map-or-unmap-vscreen (fun scr-num)
   (loop for widget being each hash-value in *widget-table*
