@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.9 2003/11/19 10:29:08 ihatchondo Exp $
+;;; $Id: move-resize.lisp,v 1.10 2003/11/24 13:44:50 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -365,9 +365,10 @@
   (with-slots (window active-p) widget
     (setf (window-priority window) :above)
     (setf active-p  t
-	  *screen-windows* (screen-content (current-desk))
 	  *delta-x* (- (event-root-x event) (xlib:drawable-x window))
-	  *delta-y* (- (event-root-y event) (xlib:drawable-y window)))))
+	  *delta-y* (- (event-root-y event) (xlib:drawable-y window))
+	  *screen-windows*
+	  (screen-content (current-desk) :skip-dock nil :skip-taskbar nil))))
 
 (defmethod initialize-move :after ((master decoration) (event button-press))
   (let ((app-window (get-child master :application :window t)))
