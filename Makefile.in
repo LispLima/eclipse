@@ -1,5 +1,5 @@
 # -*- Mode: Makefile -*-
-# $Id: Makefile.in,v 1.3 2002/11/07 14:54:26 hatchond Exp $
+# $Id: Makefile.in,v 1.4 2002/11/07 15:14:24 hatchond Exp $
 #
 # Makefile for Eclipse window manager.
 
@@ -25,6 +25,7 @@ datadir = @datadir@
 mandir = @mandir@
 install = @INSTALL@
 gnome_entry_dir = @gnome_entry_dir@
+themes = microGUI Step brushed-metal CoolClean
 
 all:	compile themes core
 
@@ -43,12 +44,12 @@ core:
 .PHONY: themes
 
 themes:
-	@for theme in themes/*; \
+	@for theme in ${themes}; \
 	do \
 	 $(LISP) $(CORE) \
 		 ${load_switch} system.lisp \
 	         ${eval_form} "(progn\
-				 (compile-theme \"$$theme\")\
+				 (compile-theme \"themes/$$theme\")\
 				 #+:cmu(ext:quit)\
 			         #+:allegro(excl:exit))";\
 	done
