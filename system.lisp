@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: system.lisp,v 1.13 2004/03/16 18:20:35 ihatchondo Exp $
+;;; $Id: system.lisp,v 1.14 2004/04/08 21:22:32 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -105,7 +105,10 @@
     (load i-filespec)
     (compile-file i-filespec :output-file o-filespec)))
 
-(eclipse-defsystem (:clx-ext)
+(eclipse-defsystem (:eclipse-lisp)
+  #+:clisp "lisp-dep/clisp.lisp")
+
+(eclipse-defsystem (:clx-ext :depends-on (:eclipse-lisp))
   "lib/clx-ext/clx-patch.lisp"
   "lib/clx-ext/xvidmode.lisp"
   "lib/clx-ext/package.lisp"
@@ -117,7 +120,7 @@
   "lib/clx-ext/event"
   )
 
-(eclipse-defsystem (:eclipse-lib)
+(eclipse-defsystem (:eclipse-lib :depends-on (:eclipse-lisp))
   "lib/image-reader"
   "lib/manager-commons"
   "lib/netwm-manager"
