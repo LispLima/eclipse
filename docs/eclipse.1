@@ -1,5 +1,5 @@
 .TH Eclipse 1 "(c) 2001 Iban HATCHONDO"
-.\"$Id: eclipse.1,v 1.5 2003/09/08 21:20:31 hatchond Exp $
+.\"$Id: eclipse.1,v 1.6 2003/09/30 12:18:37 hatchond Exp $
 
 .SH NAME
 eclipse - a window manager in Common Lisp
@@ -184,7 +184,8 @@ any one of those present in that directory: just do \fB(setf
 But if the theme you want is not in the themes directory (because you
 created it). Use the absolute pathname as the theme-name-string
 argument of the \fB(setf decoration-theme)\fP for example:
-"<$HOME>/tmp/my-new-theme".
+"<$HOME>/tmp/my-new-theme". It also exists a "build-in" theme named
+"no-decoration" that gives you undecorated windows. 
 .TP
 .B\-(setf number-of-virtual-screens) value\ \fIinteger\fP 
 Indicate the number of virtual screens do you want.
