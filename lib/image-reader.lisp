@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PPM -*-
-;;; $Id: image-reader.lisp,v 1.7 2004/03/03 04:03:40 ihatchondo Exp $
+;;; $Id: image-reader.lisp,v 1.9 2004/03/04 15:37:50 ihatchondo Exp $
 ;;;
 ;;; This a ppm image reader for CLX
 ;;; This file is part of Eclipse
@@ -62,6 +62,9 @@
 
 ;;;; x color utilities.
 
+(deftype clx-array ()
+  '(simple-array (or bit card-4 card-8 card-16 card-24 card-32) (* *)))
+
 (defvar *gray-table* (make-array 256 :element-type 'fixnum))
 (defvar *red-table* (make-array 256 :element-type 'fixnum))
 (defvar *green-table* (make-array 256 :element-type 'fixnum))
@@ -121,16 +124,17 @@
 (defmethod image-height ((image image))
   (car (array-dimensions (image-pixels image))))
 
-(defmethod image-pixel ((image image) x y)
-  (aref (the pixarray (image-pixels image)) y x))
-
-(defmethod (setf image-pixel) (x y pixel image)
-  (setf (aref (the pixarray (image-pixels image)) y x) pixel))
-
 ;; Gray scale image
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
 (defclass gray-scale-image (image)
-  ((pixels :type pixarray-8)))
+  ((pixels :type pixarray-8))))
+
+(defmethod image-pixel ((image gray-scale-image) x y)
+  (aref (the pixarray-8 (image-pixels image)) y x))
+
+(defmethod (setf image-pixel) (x y pixel (image gray-scale-image))
+  (setf (aref (the pixarray-8 (image-pixels image)) y x) pixel))
 
 (defun gray->x-gray (pixel)
   (declare (type card-8 pixel))
@@ -138,8 +142,15 @@
   
 ;; Colored image
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
 (defclass colored-24-image (image)
-  ((pixels :type pixarray-24)))
+  ((pixels :type pixarray-24))))
+
+(defmethod image-pixel ((image colored-24-image) x y)
+  (aref (the pixarray-24 (image-pixels image)) y x))
+
+(defmethod (setf image-pixel) (x y pixel (image colored-24-image))
+  (setf (aref (the pixarray-24 (image-pixels image)) y x) pixel))
 
 (defmacro red-component (pixel)
   `(the (unsigned-byte 8) (logand (ash ,pixel -16) 255)))
@@ -164,10 +175,10 @@
 (defmethod make-image-from-stream ((type (eql :P5)) stream width height mlevel)
   (declare (type card-16 width height))
   (declare (type card-8 mlevel))
-  (loop with size of-type fixnum = (* width height)
-        with pixels = (make-array `(,height ,width) :element-type 'card-8)
+  (loop with size of-type card-32 = (* width height)
+        with pixels = (make-array (list height width) :element-type 'card-8)
 	with vec = (make-array size :element-type 'card-8 :displaced-to pixels)
-	with offset of-type fixnum = 0
+	with offset of-type card-32 = 0
 	while (< offset size)
 	do (setf offset (read-sequence vec stream :start offset))
 	finally (return (make-p5-image pixels mlevel))))
@@ -180,18 +191,18 @@
 (defmethod make-image-from-stream ((type (eql :P6)) stream width height mlevel)
   (declare (type card-16 width height))
   (declare (type card-8 mlevel))
-  (loop with size of-type fixnum = (* width height)
-	with cache-size of-type fixnum = (the fixnum (min size 21000))
+  (loop with size of-type card-32 = (* width height)
+	with cache-size of-type card-32 = (the card-32 (min size 21000))
 	with aux = (make-array (* 3 cache-size) :element-type 'card-8)
-	for start of-type fixnum from 0 by cache-size below size
+	for start of-type card-32 from 0 by cache-size below size
 	for end of-type fixnum = (min (+ start cache-size) size)
-	with data = (make-array `(,height ,width) :element-type 'card-24)
+	with data = (make-array (list height width) :element-type 'card-24)
 	with vec = (make-array size :element-type 'card-24 :displaced-to data)
-	do (loop with offset = 0
-		 while (< offset (* 3 (the fixnum (- end start))))
+	do (loop with offset of-type card-32 = 0
+		 while (< offset (* 3 (the card-32 (- end start))))
 		 do (setf offset (read-sequence aux stream :start offset)))
-	   (loop for i of-type fixnum from start below end
-		 for j of-type fixnum from 0 by 3
+	   (loop for i of-type card-32 from start below end
+		 for j of-type card-32 from 0 by 3
 		 do (setf (aref vec i)
 			  (the card-24
 			    (+ (ash (the card-8 (aref aux j)) 16)
@@ -239,17 +250,19 @@
   "Returns a clx image representation of an image."
   (loop with getter = (typecase image
 			(gray-scale-image #'gray->x-gray)
-			(colored-24-image #'color->x-color))
+			(colored-24-image #'color->x-color)
+			(t (error "unknow image type ~a" (type-of image))))
 	with depth of-type card-8 = (xlib:drawable-depth drawable)
 	with bits-per-pixel = (find-bits-per-pixel depth)
 	with w = (image-width image) 
 	with h = (image-height image)
 	with type = `(unsigned-byte ,bits-per-pixel)
-	with res of-type pixarray = (make-array `(,h ,w) :element-type type)
+	with res of-type clx-array = (make-array (list h w) :element-type type)
 	for y of-type card-16 from 0 below h
 	do (loop for x of-type card-16 from 0 below w 
 		 for pixel = (image-pixel image x y)
-		 do (setf (aref res y x) (funcall getter pixel)))
+		 do (setf (aref res y x)
+			  (funcall (the function getter) pixel)))
 	finally (return (xlib:create-image
 			    :width w :height h :depth depth :data res
 			    :bits-per-pixel bits-per-pixel))))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.35 2004/02/25 10:59:36 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.36 2004/03/08 23:40:33 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -21,6 +21,9 @@
 (in-package :ECLIPSE-INTERNALS)
 
 ;;; Event processing.
+
+(deftype client-message-data ()
+  `(simple-array (or xlib:card8 xlib:card16 xlib:card32) (*)))
 
 ;; Most generals methods.
 
@@ -123,15 +126,16 @@
         (setf (netwm:net-active-window (widget-window root)) :none))))
 
 (defmethod event-process ((event client-message) (root root))
-  (with-slots (type data event-window) event
-    (case type
+  (let ((data (event-data event)))
+    (declare (type client-message-data data))
+    (case (event-type event)
       ((or :_WIN_WORKSPACE :_NET_CURRENT_DESKTOP)
        (change-vscreen root :n (aref data 0)))
       (:_NET_NUMBER_OF_DESKTOPS 
        (setf (number-of-virtual-screens) (aref data 0)))
       (:WM_PROTOCOLS
        (when (eq :wm_delete_window (id->atom-name (aref data 0)))
-	 (close-widget (lookup-widget event-window)))))))
+	 (close-widget (lookup-widget (event-event-window event))))))))
 
 (defmethod event-process ((event keyboard-event) (root root))
   (with-slots (code state) event
@@ -288,9 +292,10 @@
       (:wm_transient_for (computes-transient-for app)))))
 
 (defmethod event-process ((event client-message) (application application))
-  (with-slots (data type) event
+  (let ((data (event-data event)))
+    (declare (type client-message-data data))
     (with-slots (master window iconic-p icon) application
-      (case type
+      (case (event-type event)
 	(:WM_CHANGE_STATE (when (= 3 (aref data 0)) (iconify application)))
 	(:_WIN_STATE
 	 (let* ((to-change (aref data 0))
@@ -357,7 +362,9 @@
 	     :width (when (logbitp 2 value-mask) (aref data 3))
 	     :height (when (logbitp 3 value-mask) (aref data 4))
 	     :gravity (unless (zerop gravity)
-			(svref xlib::*win-gravity-vector* gravity)))))
+			(svref '#(:unmap :north-west :north :north-east :west
+				  :center :east :south-west :south :south-east
+				  :static) gravity)))))
 	(:_NET_WM_DESKTOP (migrate-application application (aref data 0)))
 	(:_NET_CLOSE_WINDOW (close-widget application))))))
 

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.38 2004/03/08 23:40:34 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.39 2004/03/08 23:50:19 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -587,14 +587,16 @@
 	(draw-pixmap window gcontext pixmap)))))
 
 (defun push-button-pixmap (pbutton pixmap-index)
-  (with-slots (frame-style) (button-master pbutton)
-    (aref (frame-item-pixmaps frame-style (widget->frame-item-key pbutton))
-	  (case pixmap-index
-	    (:focused-click 3)
-	    (:unfocused-click 2)
-	    (:focused-unclick 1)
-	    ((and (numberp pixmap-index) (<= 0 pixmap-index 3)) pixmap-index)
-	    (t 0)))))
+  (with-slots ((astyle frame-style)) (button-master pbutton)
+    (let ((pixs (frame-item-pixmaps astyle (widget->frame-item-key pbutton))))
+      (declare (type pixmaps pixs))
+      (aref pixs
+	    (case pixmap-index
+	      (:focused-click 3)
+	      (:unfocused-click 2)
+	      (:focused-unclick 1)
+	      ((and (numberp pixmap-index) (<= 0 pixmap-index 3)) pixmap-index)
+	      (t 0))))))
 
 ;;;; Standard decoration buttons
 

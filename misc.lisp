@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.26 2004/03/04 15:37:49 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.27 2004/03/04 20:15:16 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -216,6 +216,13 @@
       :cursor (or cursor (root-default-cursor *root*))
       :owner-p owner-p))
 
+(defsetf window-priority (window &optional sibling) (priority)
+  "Set the window priority such as if done by (setf xlib:window-priority) and
+  guaranty that stacking order constraints described in the extended window
+  manager protocol will be respected. Then invokes update-client-list-stacking
+  to reflect the new order in all the root properties that are involved in."
+  `(set-window-priority ,priority ,window ,sibling))
+
 (defun send-wm-protocols-client-message (window atom &rest data)
   "Send a client-message of type :wm-protocol to the specified window
   with data being the given atom plus the rest of the function args."
@@ -296,13 +303,6 @@
 	  else if (member :_net_wm_state_below nwm-state) collect w into belows
 	  else collect w into no-stack-state
         finally (return (values belows no-stack-state aboves))))
-
-(defsetf window-priority (window &optional sibling) (priority)
-  "Set the window priority such as if done by (setf xlib:window-priority) and
-  guaranty that stacking order constraints described in the extended window
-  manager protocol will be respected. Then invokes update-client-list-stacking
-  to reflect the new order in all the root properties that are involved in."
-  `(set-window-priority ,priority ,window ,sibling))
 
 (defun update-workarea-property (root)
   "computes and sets the _net_workarea property for the root-window."

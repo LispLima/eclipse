@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.14 2004/02/17 11:03:21 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.15 2004/03/01 14:54:02 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -389,7 +389,7 @@
 (defun net-wm-strut (window)
   "return the strut property as a multiple value (left right top bottom)."
   (let ((v (get-property window :_NET_WM_STRUT :result-type 'vector)))
-    (declare (type (or null (simple-array integer (4))) v))
+    (declare (type (or null (simple-array xlib:card32 (4))) v))
     (when v (values (aref v 0) (aref v 1) (aref v 2) (aref v 3)))))
 
 (defsetf net-wm-strut (window) (strut)
@@ -406,7 +406,7 @@
     left_start_y, left_end_y, right_start_y, right_end_y,
     top_start_x, top_end_x, bottom_start_x, bottom_end_x"
   (let ((v (get-property window :_NET_WM_STRUT_PARTIAL :result-type 'vector)))
-    (declare (type (or null (simple-array integer (12))) v))
+    (declare (type (or null (simple-array xlib:card32 (12))) v))
     (when v
       (values (aref v 0) (aref v 1) (aref v 2) (aref v 3)
 	      (aref v 4) (aref v 5) (aref v 6) (aref v 7)

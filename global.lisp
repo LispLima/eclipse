@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.20 2004/02/12 23:30:22 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.21 2004/03/04 14:51:48 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -165,7 +165,7 @@
   #+gcl (lisp:bye code)
   #+lispworks (lw:quit :status code)
   #+lucid (lcl:quit code)
-  #+sbcl (sb-ext:quit :unix-code (typecase code (number code) (null 0) (t 1)))
+  #+sbcl (sb-ext:quit :unix-status (typecase code (number code) (null 0) (t 1)))
   #-(or allegro clisp cmu cormanlisp gcl lispworks lucid sbcl)
   (error 'not-implemented :proc (list 'quit code))
   )

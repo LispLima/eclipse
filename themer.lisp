@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: themer.lisp,v 1.7 2004/01/21 17:48:35 ihatchondo Exp $
+;;; $Id: themer.lisp,v 1.8 2004/03/01 14:53:57 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -21,6 +21,8 @@
 (in-package :ECLIPSE-INTERNALS)
 
 (defparameter *themes* (make-hash-table :test #'equal))
+
+(deftype pixmaps () `(simple-array (or null xlib:pixmap) (*)))
 
 (declaim (inline lookup-theme))
 (defun lookup-theme (name)
@@ -174,22 +176,22 @@
 (defmethod frame-item-exist-p ((style frame-style) frame-item-key)
   (gethash frame-item-key (style-frame-item-pixmaps style)))
 
-(defmethod frame-item-sizes ((style frame-style) frame-item-key)
+(defmethod frame-item-sizes ((style frame-style) item-key)
   "returns the sizes, as a multiple value, of the frame item according to
    the sizes of the first pixmap in its associated pixmaps array."
-  (let ((pixmap (aref (frame-item-pixmaps style frame-item-key) 0)))
+  (let ((pixmap (aref (the pixmaps (frame-item-pixmaps style item-key)) 0)))
     (if (xlib:pixmap-p pixmap) (drawable-sizes pixmap) (values 0 0))))
 
-(defmethod frame-item-width ((style frame-style) frame-item-key)
+(defmethod frame-item-width ((style frame-style) item-key)
   "returns the width of the frame item according to the width of the
    first pixmap in its associated pixmaps array."
-  (let ((pixmap (aref (frame-item-pixmaps style frame-item-key) 0)))
+  (let ((pixmap (aref (the pixmaps (frame-item-pixmaps style item-key)) 0)))
     (if (xlib:pixmap-p pixmap) (xlib:drawable-width pixmap) 0)))
 
-(defmethod frame-item-height ((style frame-style) frame-item-key)
+(defmethod frame-item-height ((style frame-style) item-key)
   "returns the height of the frame item according to the width of the
    first pixmap in its associated pixmaps array."
-  (let ((pixmap (aref (frame-item-pixmaps style frame-item-key) 0)))
+  (let ((pixmap (aref (the pixmaps (frame-item-pixmaps style item-key)) 0)))
     (if (xlib:pixmap-p pixmap) (xlib:drawable-height pixmap) 0)))
 
 (defmethod frame-button-sizes ((style frame-style))
@@ -197,6 +199,7 @@
     (let ((bpixmaps (or (gethash :close frame-item-pixmaps)
 			(gethash :maximize frame-item-pixmaps)
 			(gethash :icon-b frame-item-pixmaps))))
+      (declare (type (or null pixmaps) bpixmaps))
       (and bpixmaps (drawable-sizes (aref bpixmaps 0))))))
 
 (defmethod free-frame-style ((style frame-style))
@@ -268,6 +271,7 @@
 	default-style)))
 
 (defun ensure-theme-directory-exists (theme-dir)
+  (declare (type simple-string theme-dir))
   (unless (char= (char theme-dir (1- (length theme-dir))) #\/)
     (setf theme-dir (format nil "~A/" theme-dir)))
   (unless (directory theme-dir)

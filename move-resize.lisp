@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.13 2004/01/29 00:50:59 ihatchondo Exp $
+;;; $Id: move-resize.lisp,v 1.14 2004/02/12 23:30:22 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -174,6 +174,7 @@
   (multiple-value-bind (x y width height) (window-geometry window)
     (let ((corners '#(#.'#(:nw :north :nw :west) #.'#(:north :ne :east :ne)
 		      #.'#(:se :east :se :south) #.'#(:west :sw :south :sw))))
+      (declare (type (simple-array (simple-array keyword (4)) (4)) corners))
       (labels ((find (x y rx ry w h)
 		 (if (<= x rx (+ x (floor w 2)))
 		     (if (<= y ry (+ y (floor h 2))) 0 3)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.40 2004/03/01 14:53:57 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.41 2004/03/02 19:16:48 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -58,11 +58,12 @@
 (defmethod decoration-wm-hints ((master decoration))
   "return as a multiple value: minw minh maxw maxh incw inch basew baseh."
   (with-slots (frame-style (wmsh wm-size-hints)) master
+    (declare (type (vector integer 8) wmsh))
     (with-slots ((hm hmargin) (vm vmargin)) frame-style
-      (values (+ hm (aref wmsh 0)) (+ vm (aref wmsh 1))
-	      (+ hm (aref wmsh 2)) (+ vm (aref wmsh 3))
-	      (aref wmsh 4) (aref wmsh 5)
-	      (+ hm (aref wmsh 6)) (+ vm (aref wmsh 7))))))
+      (values (+ hm (svref wmsh 0)) (+ vm (svref wmsh 1))
+	      (+ hm (svref wmsh 2)) (+ vm (svref wmsh 3))
+	      (svref wmsh 4) (svref wmsh 5)
+	      (+ hm (svref wmsh 6)) (+ vm (svref wmsh 7))))))
 
 (defmethod focus-widget ((master decoration) timestamp)
   (with-slots (window input-model) (get-child master :application)
@@ -204,6 +205,7 @@
     (when (frame-item-exist-p frame-style :menu-button)
       (let ((pixmaps (frame-item-pixmaps frame-style :menu-button))
 	    (horizontal-p (title-bar-horizontal-p master)))
+	(declare (type pixmaps pixmaps))
 	(multiple-value-bind (width height) (drawable-sizes (aref pixmaps 0))
 	  (multiple-value-bind (tw th) (drawable-sizes parent-window)
 	    (setf (getf children :menu-button)
@@ -217,22 +219,22 @@
 		    :x (if horizontal-p 0 (ash (- tw width) -1))))))))))
 
 (defun make-buttons-bar (master parent-window)
-  (with-slots (children frame-style) master
+  (with-slots (children (astyle frame-style)) master
     (flet ((make-container (horizontal-p)
 	     (xlib:create-window 
 	        :parent parent-window
 		:x 0 :y 0 :width 1 :height 1 
 		:background :parent-relative 
 		:gravity (if horizontal-p :north-east :north-west))))
-      (loop initially (when (zerop (style-nb-buttons frame-style)) (return))
+      (loop initially (when (zerop (style-nb-buttons astyle)) (return))
 	    with horizontal-p = (title-bar-horizontal-p master)
 	    with container = (make-container horizontal-p)
 	    and (x y width height) = '(0 0 0 0)
 	    for type in '(iconify-button maximize-button close-button)
 	    for child in '(:icon-b :maximize :close)
-	    for pixmaps = (frame-item-pixmaps frame-style child)
+	    for pixmaps of-type pixmaps = (frame-item-pixmaps astyle child)
 	    for bkgrd = (aref pixmaps 0)
-	    when (frame-item-exist-p frame-style child)
+	    when (frame-item-exist-p astyle child)
 	    do (multiple-value-setq (width height) (drawable-sizes bkgrd))
 	       (setf (getf children child)
 		     (create-button type
@@ -263,6 +265,7 @@
 	     (menu-button (make-menu-button master parent-window))
 	     (pixmaps (frame-item-pixmaps frame-style title-pos))
 	     (bcw 0) (bch 0) (mbw 0) (mbh 0) (title))
+	(declare (type pixmaps pixmaps))
 	(when button-container
 	  (multiple-value-setq (bcw bch) (drawable-sizes button-container)))
 	(when menu-button
@@ -302,16 +305,16 @@
   '(:right :left :top :bottom :top-left :top-right :bottom-left :bottom-right))
 
 (defun make-frame-parts (master)
-  (with-slots (children window frame-style) master
+  (with-slots (children window (astyle frame-style)) master
     (multiple-value-bind (width height) (drawable-sizes window)
       (loop for child in *frame-parts*
-	    for pixmaps = (frame-item-pixmaps frame-style child)
+	    for pixmaps of-type pixmaps = (frame-item-pixmaps astyle child)
 	    for hilighted = (aref pixmaps 1)
 	    for event-mask = (if hilighted +std-button-mask+ +edge-event-mask+)
-	    when (frame-item-exist-p frame-style child) do
+	    when (frame-item-exist-p astyle child) do
 	     (multiple-value-bind (x y)
-		 (edge-position frame-style child width height)
-	       (multiple-value-bind (w h) (frame-item-sizes frame-style child)
+		 (edge-position astyle child width height)
+	       (multiple-value-bind (w h) (frame-item-sizes astyle child)
 		 (setf (getf children child)
 		       (create-button (intern (symbol-name child) :eclipse)
 			 :parent window :master master
@@ -616,6 +619,7 @@
   integer that will be the index of the desktop entry. It may return a lambda
   or sub menu entries. If :realize is nil (the default value) it returns the
   menu entries otherwise a pop-up-menu object is return."
+  (declare (type function callback-maker))
   (loop with root-window = (widget-window root)
 	with names = (workspace-names root-window)
 	for i from 0 below (number-of-virtual-screens root-window)
