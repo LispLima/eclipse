@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: Clx-Extensions -*-
-;;; $Id: cursor.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
+;;; $Id: cursor.lisp,v 1.1 2002/11/07 14:22:42 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; This file is part of Eclipse. It gives an other (shortest) 
@@ -35,6 +35,7 @@
   (gethash cursor-key-name +cursor-table+))
 
 (defun get-x-cursor (display cursor-key-name &key reverse)
+  "Returns the cursor designed by `cursor-key-name' of the \"cursor\" font."
   (let ((index (cursor-key-name->cursor-font-index cursor-key-name)))
     (unless +cursor-font+
       (setf +cursor-font+ (xlib:open-font display "cursor")))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.14 2003/09/12 09:10:02 hatchond Exp $
+;;; $Id: input.lisp,v 1.15 2003/09/16 14:24:41 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -39,7 +39,6 @@
 	 (register-all-keystrokes)))
       (:modifier 
        (when (kb:modifier-map-changed-p *display*)
-	 (kb:init-keyboard *display*)
 	 (unregister-all-keystrokes)
 	 (unregister-all-mouse-strokes)
 	 (xlib:mapping-notify *display* request start count)

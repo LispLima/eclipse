@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: clx-extensions.lisp,v 1.2 2003/08/28 14:44:40 hatchond Exp $
+;;; $Id: clx-extensions.lisp,v 1.3 2003/09/10 23:54:20 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -25,24 +25,33 @@
 (declaim (inline window-geometry window-size window-position))
 
 (defun window-geometry (window)
+  "Returns the window geometry as a multiple values. The values order is:
+   x, y, width, height."
   (values (xlib:drawable-x window) (xlib:drawable-y window)
 	  (xlib:drawable-width window) (xlib:drawable-height window)))
 
-(defun drawable-sizes (window)
-  (values (xlib:drawable-width window) (xlib:drawable-height window)))
+(defun drawable-sizes (drawable)
+  "Returns the sizes of the given drawable as a multiple values. The values 
+   order is: width, height."
+  (values (xlib:drawable-width drawable) (xlib:drawable-height drawable)))
 
-(defun window-position (window) 
+(defun window-position (window)
+  "Returns the window position of the given window relatives to its parent." 
   (values (xlib:drawable-x window) (xlib:drawable-y window)))
 
-(defsetf drawable-sizes (window) (width height)
-  `(setf (xlib:drawable-width ,window) ,width
-         (xlib:drawable-height ,window) ,height))
+(defsetf drawable-sizes (drawable) (width height)
+  "Set the sizes of the given drawable. The values order is: width, height."
+  `(setf (xlib:drawable-width ,drawable) ,width
+         (xlib:drawable-height ,drawable) ,height))
 
 (defsetf window-position (window) (x y)
+  "Set the window position of the given window. The values order is: x, y." 
   `(setf (xlib:drawable-x ,window) ,x
 	 (xlib:drawable-y ,window) ,y))
 
 (defmacro with-event-mask ((window &optional (ev-mask 0)) &body body)
+  "Changes the indicated window event mask to the specified value only within
+   the dynamic extent of the body."
   (let ((original-mask (gensym)))
     `(let ((,original-mask (xlib:window-event-mask ,window)))
        (unwind-protect
@@ -134,6 +143,9 @@
 		    &key (modifiers #x8000) owner-p 
 		         sync-pointer-p sync-keyboard-p 
 		         confine-to cursor)
+  "The interpretation of the arguments is the same as with xlib:grab-button.
+   But NO modifiers is equivalent to issuing the request for all possible
+   modifier-key combinations (including the combination of no modifiers)."
   (xlib:grab-button window button event-mask
 		    :modifiers modifiers :owner-p owner-p
 		    :sync-pointer-p sync-pointer-p 
@@ -144,16 +156,18 @@
 		    &key (start 0) end 
 		         width (size :default) 
 		         (translate #'translate))
+  "The interpretation of the arguments is the same as with xlib:draw-glyphs.
+   Only the default translate function differs."
   (xlib:draw-glyphs drawable gctxt x y seq
 		    :start start :end end
 		    :width width :size size
 		    :translate translate))
 
 (defun translate (src src-start src-end afont dst dst-start)
-  ;; This is for replacing the clx-translate-default-function
-  ;; who does'nt know about accentated characters because
-  ;; of a call to cl:graphic-char-p that return nil with accentated characters.
-  ;; For further informations, on a clx-translate-function, see the clx-man.
+  ;; This is for replacing the clx-translate-default-function who doesn't
+  ;; know about accentuated characters because of a call to cl:graphic-char-p
+  ;; that return nil with accentuated characters. For further informations, 
+  ;; on a clx-translate-function, see the clx-man.
   (declare (type sequence src)
 	   (type xlib:array-index src-start src-end dst-start)
 	   (type (or null xlib:font) afont)
@@ -173,10 +187,19 @@
 	else do (loop-finish)
 	finally (return i)))
 
-(defun text-width (font seq)
-  (xlib:text-width font seq :translate #'translate))
+(defun text-width (font sequence &key (start 0) end (translate #'translate))
+  "Returns the total pixel width of the given sequence when drawn in the given
+   font. The font can be a gcontext, in which case the font attribute of the
+   given graphics context is used. :start and :end define the elements of the
+   sequence which are used. The second value returned is  nil if all elements
+   of the sequence were successfully translated; otherwise the index of the
+   first untranslated element is returned."
+  (xlib:text-width font seq :start start :end end :translate #'translate))
 
 (defun draw-centered-text (window gctxt seq &key color x y)
+  "Draw the filled text characters represented by the given sequence `seq'.
+   The given x and y specify the left baseline position for the first 
+   character. Otherwise they are computed so the text appears centered."
   (declare (optimize (speed 3) (safety 0)))
   (declare (type (or null (signed-byte 16)) x y))
   (declare (inline draw-glyphs))
@@ -191,6 +214,7 @@
       (draw-glyphs window gctxt (max x 0) y seq :width text-w))))
 
 (defun send-configuration-notify (window)
+  "Send a synthetic configure notify event to the given window (ICCCM 4.1.5)"
   (multiple-value-bind (x y)
       (xlib:translate-coordinates window 0 0 (xlib:drawable-root window))
     (xlib:send-event window

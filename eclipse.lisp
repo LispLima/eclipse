@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.6 2003/08/28 14:50:35 hatchond Exp $
+;;; $Id: eclipse.lisp,v 1.7 2003/09/12 01:16:46 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -125,7 +125,6 @@
 	    (root-default-cursor *root*) (get-x-cursor *display* :xc_left_ptr))
       ;; init all gnome properties on root.
       (init-gnome-compliance display root-window manager)
-      (keyboard:init-keyboard display)
       (ppm:initialize colormap)
       ;; load personal configuration file, or the default one.
       (or (load-config-file (home-subdirectory cl-user::*eclipse-initfile*))

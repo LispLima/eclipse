@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.4 2003/06/11 18:29:23 hatchond Exp $
+;;; $Id: gestures.lisp,v 1.5 2003/08/28 14:50:35 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -135,15 +135,15 @@
 
 ;;;;
 
-(defun translate-modifiers (modifiers)
+(defun translate-modifiers (display modifiers)
   (cond ((keywordp modifiers) 
-	 (list (kb:modifier->modifier-mask modifiers)))
+	 (list (kb:modifier->modifier-mask display modifiers)))
 	((numberp modifiers) 
 	 (list modifiers))
 	((eq (car modifiers) :and)
 	 (list (loop for mod in (cdr modifiers)
-		     sum (kb:modifier->modifier-mask mod))))
-	(t (mapcar #'kb:modifier->modifier-mask modifiers))))
+		     sum (kb:modifier->modifier-mask display mod))))
+	(t (mapcar #'kb:modifier->modifier-mask display modifiers))))
 
 (defmacro action ((&rest f1) (&rest f2))
   (when (or (eq (car f1) :release) (eq (car f2) :press)) (rotatef f1 f2))
@@ -192,9 +192,10 @@
 (defmacro undefine-combo-internal (stroke dest-window &key mouse-p)
   `(with-slots (name modifiers default-modifiers-p action) ,stroke
      (remhash name ,(if mouse-p '*mousestrokes* '*keystrokes*))
-     (loop with num-l = (kb:modifier->modifier-mask :NUM-LOCK)
-	   with caps-l = (kb:modifier->modifier-mask :CAPS-LOCK)
-	   for mask in (translate-modifiers modifiers) do
+     (loop with dpy = (xlib:drawable-display ,dest-window)
+	   with num-l = (kb:modifier->modifier-mask dpy :NUM-LOCK)
+	   with caps-l = (kb:modifier->modifier-mask dpy :CAPS-LOCK)
+	   for mask in (translate-modifiers dpy modifiers) do
 	   (loop for key in (stroke-keys ,stroke) do
 		 (unrealize (,dest-window :mouse-p ,mouse-p) key mask)
 		 (when (and default-modifiers-p (not (eql mask :any)))
@@ -225,9 +226,10 @@
 
 (defmacro define-combo-internal (stroke dest-window &key mouse-p)
   `(with-slots (name modifiers default-modifiers-p action) ,stroke  
-     (loop with num-l = (kb:modifier->modifier-mask :NUM-LOCK)
-	   with caps-l = (kb:modifier->modifier-mask :CAPS-LOCK)
-	   for mask in (translate-modifiers modifiers) do
+     (loop with dpy = (xlib:drawable-display ,dest-window)
+           with num-l = (kb:modifier->modifier-mask dpy :NUM-LOCK)
+	   with caps-l = (kb:modifier->modifier-mask dpy :CAPS-LOCK)
+	   for mask in (translate-modifiers dpy modifiers) do
 	   (loop for key in (stroke-keys ,stroke) do
 		 (realize (,dest-window :mouse-p ,mouse-p)
 		   key mask name action)
