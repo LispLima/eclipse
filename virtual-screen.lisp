@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.5 2003/08/28 14:50:35 hatchond Exp $
+;;; $Id: virtual-screen.lisp,v 1.6 2003/09/11 00:01:31 hatchond Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -90,7 +90,7 @@
 	   (new (if direction (mod (funcall direction cur 1) nb-vscreens) n)))
       (unless (integerp new)
 	(error "No destination given to change-vscreen~%"))
-      (when (< -1 new nb-vscreens)
+      (when (and (< -1 new nb-vscreens) (/= cur new))
 	(with-event-mask (window)
 	  ;; If focus policy is on click: save the latest focused application.
 	  (when (eq *focus-type* :on-click)

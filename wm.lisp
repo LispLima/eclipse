@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.15 2003/08/29 09:37:16 hatchond Exp $
+;;; $Id: wm.lisp,v 1.16 2003/09/08 15:40:31 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -566,9 +566,7 @@
 (defun raise-window (window)
   (lambda ()
     (case (first (wm-state window))
-      (1 (let ((scr (gnome-desktop-num window)))
-	   (unless (eq (current-desk) scr)
-	     (change-vscreen *root* :n scr))))
+      (1 (change-vscreen *root* :n (gnome-desktop-num window)))
       (3 (uniconify (slot-value (lookup-widget window) 'icon))))
     (put-on-top (lookup-widget window))))
 

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.12 2003/09/12 00:25:48 hatchond Exp $
+;;; $Id: input.lisp,v 1.13 2003/09/12 01:29:57 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -144,9 +144,7 @@
   (with-slots (type data event-window) event
     (case type
       ((or :_WIN_WORKSPACE :_NET_CURRENT_DESKTOP)
-       (with-slots (window) root
-	 (unless (= (current-vscreen window) (aref data 0))
-	   (change-vscreen root :n (aref data 0)))))
+       (change-vscreen root :n (aref data 0)))
       (:_NET_NUMBER_OF_DESKTOPS 
        (setf (number-of-virtual-screens) (aref data 0)))
       (:WM_PROTOCOLS
