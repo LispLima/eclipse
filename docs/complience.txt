@@ -1,0 +1,184 @@
+Eclipse Standards Compliance
+=============================
+$Id:$
+
+ 1) Introduction
+ 2) EWMH Compliance
+   a. Root Window Properties
+   b. Root Window Messages
+   c. Application Window Properties
+   d. Window Manager Protocols
+   e. resume
+
+ 1) Introduction
+  ---------------
+ This document is a work in progress and is in no way complete or
+ accurate ! Its purpose is to details eclipse compliance with the
+ relevent standards. The format of this document is as follows: 
+ 
+ [-/+?] Hint Name/Feature Name (Version number)
+        Errata/Comments
+ 
+ The first character indicates the level of compliance as follows:
+    -   none
+    /   partial
+    +   complete
+    ?   unknown
+ 
+ The title indicates a feature or a hint in the specification, and the
+ version number indicates the minimum version of the specification
+ supported by eclipse.  Later versions may be supported if no
+ incompatible changes have been made in the specification.
+  
+ 2) EWMH Compliance
+ ------------------
+  
+ The EWMH, or Extended Window Manager Hints is a freedesktop.org-
+ developed standard to support a number of conventions for
+ communication between the window manager and clients.  It builds on
+ and extends the ICCCM (See Section 3).  A copy of the current EWMH
+ standard is available at http://freedesktop.org/Standards/wm-spec/
+ 
+   a. Root Window Properties (and Related Messages)
+   ------------------------------------------------
+
+ + _NET_SUPPORTED (1.3)
+ 
+ + _NET_CLIENT_LIST (1.3)
+ 
+ + _NET_NUMBER_OF_DESKTOPS (1.3)
+ 
+ / _NET_DESKTOP_GEOMETRY (-)
+   Eclipse does not implement large desktops. Regardless, according
+   to the specification, eclipse set this property to the screen size,
+   and SHOULD update it if the screen size changes because of a RandR
+   change.
+
+ - _NET_DESKTOP_VIEWPORT (-)
+   Eclipse does not implement viewports.  However, according to the
+   specification, eclipse set this property to (0,0)*
+ 
+ + _NET_CURRENT_DESKTOP (1.3)
+
+ + _NET_DESKTOP_NAMES (1.3)
+
+ + _NET_ACTIVE_WINDOW (1.3)
+
+ + _NET_WORKAREA (1.3)
+
+ + _NET_SUPPORTING_WM_CHECK (1.3)
+ 
+ + _NET_VIRTUAL_ROOTS (1.3)
+   Eclipse does not read or set this property, but it does not use
+   virtual roots to implement virtual desktops, so it complies with the
+   specification.
+ 
+ - _NET_DESKTOP_LAYOUT (1.3)
+   Eclipse does not read or set this property.
+ 
+ - _NET_SHOWING_DESKTOP (1.3)
+ 
+   b. Other Root Window Messages
+   -----------------------------
+ 
+ + _NET_CLOSE_WINDOW (1.3)
+ 
+ + _NET_MOVERESIZE_WINDOW (-)
+ 
+ - _NET_WM_MOVERESIZE (1.3)
+
+  c. Application Window Properties
+  --------------------------------
+ 
+ + _NET_WM_NAME (1.3)
+ 
+ + _NET_WM_VISIBLE_NAME (1.3)
+   Eclipse does not set this property, but eclipse will never display
+   a name different from _NET_WM_NAME
+ 
+ + _NET_WM_ICON_NAME (1.3)
+
+ + _NET_WM_VISIBLE_ICON_NAME (1.3)
+   Eclipse does not set this property, but eclipse will never display
+   a name different from _NET_WM_VISIBLE_ICON_NAME.
+ 
+ + _NET_WM_DESKTOP (1.3)
+ 
+ + _NET_WM_WINDOW_TYPE (1.3)
+ 
+ + _NET_WM_STATE (1.3)
+   Eclipse doesn't implement viewports so _NET_WM_STATE_STICKY is
+   unimplemented.
+ 
+ - _NET_WM_ALLOWED_ACTIONS (1.3)
+   Eclipse does not set or read this property. Regardless, according
+   to the specification, eclipse SHOULD set it.
+ 
+ + _NET_WM_STRUT (1.3)
+ 
+ + _NET_WM_STRUT_PARTIAL (1.3)
+ 
+ - _NET_WM_ICON_GEOMETRY (1.3)
+   Eclipse does not uses this property to draw minimize/restore
+   animations.
+ 
+ + _NET_WM_ICON (1.3)
+ 
+ - _NET_WM_PID (1.3)
+   Eclipse does not uses this property. Eclipse would need a generic
+   unix-kill that is not present in the C.L Hyperspec so it has to be
+   system dependent. Should not be hard to do; just hasn't been done.
+ 
+ + _NET_WM_HANDLED_ICONS (1.3)
+ 
+ - _NET_WM_USER_TIME (-)
+   Eclipse does not read or set this property.  The EWMH does not
+   require it to do so, but it should support it.
+ 
+  d. Window Manager Protocols
+  ---------------------------
+ - _NET_WM_PING (1.3)
+
+  e. Resume
+  ---------
+
+  Root Window Properties (and Related Messages)
+  [+] _NET_SUPPORTED
+  [+] _NET_CLIENT_LIST
+  [+] _NET_NUMBER_OF_DESKTOPS
+  [/] _NET_DESKTOP_GEOMETRY
+  [-] _NET_DESKTOP_VIEWPORT
+  [+] _NET_CURRENT_DESKTOP
+  [+] _NET_DESKTOP_NAMES
+  [+] _NET_ACTIVE_WINDOW
+  [+] _NET_WORKAREA
+  [+] _NET_SUPPORTING_WM_CHECK
+  [+] _NET_VIRTUAL_ROOTS
+  [-] _NET_DESKTOP_LAYOUT
+  [-] _NET_SHOWING_DESKTOP
+    
+  Other Root Window Messages
+  [+] _NET_CLOSE_WINDOW
+  [+] _NET_MOVERESIZE_WINDOW
+  [-] _NET_WM_MOVERESIZE
+    
+  Application Window Properties
+  [+] _NET_WM_NAME
+  [-] _NET_WM_VISIBLE_NAME
+  [+] _NET_WM_ICON_NAME
+  [-] _NET_WM_VISIBLE_ICON_NAME
+  [+] _NET_WM_DESKTOP
+  [+] _NET_WM_WINDOW_TYPE
+  [+] _NET_WM_STATE
+  [-] _NET_WM_ALLOWED_ACTIONS
+  [+] _NET_WM_STRUT
+  [+] _NET_WM_STRUT_PARTIAL
+  [-] _NET_WM_ICON_GEOMETRY
+  [+] _NET_WM_ICON
+  [-] _NET_WM_PID
+  [+] _NET_WM_HANDLED_ICONS
+  [-] _NET_WM_USER_TIME
+    
+  Window Manager Protocols
+  [-] _NET_WM_PING
+
