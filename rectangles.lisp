@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id$
+;;; $Id: rectangles.lisp,v 1.1 2003/11/24 16:57:46 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2003 Iban HATCHONDO
@@ -157,7 +157,7 @@
 	    (screen-content (window-desktop-num window)
 			    :predicate #'predicate :skip-taskbar nil))))))
 
-(defun find-all-panel-rectangles (window &key (predicate #'window-panel-p))
+(defun find-all-panel-rectangles (scr-num &key (predicate #'window-panel-p))
   "Get all panel type window on this virtual desktop. Return a list of
   rectangles representing all the founded windows."
   (mapcar
@@ -177,7 +177,7 @@
 	      ((/= 0 to) (make-rectangle :ulx tsx :uly 0 :lrx tex :lry to))
 	      ((/= 0 b) (make-rectangle :ulx bsx :uly (- h b) :lrx bex :lry h))
 	      (t (window->rectangle win))))))
-      (screen-content (window-desktop-num window) :predicate predicate)))
+      (screen-content scr-num :predicate predicate)))
 
 (defun window-panel-p (window scr-num iconify-p &rest options)
   "Return true if window is a panel (in the sens of Gnome/KDE panel)."
@@ -211,7 +211,8 @@
 	    (rectangles (find-empty-rectangles
 			    (make-rectangle :lrx w :lry h)
 			    (if panels-only-p
-				(find-all-panel-rectangles window)
+				(find-all-panel-rectangles 
+				 (window-desktop-num window))
 				(compute-screen-rectangles application))
 			    (case direction
 			      (:horizontal #'rectangle-width>=)
