@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.26 2004/11/30 23:48:10 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.27 2005/01/05 23:13:07 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -90,32 +90,34 @@
 (defparameter *focus-type* :none "values are: :none :on-click")
 (defparameter *maximize-modifer* :SHIFT-LEFT 
   "If modifier is down when pressing on a maximize button then it will be 
-  equivalent to maximizing the window with (not *maximize-fill*).")
+   equivalent to maximizing the window with (not *maximize-fill*).")
 (defparameter *maximize-fill* nil
- "Indicate if the action of maximizing window should making it filling whether
- the largest area around (excluding overlapped windows) or screen area.")
+ "Indicates if the action of maximizing window should making it filling whether
+  the largest area around (excluding overlapped windows) or screen area.")
 (defparameter *icon-hints* t
-  "if you don't want eclipse to display miniature window for icons say nil")
+  "If you don't want eclipse to display miniature window for icons say nil")
 (defparameter *icon-box* '#(-75 5 -5 -5)
-  "top left and bottom right corner coordinates of the icon box area")
+  "Top left and bottom right corner coordinates of the icon box area")
 (defparameter *icon-box-sep* 2)
 (defparameter *icon-box-fill* :top-right
-  "icon box fill strategy, one of :{top,bottom}-{left,right}")
+  "Icon box fill strategy, one of :{top,bottom}-{left,right}")
 (defparameter *icon-box-sort-function* nil
   "Function determining icon order within the box.
-  NIL corresponds to the default which is to sort on order of creation
-  \(aka `icon-sort-creation-order'\).")
+   NIL corresponds to the default which is to sort on order of creation
+   \(aka `icon-sort-creation-order'\).")
 
 (defsetf font-name () (name)
   "Sets the title bar font to the font named by `name'.
-  The following pattern characters can be used for wildcard matching:
-   #\* Matches any sequence of zero or more characters. 
-   #\? Matches any single character."
+   The following pattern characters can be used for wildcard matching:
+    #\* Matches any sequence of zero or more characters. 
+    #\? Matches any single character."
   `(if (xlib:list-font-names *display* ,name)
        (setf (xlib:gcontext-font *gcontext*) (xlib:open-font *display* ,name))
        (format *stderr* "~a is not a valid font name or pattern~%" ,name)))
 
 (defsetf decoration-theme (&key free-old-theme-p) (name)
+  "Sets the theme that must be used for window decoration. This theme will 
+   be used for all existing applications as well as futur one." 
   `(with-slots (decoration-theme) *root*
      (let ((theme (load-theme *root-window* ,name)))
        (when decoration-theme
@@ -129,6 +131,7 @@
        (setf decoration-theme theme))))
 
 (defsetf maximize-modifier () (modifier-key)
+  "Sets the modifier to use to activate window maximization second behavior."
   `(if (member ,modifier-key (kb:modifiers))
        (setf *maximize-modifer* ,modifier-key)
        (error "Invalid modifier key: ~a is not a (member ~a)~%"
@@ -136,7 +139,7 @@
     
 (defmacro deftypedparameter (type symbol value &optional documentation)
   "Defines a parameter with the same syntax and behavior as defparameter 
-  except that its type must be given first."
+   except that its type must be given first."
   `(progn
      (defparameter ,symbol ,value ,documentation)
      (declaim (type ,type ,symbol))))
@@ -155,6 +158,9 @@
 ;;;; Input protocol.
 
 (defgeneric event-process (event widget)
+  (:documentation "Input protocol method. This method will be invoke inside
+  an infinite loop that represent the heart of the window manager. Override
+  this method to handle as many widget/event combination that is needed.")
   (:method (event widget) nil))
 
 ;;;; System dependent functions.

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.39 2004/11/30 23:48:10 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.40 2005/01/05 23:13:07 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -307,9 +307,9 @@
 		    (setf (window-desktop-num window) +any-desktop+)
 		    (xlib:map-window window))))
 	   ;; win_state_maximized_vert
-	   (when (logbitp 2 to-change) (maximize-window application 2))
+	   (when (logbitp 2 to-change) (maximize application 2))
 	   ;; win_state_maximized_horiz
-	   (when (logbitp 3 to-change) (maximize-window application 3))
+	   (when (logbitp 3 to-change) (maximize application 3))
 	   ;; win_state_shaded
 	   (when (and (logbitp 5 to-change) master) (shade master))))
 	(:_net_wm_state
@@ -332,9 +332,9 @@
 		   (setf (fullscreen-mode application)
 			 (if (= mode 0) :off :on))))
 	       (when (or-eql :_net_wm_state_maximized_vert p1 p2)
-		 (maximize-window application 2))
+		 (maximize application 2))
 	       (when (or-eql :_net_wm_state_maximized_horz p1 p2)
-		 (maximize-window application 3))
+		 (maximize application 3))
 	       (when (and master (or-eql :_net_wm_state_shaded p1 p2))
 		 (shade master))
 	       (when (or-eql :_net_wm_state_sticky p1 p2)
@@ -404,8 +404,7 @@
 	    (mod (kb:modifier->modifier-mask *display* *maximize-modifer*)))
 	(unless (eq 0 (logand mod state))		       
 	  (setf fill-p (not *maximize-fill*)))
-	(maximize-window
-	 (get-child master :application) (event-code event) :fill-p fill-p)))
+	(maximize master (event-code event) :fill-p fill-p)))
     (when (eq *focus-type* :on-click) (focus-widget max-b 0))))
 
 ;; Initialize the resize process.

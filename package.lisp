@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.17 2004/02/17 22:30:50 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.18 2004/03/01 14:53:57 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -167,7 +167,6 @@
    #:make-title-bar 			  ;function
    #:make-viewport-property 		  ;function
    #:maximize-modifier                    ;setf function
-   #:maximize-window 			  ;function
    #:motif-wm-decoration 		  ;function
    #:mouse-stroke-for-move-and-resize 	  ;function
    #:mouse-stroke-p 			  ;function
@@ -264,6 +263,7 @@
    #:iconify 				  ;generic function
    #:initialize-move 			  ;generic function
    #:keystroke-keysyms 			  ;generic function
+   #:maximize		                  ;generic function
    #:menu-3-process 			  ;generic function
    #:menu-leaf-callback 		  ;generic function
    #:menu-root-application-window 	  ;generic function

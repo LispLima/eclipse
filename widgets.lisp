@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.42 2004/11/30 23:48:10 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.43 2004/12/20 19:18:20 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -62,8 +62,25 @@
 (defgeneric put-on-bottom (widget)
   (:documentation
    "Sets the widget stacking order on bottom of the others \(except if any
-   widget with :_net_wm_type_desktop is present and widget is or an 
-   application or a decoration\)."))
+    widget with :_net_wm_type_desktop is present and widget is or an 
+    application or a decoration\)."))
+
+(defgeneric maximize (widget code &key fill-p)
+  (:method (widget code &key fill-p)
+    (declare (ignorable widget code fill-p)))
+  (:documentation "Maximize/Unmaximize a widget. If already maximized then 
+    restores the sizes of the widget before its maximization. During 
+    maximization the widget will be enlarged to cover the whole screen except
+    any existing panels (e.g applications with the :_net_wm_window_type_dock
+    atom present in there _net_wm_window_type property.
+     widget (base-widget): the widget to (un)maximize.
+     code (integer 1 3): 
+      1 operates on width and height.
+      2 operates on height. 
+      3 operates on width.
+     :fill-p (boolean): If NIL, cover the whole screen (except dock type
+     applications). If T, finds the first region of the screen that does
+     not overlap applications not already overlapped by the widget."))
 
 (defgeneric shade (widget)
   (:documentation "shade/un-shade an application that is decorated."))
@@ -83,14 +100,14 @@
   (:method (widget theme-name focus) nil)
   (:documentation
    "This method is dedicated to widget repaint such as every buttons, icons,
-   edges ...
-   It is specialized on widget type, theme name (via an eql specializer) and a
-   boolean that indicate if the corresponding toplevel (type decoration) is or
-   not focused.
+    edges ...
+    It is specialized on widget type, theme name (via an eql specializer) and a
+    boolean that indicate if the corresponding toplevel (type decoration) is or
+    not focused.
 
-   Except for standard expose events, the repaint dispatching on focus change
-   will be perform according to parts-to-redraw-on-focus list given in
-   define-theme."))
+    Except for standard expose events, the repaint dispatching on focus change
+    will be perform according to parts-to-redraw-on-focus list given in
+    define-theme."))
 
 (defmethod initialize-instance :after ((widget base-widget) &rest rest)
   (declare (ignore rest))
@@ -186,6 +203,9 @@
    (dialogs :initform nil :writer (setf application-dialogs))))
 
 (defmethod application-dialogs ((application application))
+  "Returns all dialog applications of an application (including dialog of a
+   dialog). If this application is a transient-for (ICCCM 4.1.2.6) then the
+   returned list is the dialogs of its leader."
   (labels ((find-all-dialogs (leader)
 	     (loop for dialog in (reverse (slot-value leader 'dialogs))
 		   append (cons dialog (find-all-dialogs dialog)))))
@@ -261,6 +281,86 @@
 	  (and (if max-w (= max-w (screen-width)) t)
 	       (if max-h (= max-h (screen-height)) t))))))
 
+;; Maximization helpers.
+(defun find-max-geometry (application direction fill-p &key x y w h)
+  (multiple-value-bind (ulx uly lrx lry)
+      (find-largest-empty-area 
+          application 
+	  :area-include-me-p (or (/= 1 direction) fill-p)
+	  :panels-only-p (not fill-p)
+	  :direction (case direction (2 :vertical) (3 :horizontal) (t :both)))
+    (with-slots (window master) application
+      (with-slots ((hm hmargin) (vm vmargin))
+	  (if master (decoration-frame-style master)
+	      (theme-default-style (lookup-theme "no-decoration")))
+	(symbol-macrolet ((minw (aref wmsh 0)) (minh (aref wmsh 1))
+			  (maxw (aref wmsh 2)) (maxh (aref wmsh 3))
+			  (incw (aref wmsh 4)) (inch (aref wmsh 5))
+			  (basew (aref wmsh 6)) (baseh (aref wmsh 7)))
+	  (let* ((wmsh (recompute-wm-normal-hints window hm vm))
+		 (ww (or w (check-size (- lrx ulx hm) basew incw minw maxw)))
+		 (hh (or h (check-size (- lry uly vm) baseh inch minh maxh))))
+	    (when (> (+ ww hm) (- lrx ulx)) (decf ww incw))
+	    (when (> (+ hh vm) (- lry uly)) (decf hh inch))
+	    (make-geometry :w ww :h hh :x (or x ulx) :y (or y uly))))))))
+
+(defun compute-max-geometry
+    (application x y w h direction fill-p vert-p horz-p)
+  (symbol-macrolet 
+	((ix (geometry-x initial-geometry)) (iy (geometry-y initial-geometry))
+	 (iw (geometry-w initial-geometry)) (ih (geometry-h initial-geometry)))
+    (with-slots (initial-geometry) application
+      (case direction
+	;; Unmaximize or Maximize in both directions
+	(1 (if (or horz-p vert-p)
+	       (copy-geometry initial-geometry)
+	       (find-max-geometry application direction fill-p)))
+	;; Unmaximize or Maximize Vertically
+	(2 (if vert-p
+	       (make-geometry :x x :y iy :w w :h ih)
+	       (find-max-geometry application direction fill-p :x x :w w)))
+	;; Unmaximize or Maximize Horizontally
+	(3 (if horz-p
+	       (make-geometry :x ix :y y :w iw :h h)
+	       (find-max-geometry application direction fill-p :y y :h h)))))))
+
+(defmethod maximize (application code &key (fill-p *maximize-fill*))
+  (with-slots ((app-window window) initial-geometry full-geometry master)
+      application
+    (when (shaded-p master) (shade master))
+    (let* ((new-g)
+	   (m-window (if master (widget-window master) app-window))
+	   (prop (netwm:net-wm-state app-window))
+	   (fullscreen-p (member :_net_wm_state_fullscreen prop))
+	   (vert-p (car (member :_net_wm_state_maximized_vert prop)))
+	   (horz-p (car (member :_net_wm_state_maximized_horz prop))))
+      (multiple-value-bind (x y) (window-position m-window)
+	(multiple-value-bind (w h) (drawable-sizes app-window)
+	  (unless (or horz-p vert-p)
+	    (if fullscreen-p
+		(setf initial-geometry (copy-geometry full-geometry))
+		(setf (geometry initial-geometry) (values x y w h))))
+	  (setf new-g (compute-max-geometry
+		          application x y w h code fill-p vert-p horz-p))))
+      ;; Updates net-wm-state property content.
+      (when (and (= 1 code) (or horz-p vert-p))
+	(setf (values horz-p vert-p) (values t t)))
+      (unless (= 3 code)
+	(if vert-p 
+	    (setf prop (delete :_net_wm_state_maximized_vert prop))
+	    (pushnew :_net_wm_state_maximized_vert prop)))
+      (unless (= 2 code)
+	(if horz-p
+	    (setf prop (delete :_net_wm_state_maximized_horz prop))
+	    (pushnew :_net_wm_state_maximized_horz prop)))
+      ;; Resize.
+      (if fullscreen-p
+	  (setf full-geometry new-g)
+	  (setf (window-position m-window) (geometry-coordinates new-g)
+		(drawable-sizes app-window) (geometry-sizes new-g)))
+      ;; Update property. 
+      (setf (netwm:net-wm-state app-window) prop))))
+
 (defsetf fullscreen-mode (application) (mode)
   "Mode may be (or :on :off). Put or remove application in or from fullscreen."
   `(with-slots (window (fgeometry full-geometry) master icon) ,application
@@ -303,13 +403,13 @@
 
 (defun application-leader (application)
   "Returns the \"leader\" of an application. The leader is computed 
-  recursively from the transient-for application hint."
+   recursively from the transient-for application hint."
   (with-slots (transient-for) application
     (if transient-for (application-leader transient-for) application)))
 
 (defun migrate-application (application new-screen-number)
   "Put an application, all its related dialogs and the top-level it is
-  transient-for (if any) to the a new virtual screen."
+   transient-for (if any) to the a new virtual screen."
   (with-slots (master window transient-for) application
     (let* ((focused-p (focused-p application))
 	   (unmap-p (/= new-screen-number +any-desktop+ (current-desk)))
@@ -317,7 +417,7 @@
       (flet ((migrate (application)
 	       (with-slots (master window) application
 		 (when (shaded-p application) (shade application))
-		 (setf (window-desktop-num window) new-screen-number)
+ 		 (setf (window-desktop-num window) new-screen-number)
 		 (with-event-mask (*root-window*)
 		   (let ((master-window (when master (widget-window master))))
 		     (funcall operation (or master-window window))
@@ -332,6 +432,7 @@
 	    (give-focus-to-next-widget-in-desktop)))))))
 
 (defun undecore-application (application &key state)
+  "Removes all decoration of this application widget and reparent it to root."
   (with-slots (window master icon) application
     (if master
 	(multiple-value-bind (x y)
@@ -344,6 +445,9 @@
 	(delete-properties window +properties-to-delete-on-withdrawn+)))))
 
 (defun computes-transient-for (application)
+  "Sets and returns the transient-for slot of an application. If this
+   application is a transient-for (ICCCM 4.1.2.6) then it will be added to
+   the dialogs list of its leader."
   (with-slots (transient-for (win window)) application
     (let ((transient (lookup-widget (ignore-errors (xlib:transient-for win)))))
       (setf transient-for 
@@ -363,6 +467,10 @@
 	  ((and input-p take-focus-p) :locally-active))))
 
 (defun make-initital-geometry (window &optional (geometry (make-geometry)))
+  "Returns the initial-geometry of a window. The initial geometry will be 
+   computed according to the wm-normal-hints property if present or to the
+   actual geometry of the specified window. If the optional geometry is 
+   given then it will be filled and returned."
   (multiple-value-bind (x y w h) (window-geometry window)
     (let ((hint (ignore-errors (xlib:wm-normal-hints window))))
       (setf (geometry geometry)
@@ -515,7 +623,7 @@
 
 (defun timed-message-box (window &rest messages)
   "Map a small box, of parent `window',  displaying the given string messages.
-  This box will automatically destroyed two seconds after being mapped."
+   This box will automatically destroyed two seconds after being mapped."
   (with-slots (window) (create-message-box messages :parent window)
     (xlib:map-window window)
     (pt:arm-timer 2 (lambda ()
@@ -763,7 +871,7 @@
 	    (setq prev-icon-window icon-window)))))))
 
 (defsetf icon-priority (icon) (priority)
-  "restack the window of the given icon according the given priority."
+  "Restack the window of the given icon according the given priority."
   (with-gensym (p sibling)
     `(let ((,p ,priority) ,sibling)
        (when (eq ,priority :below)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.45 2004/03/19 15:09:45 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.46 2004/12/16 21:36:47 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -39,24 +39,28 @@
    (application-gravity 
      :initarg :application-gravity
      :initform :north-west
-     :accessor decoration-application-gravity)
-   ))
+     :accessor decoration-application-gravity))
+  (:documentation "Top level widget for application that will have a set of 
+   decoration (e.g: those for which window-not-decorable-p will return NIL)."))
 
 (defun decoration-p (widget)
   (typep widget 'decoration))
+
+(defun title-bar-horizontal-p (master)
+  (eq :horizontal (style-title-bar-direction (decoration-frame-style master))))
 
 (defconstant +decoration-event-mask+
   '(:substructure-redirect :substructure-notify
     :visibility-change :enter-window :owner-grab-button))
 
 (defmethod get-child ((master decoration) label &key window)
-  "Return the child widget/window labeled `label' or nil if no such
+  "Returns the child widget/window labeled `label' or nil if no such
   child exists. label is a keyword."
   (let ((widget (getf (decoration-children master) label)))
     (if (and widget window) (widget-window widget) widget)))
 
 (defmethod decoration-wm-hints ((master decoration))
-  "return as a multiple value: minw minh maxw maxh incw inch basew baseh."
+  "Returns as a multiple value: minw minh maxw maxh incw inch basew baseh."
   (with-slots (frame-style (wmsh wm-size-hints)) master
     (declare (type (vector integer 8) wmsh))
     (with-slots ((hm hmargin) (vm vmargin)) frame-style
@@ -108,6 +112,18 @@
       (setf (netwm:net-wm-state app-win) netwm-prop
 	    (gnome:win-state app-win) gnome-prop))))
 
+(defmethod close-widget ((widget decoration))
+  (close-widget (get-child widget :application)))
+
+(defmethod put-on-top ((widget decoration))
+  (put-on-top (get-child widget :application)))
+
+(defmethod put-on-bottom ((widget decoration))
+  (put-on-bottom (get-child widget :application)))
+
+(defmethod maximize ((widget decoration) code &key (fill-p *maximize-fill*))
+  (maximize (get-child widget :application) code :fill-p fill-p))
+
 (defmethod (setf decoration-frame-style) :after (astyle (master decoration))
   (with-slots (window children wm-size-hints) master
     (with-slots (left-margin top-margin (hm hmargin) (vm vmargin)) astyle
@@ -139,15 +155,6 @@
 		((application-iconic-p application)
 		 (xlib:unmap-window app-win))))))))
 
-(defmethod close-widget ((widget decoration))
-  (close-widget (get-child widget :application)))
-
-(defmethod put-on-top ((widget decoration))
-  (put-on-top (get-child widget :application)))
-
-(defmethod put-on-bottom ((widget decoration))
-  (put-on-bottom (get-child widget :application)))
-
 (defmethod dispatch-repaint ((master decoration) 
 			     &key (focus (focused-p master)))
   (declare (optimize (speed 3) (safety 1)))
@@ -156,10 +163,11 @@
     (mapc #'(lambda (k) (repaint (get-child master k) name focus))
 	  parts-to-redraw-on-focus)))
 
-(defun title-bar-horizontal-p (master)
-  (eq :horizontal (style-title-bar-direction (decoration-frame-style master))))
-
 (defun recompute-wm-normal-hints (window hmargin vmargin)
+  "Returns two value: a vector representing the wm-normal-hints property and
+  the window gravity of the designed window. The wm-normal-hints property is
+  recomputed in order to reflect the margin that a top level decoration widget
+  (aka master) might introduce."
   (let ((hints (or (ignore-errors (xlib:wm-normal-hints window))
 		   (xlib:make-wm-size-hints)))
 	(max-ww (screen-width))
@@ -370,6 +378,7 @@
 	    (values (max 0 (- x left-margin)) (max 0 (- y top-margin))))))))
 
 (defun make-decoration (app-window application &key theme)
+  "Returns a newly initialized decoration to hold the given application."
   (unless theme (setf theme (root-decoration-theme *root*)))
   (let* ((dstyle (find-decoration-frame-style theme app-window))
 	 (style dstyle))
@@ -406,9 +415,9 @@
 	      master)))))))
 
 (defun decore-application (window application &key (map t) theme)
-  "Decore an application and map the resulting decoration as indicated
+  "Decores an application and map the resulting decoration as indicated
   by the :map keyword argument. (default value is T).
-  Return the newly created decoration."
+  Returns the newly created decoration instance."
   (let* ((master (make-decoration window application :theme theme))
 	 (master-window (widget-window master))
 	 (left-margin (style-left-margin (decoration-frame-style master)))
@@ -419,86 +428,6 @@
       (xlib:reparent-window window master-window left-margin top-margin))
     (when map (xlib:map-window window))
     master))
-
-;;;; Maximization tools.
-
-(defun find-max-geometry (application direction fill-p &key x y w h)
-  (multiple-value-bind (ulx uly lrx lry)
-      (find-largest-empty-area 
-          application 
-	  :area-include-me-p (or (/= 1 direction) fill-p)
-	  :panels-only-p (not fill-p)
-	  :direction (case direction (2 :vertical) (3 :horizontal) (t :both)))
-    (with-slots (window master) application
-      (with-slots ((hm hmargin) (vm vmargin))
-	  (if master (decoration-frame-style master)
-	      (theme-default-style (lookup-theme "no-decoration")))
-	(symbol-macrolet ((minw (aref wmsh 0)) (minh (aref wmsh 1))
-			  (maxw (aref wmsh 2)) (maxh (aref wmsh 3))
-			  (incw (aref wmsh 4)) (inch (aref wmsh 5))
-			  (basew (aref wmsh 6)) (baseh (aref wmsh 7)))
-	  (let* ((wmsh (recompute-wm-normal-hints window hm vm))
-		 (ww (or w (check-size (- lrx ulx hm) basew incw minw maxw)))
-		 (hh (or h (check-size (- lry uly vm) baseh inch minh maxh))))
-	    (when (> (+ ww hm) (- lrx ulx)) (decf ww incw))
-	    (when (> (+ hh vm) (- lry uly)) (decf hh inch))
-	    (make-geometry :w ww :h hh :x (or x ulx) :y (or y uly))))))))
-
-(defun compute-max-geometry
-    (application x y w h direction fill-p vert-p horz-p)
-  (symbol-macrolet 
-	((ix (geometry-x initial-geometry)) (iy (geometry-y initial-geometry))
-	 (iw (geometry-w initial-geometry)) (ih (geometry-h initial-geometry)))
-    (with-slots (initial-geometry) application
-      (case direction
-	;; Unmaximize or Maximize in both directions
-	(1 (if (or horz-p vert-p)
-	       (copy-geometry initial-geometry)
-	       (find-max-geometry application direction fill-p)))
-	;; Unmaximize or Maximize Vertically
-	(2 (if vert-p
-	       (make-geometry :x x :y iy :w w :h ih)
-	       (find-max-geometry application direction fill-p :x x :w w)))
-	;; Unmaximize or Maximize Horizontally
-	(3 (if horz-p
-	       (make-geometry :x ix :y y :w iw :h h)
-	       (find-max-geometry application direction fill-p :y y :h h)))))))
-
-;; Public.
-
-(defun maximize-window (application code &key (fill-p *maximize-fill*))
-  (with-slots ((app-window window) initial-geometry full-geometry master)
-      application
-    (when (shaded-p master) (shade master))
-    (let* ((new-g)
-	   (m-window (if master (widget-window master) app-window))
-	   (prop (netwm:net-wm-state app-window))
-	   (fullscreen-p (member :_net_wm_state_fullscreen prop))
-	   (vert-p (car (member :_net_wm_state_maximized_vert prop)))
-	   (horz-p (car (member :_net_wm_state_maximized_horz prop))))
-      (multiple-value-bind (x y) (window-position m-window)
-	(multiple-value-bind (w h) (drawable-sizes app-window)
-	  (unless (or horz-p vert-p)
-	    (if fullscreen-p
-		(setf initial-geometry (copy-geometry full-geometry))
-		(setf (geometry initial-geometry) (values x y w h))))
-	  (setf new-g (compute-max-geometry
-		          application x y w h code fill-p vert-p horz-p))))
-      (when (and (= 1 code) (or horz-p vert-p))
-	(setf (values horz-p vert-p) (values t t)))
-      (unless (= 3 code)
-	(if vert-p 
-	    (setf prop (delete :_net_wm_state_maximized_vert prop))
-	    (pushnew :_net_wm_state_maximized_vert prop)))
-      (unless (= 2 code)
-	(if horz-p
-	    (setf prop (delete :_net_wm_state_maximized_horz prop))
-	    (pushnew :_net_wm_state_maximized_horz prop)))
-      (if fullscreen-p
-	  (setf full-geometry new-g)
-	  (setf (window-position m-window) (geometry-coordinates new-g)
-		(drawable-sizes app-window) (geometry-sizes new-g)))
-      (setf (netwm:net-wm-state app-window) prop))))
 
 ;;;; Focus management. According to ICCCM
 
@@ -666,7 +595,7 @@
 	  (if (stick-p appw)
 	      (cons "Un-pin" (send-message (current-desk)))
 	      (cons "Pin   " (send-message +any-desktop+)))
-	  (cons max-str (lambda () (maximize-window app 1)))
+	  (cons max-str (lambda () (maximize app 1)))
 	  (cons shade-str (lambda () (shade master)))
 	  (cons "Close  " (lambda () (close-widget app)))
 	  (cons "Destroy" (lambda () (kill-client-window appw)))
@@ -710,7 +639,7 @@
 	(1 (add-window-in-client-lists appw root))))))
 
 (defun window-not-decorable-p (window &optional type)
-  "Return T if a window `should' not be decorated. Typically, a splash screen,
+  "Returns T if a window `should' not be decorated. Typically, a splash screen,
   a desktop (e.g. nautilus) or a dock (e.g. gnome panels) will be assumed as
   non-decorable windows, as well as windows holding the motif_wm_hints with the
   flag `no decoration at all'."

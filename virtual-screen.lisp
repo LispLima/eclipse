@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.21 2004/03/10 17:13:14 ihatchondo Exp $
+;;; $Id: virtual-screen.lisp,v 1.22 2004/12/16 21:36:47 ihatchondo Exp $
 ;;;
-;;; Copyright (C) 2002 Iban HATCHONDO
+;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
 ;;;
 ;;; This program is free software; you can redistribute it and/or
