@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.29 2004/01/17 18:22:34 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.30 2004/01/20 16:10:00 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -194,8 +194,8 @@
     (when (or move-status resize-status)
       (xlib:ungrab-server *display*)
       (xlib:ungrab-pointer *display*)
-      (setf (values current-active-decoration move-status resize-status) nil)
-      (setf (decoration-active-p current-active-decoration) nil))))
+      (setf (decoration-active-p current-active-decoration) nil)
+      (setf (values current-active-decoration move-status resize-status) nil))))
 
 ;;; Events for master (type: decoration)
 
