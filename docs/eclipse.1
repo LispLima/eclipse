@@ -1,5 +1,5 @@
 .TH Eclipse 1 "(c) 2001 Iban HATCHONDO"
-.\"$Id: eclipse.1,v 1.4 2002/11/07 14:54:27 hatchond Exp $
+.\"$Id: eclipse.1,v 1.5 2003/09/08 21:20:31 hatchond Exp $
 
 .SH NAME
 eclipse - a window manager in Common Lisp
@@ -150,6 +150,14 @@ If set to \fIt\fP, the mouse pointer is warped around the upper-left
 corner of the window that is virtually pointed to.  Otherwise, nothing 
 happens. Useful when you work on a desktop with no overlapping
 windows. The default value is \fIt\fP. 
+.TP
+.B\-*icon-hints*\ \fIboolean\fP
+If set to \fIt\fP, eclipse will display small windows for representing
+icons. If the iconified application provide a pixmap for its icon then
+eclipse will display that pixmap in the icon window. Otherwise a part
+of the application iconic name will be displayed. If you don't want
+eclipse to display small window for icons just set it to
+\fInil\fP. Default value is \fIt\fP. 
 .TP
 .B\-*focus-when-window-cycle*\ \fIboolean\fP
 If set to \fIt\fP the next window will be focused. Otherwise nothing 

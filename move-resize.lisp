@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.3 2003/03/19 09:42:04 hatchond Exp $
+;;; $Id: move-resize.lisp,v 1.4 2003/08/28 14:50:35 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -40,22 +40,19 @@
     (setf (xlib:window-priority window) :above)))
 
 (defun display-infos (message)
+  "Display the given message in the geometry-info-box window."
   (declare (optimize (speed 3) (safety 0)))  
-  (with-slots (window item-to-draw gcontext) *geometry-info-box*
-    (xlib:clear-area window)
-    (setf (button-item-to-draw *geometry-info-box*) message)
-    (multiple-value-bind (w h) (drawable-sizes window)
-      (declare (type (unsigned-byte 16) w h))
-      (xlib:with-gcontext (gcontext :foreground *black*)
-        (xlib:draw-rectangle window gcontext 0 0 (1- w) (1- h))))
-    (draw-centered-text window gcontext item-to-draw :color *black*)))
+  (setf (button-item-to-draw *geometry-info-box*) message)
+  (repaint *geometry-info-box* nil nil))
 
 (defun display-coordinates (x y)
+  "Display the given coordinates in the geometry-info-box window."
   (declare (optimize (speed 3) (safety 0)))
   (declare (type (signed-byte 16) x y))
   (display-infos (format nil "~:[+~;~]~D ~:[+~;~]~D" (< x 0) x (< y 0) y)))
 
 (defun display-geometry (width height)
+  "Display the given width and height in the geometry-info-box window."
   (declare (optimize (speed 3) ))  
   (display-infos (format nil "~D x ~D" width height)))
 
@@ -76,9 +73,8 @@
 	    (drawable-sizes window) (values w h)
 	    (window-position window) (values x y)))))
 
-;;;; Draw a 3x3 grid representing the future window geometry (under box mode).
-
 (defun draw-window-grid (window gctxt dest-window)
+  "Draw a 3x3 grid representing the future window geometry on the dest-window."
   (declare (optimize (speed 3) (safety 0)))
   (multiple-value-bind (x y width height) (window-geometry window)
     (declare (type (signed-byte 16) x y)
@@ -96,11 +92,63 @@
 		  (+ x w) y (+ w x) (+ y height)
 		  (+ x (* 2 w)) y (+ x (* 2 w)) (+ y height)))))))
 
+(defun activate-move-resize (master root status mode verbose-p)
+  "Sets some internal values for the future move or resize animations."
+  (with-slots ((master-window window) gcontext active-p) master
+    (with-slots (resize-status move-status current-active-decoration window) root
+      (when (and active-p (not (or resize-status move-status)))
+	(or *clone* (initialize-clone))
+	(update-clone master)
+	(grab-root-pointer)
+	(setf (slot-value root status) t
+	      current-active-decoration master)
+	(when (eq mode :box)
+	  (xlib:grab-server *display*)
+	  (draw-window-grid master-window gcontext window))
+	(when verbose-p
+	  (initialize-geometry-info-box))))))
+
 ;;;; Resize.
 
 (defparameter *card-point* :se)
 
+(defun initialize-resize (master edge pointer-event)
+  "Initialize the internal settings for the resize process."
+  (setf (window-priority (widget-window master)) :above
+	(decoration-active-p master) t)
+  (if (base-widget-p edge)
+      (where-is-pointer edge)
+      (with-slots (root-x root-y) pointer-event
+	(find-corner root-x root-y (widget-window master)))))
+
+(defgeneric resize-from (widget)
+  (:documentation "Resize an application or a master according
+   to the given master or application respectively."))
+
+(defmethod resize-from ((master decoration))
+  (declare (optimize (speed 3) (safety 0)))
+  (with-slots (window frame-style) master
+    (let ((hmargin (style-hmargin frame-style))
+	  (vmargin (style-vmargin frame-style)))
+      (declare (type (unsigned-byte 16) hmargin vmargin))
+      (multiple-value-bind (w h) (drawable-sizes window)
+	(declare (type xlib:card16 w h))
+	(setf (drawable-sizes (get-child master :application :window t))
+	      (values (- w hmargin) (- h vmargin)))))))
+
+(defmethod resize-from ((application application))
+  (declare (optimize (speed 3) (safety 0)))
+  (with-slots (window master) application
+   (let ((hmargin (style-hmargin (decoration-frame-style master)))
+	 (vmargin (style-vmargin (decoration-frame-style master))))
+     (declare (type (unsigned-byte 16) hmargin vmargin))
+     (multiple-value-bind (w h) (drawable-sizes window)
+       (declare (type xlib:card16 w h))
+       (setf (drawable-sizes (widget-window master))
+	     (values (+ w hmargin) (+ h vmargin)))))))
+
 (defun where-is-pointer (widget)
+  "Initialize the resize process when activated from one the decoration edge." 
   (declare (optimize (speed 3) (safety 0)))
   (setf *delta-x* 0
 	*delta-y* 0
@@ -116,7 +164,9 @@
 	  (top-right :ne)
 	  (t :se))))
 
-(defun find-corner (root-x root-y window)  
+(defun find-corner (root-x root-y window)
+  "Initialize the resize process when activated from somewhere else 
+   than a decoration edge."
   (declare (optimize (speed 3) (safety 0))
 	   (type xlib:int16 root-x root-y))
   (multiple-value-bind (x y w h) (window-geometry window)
@@ -132,6 +182,8 @@
 	      (if (>= *delta-y* 0) :ne :se)))))
 
 (defun check-size (size base inc min-size max-size)
+  "If the given size respects all the given constraints, then return size. 
+   Otherwise returns the nearest satisfying size."
   (declare (optimize (speed 3) (safety 0))
 	   (type xlib:card16 size base inc min-size max-size))
   (if (< min-size size max-size)
@@ -140,41 +192,18 @@
 	(if (= k 0) size (+ inc (- size k))))
       (max min-size (min size max-size))))
 
-(defmethod resize-from ((master decoration))
-  " Resize the application window according to the master sizes"
-  (declare (optimize (speed 3) (safety 0)))
-  (with-slots (window frame-style) master
-    (let ((hmargin (style-hmargin frame-style))
-	  (vmargin (style-vmargin frame-style)))
-      (declare (type (unsigned-byte 16) hmargin vmargin))
-      (multiple-value-bind (w h) (drawable-sizes window)
-	(declare (type xlib:card16 w h))
-	(setf (drawable-sizes (get-child master :application :window t))
-	      (values (- w hmargin) (- h vmargin)))))))
-
-(defmethod resize-from ((application application))
-  " Resize the master window according to the application sizes"
-  (declare (optimize (speed 3) (safety 0)))
-  (with-slots (window master) application
-   (let ((hmargin (style-hmargin (decoration-frame-style master)))
-	 (vmargin (style-vmargin (decoration-frame-style master))))
-     (declare (type (unsigned-byte 16) hmargin vmargin))
-     (multiple-value-bind (w h) (drawable-sizes window)
-       (declare (type xlib:card16 w h))
-       (setf (drawable-sizes (widget-window master))
-	     (values (+ w hmargin) (+ h vmargin)))))))
-
-(defmethod resize ((master decoration) (ev motion-notify) &optional verbose-p)
+(defmethod resize ((master decoration) (event motion-notify)
+		   &optional verbose-p mode)
   (declare (optimize (speed 3) (safety 0))
 	   (inline update-edges-geometry %resize%))
-  (if (eq *resize-mode* :opaque)
+  (if (eql mode :opaque)
       (with-event-mask ((slot-value master 'window))
-	(%resize% master ev verbose-p)
+	(%resize% master event verbose-p)
 	(update-edges-geometry master)
 	(resize-from master))
       (with-slots (window gcontext) *clone*
 	(draw-window-grid window gcontext *root-window*)
-	(%resize% *clone* ev verbose-p)
+	(%resize% *clone* event verbose-p)
 	(draw-window-grid window gcontext *root-window*))))	
 
 (defun %resize% (master motion-notify-event verbose-p)
@@ -221,13 +250,14 @@
 	      (setf (drawable-sizes master-win)
 		    (values new-width new-height)))))))))
 
-;; Finish the resize process :
+;; Finish the resize process:
 ;; call when button-release on root
 ;; and when root-resize-status is not nil.
-(defun finish-resize (master &optional verbose-p)
+(defun finish-resize (master &optional verbose-p mode)
+  "Terminate the resize work. (undraw grid, geometry infos, ...)"
   (when verbose-p (undraw-geometry-info-box))
   (with-slots (window gcontext) master
-    (when (and (decoration-active-p master) (eq *resize-mode* :box))
+    (when (and (decoration-active-p master) (eql mode :box))
       (draw-window-grid (widget-window *clone*) gcontext *root-window*)
       (multiple-value-bind (x y w h)
 	  (window-geometry (widget-window *clone*))
@@ -239,7 +269,9 @@
 ;;;; Move.
 	  
 (defmethod initialize-move ((widget base-widget) (event button-press))
+  "Initialize internal values for animating the future widget movements."
   (with-slots (window active-p) widget
+    (setf (window-priority window) :above)
     (setf active-p  t
 	  *delta-x* (- (event-root-x event) (xlib:drawable-x window))
 	  *delta-y* (- (event-root-y event) (xlib:drawable-y window)))))
@@ -250,27 +282,29 @@
 	      (member :_net_wm_state_sticky (netwm:net-wm-state app-window)))
       (setf (decoration-active-p master) nil))))
 
-(defun move-widget (widget event &optional verbose-p)
+(defun move-widget (widget event &optional verbose-p mode)
   (declare (optimize (speed 3) (safety 0)))
   (with-slots (window active-p gcontext) widget
     (when active-p
       (let ((new-x (- (the (signed-byte 16) (event-root-x event)) *delta-x*))
 	    (new-y (- (the (signed-byte 16) (event-root-y event)) *delta-y*)))
 	(when verbose-p (display-coordinates new-x new-y))
-	(if (and (decoration-p widget) (eql *move-mode* :box))
+	(if (and (decoration-p widget) (eql mode :box))
 	    (with-slots (window) *clone*	    
 	      (draw-window-grid window gcontext *root-window*)
 	      (setf (window-position window) (values new-x new-y))
 	      (draw-window-grid window gcontext *root-window*))
 	    (setf (window-position window) (values new-x new-y)))))))
 
-(defun finalize-move (master &optional verbose-p)
-  (when (eql *move-mode* :box)
+(defun finish-move (master &optional verbose-p mode) 
+  "Terminate the move work. (undraw grid, geometry infos, ..."
+  (when (eql mode :box)
     (with-slots (window gcontext) *clone*
       (draw-window-grid window gcontext *root-window*)
       (setf (window-position (widget-window master)) (window-position window))))
   (setf (decoration-active-p master) nil)
   (when verbose-p (undraw-geometry-info-box))
-  (with-slots (armed active-p) (get-child master :title-bar)
-    (setf armed nil active-p nil))
+  (when (get-child master :title-bar)
+    (with-slots (armed active-p) (get-child master :title-bar)
+      (setf armed nil active-p nil)))
   (send-configuration-notify (get-child master :application :window t)))

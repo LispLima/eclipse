@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: themer.lisp,v 1.4 2003/09/07 01:35:17 hatchond Exp $
+;;; $Id: themer.lisp,v 1.5 2003/09/08 12:58:05 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -222,6 +222,18 @@
      :reader theme-transient-style)
    ))
 
+;;;; build-in no decoration theme.
+
+(defpackage "NO-DECORATION-ECLIPSE-THEME" (:size 0))
+
+(setf (gethash "no-decoration" *themes*)
+      (make-instance 
+          'theme :name "no-decoration"
+	  :default-style (make-instance
+			     'default-style
+			     :theme-name "no-decoration"
+			     :title-bar-position :none)))
+
 ;;;; misc functions.
 
 (defun pixmap-width (pixmap)
@@ -383,3 +395,4 @@
 				  :name ,theme-name 
 				  ,@(and style1 `(,style1 ,fs1))
 				  ,@(and style2 `(,style2 ,fs2))))))))))
+

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.9 2003/08/28 14:50:35 hatchond Exp $
+;;; $Id: global.lisp,v 1.10 2003/09/16 14:24:41 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -70,7 +70,8 @@
 (defparameter *font-name* 
   "-misc-fixed-medium-r-normal--14-110-100-100-c-70-iso8859-1")
 
-(defparameter *icon-hints* nil)
+(defparameter *icon-hints* t
+  "if you don't want eclipse to display miniature window for icons say nil")
 (defparameter *icon-box* '#(-75 5 -5 -5)
   "top left and bottom right corner coordinates of the icon box area")
 (defparameter *icon-box-sep* 2)

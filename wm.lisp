@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.17 2003/09/12 09:10:02 hatchond Exp $
+;;; $Id: wm.lisp,v 1.18 2003/09/16 14:24:41 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -93,7 +93,6 @@
     (member :_net_wm_state_shaded (netwm:net-wm-state window))))
 
 (defmethod shade ((master decoration))
-  "shade/un-shade an application that is decorated"
   (with-slots (window frame-style) master
     (let* ((app-win (get-child master :application :window t))
 	   (netwm-prop (netwm:net-wm-state app-win))
@@ -111,45 +110,44 @@
 	      (setf (window-desktop-num app-win) (current-desk))))
 	  (with-event-mask (window)	    
 	    ;; shade.
-	    (with-slots (vmargin hmargin) frame-style
+	    (with-slots ((vm vmargin) (hm hmargin)) frame-style
 	      (if (title-bar-horizontal-p master)
-		  (setf (xlib:drawable-height window) vmargin)
-		  (setf (xlib:drawable-width window) hmargin)))
+		  (unless (= 0 vm) (setf (xlib:drawable-height window) vm))
+		  (unless (= 0 hm) (setf (xlib:drawable-width window) hm))))
 	    (xlib:unmap-window app-win)
 	    (pushnew :_net_wm_state_shaded netwm-prop)
 	    (pushnew :_net_wm_state_hidden netwm-prop)
-	    (incf gnome-prop 32))) ; add win_state_shaded
+	    (incf gnome-prop 32)))	; add win_state_shaded
       (setf (netwm:net-wm-state app-win) netwm-prop
 	    (gnome:win-state app-win) gnome-prop))))
 
 (defmethod (setf decoration-frame-style) :after (frame-style (master decoration))
-  (with-slots (window children) master
-    (with-slots (left-margin top-margin hmargin vmargin) frame-style
+  (with-slots (window children wm-size-hints) master
+    (with-slots (left-margin top-margin (hm hmargin) (vm vmargin)) frame-style
       (with-event-mask (window)
-	(loop with app = nil and icon = nil
-	      for (key val) on children by #'cddr
-	      do (case key
-		   (:application (setf app val))
-		   (:icon (setf icon val))
-		   (t (when (typep val 'edge)		    
-			(xlib:destroy-window (widget-window val)))
-		      (remove-widget val)))
-	      finally (setf children (list :application app :icon icon)))
 	(let* ((application (getf children :application))
-	       (app-win (widget-window application))
-	       (width (+ (xlib:drawable-width app-win) hmargin))
-	       (height (+ (xlib:drawable-height app-win) vmargin)))
-	  (setf (window-position app-win) (values left-margin top-margin)
-		(drawable-sizes window) (values width height))
-	  (make-edges master)
-	  (make-corner master width height)
-	  (make-title-bar master (wm-name app-win))
-	  (update-edges-geometry master)
-	  (xlib:map-subwindows window)
+	       (icon (slot-value application 'icon))
+	       (app-win (slot-value application 'window)))
+	  (loop for (key val) on children by #'cddr
+		unless (or (eq key :application) (eq key :icon))
+		do (when (typep val 'edge)
+		     (xlib:destroy-window (widget-window val)))
+		   (remove-widget val))
+	  (setf children (list :application application :icon icon)
+		wm-size-hints (recompute-wm-normal-hints app-win hm vm))
+	  (let ((width (+ (xlib:drawable-width app-win) hm))
+		(height (+ (xlib:drawable-height app-win) vm)))
+	    (setf (window-position app-win) (values left-margin top-margin)
+		  (drawable-sizes window) (values width height))
+	    (make-edges master)
+	    (make-corner master width height)
+	    (make-title-bar master (wm-name app-win))
+	    (update-edges-geometry master)
+	    (xlib:map-subwindows window))
 	  (cond ((shaded-p application)
 		 (if (title-bar-horizontal-p master)
-		     (setf (xlib:drawable-height window) vmargin)
-		     (setf (xlib:drawable-width window) hmargin))
+		     (unless (= 0 vm) (setf (xlib:drawable-height window) vm))
+		     (unless (= 0 hm) (setf (xlib:drawable-width window) hm)))
 		 (xlib:unmap-window app-win))
 		((application-iconic-p application)
 		 (xlib:unmap-window app-win))))))))
@@ -163,10 +161,10 @@
 (defmethod dispatch-repaint ((master decoration) 
 			     &key (focus (focused-p master)))
   (declare (optimize (speed 3) (safety 1)))
-  (let ((name (theme-name (root-decoration-theme *root*))))
+  (with-slots (parts-to-redraw-on-focus name) (decoration-frame-style master)
     (declare (type string name))
     (mapc #'(lambda (k) (repaint (get-child master k) name focus))
-	  (style-parts-to-redraw-on-focus (decoration-frame-style master)))))
+	  parts-to-redraw-on-focus)))
 
 (defun title-bar-horizontal-p (master)
   (eq :horizontal (style-title-bar-direction (decoration-frame-style master))))
@@ -229,35 +227,36 @@
 
 (defun make-title-bar (master name)
   (with-slots (children frame-style gcontext) master
-    (let* ((title-pos (style-title-bar-position frame-style))
-	   (horizontal-p (case title-pos ((:top :bottom) t)))
-	   (parent-widget (getf children title-pos))
-	   (parent-window (widget-window parent-widget))
-	   (button-container (make-buttons-bar master parent-window))
-	   (menu-button (make-menu-button master parent-window))
-	   (pixmaps (frame-item-pixmaps frame-style title-pos))
-	   (bcw 0) (bch 0) (mbw 0) (mbh 0) (title))
-      (when button-container
-	(multiple-value-setq (bcw bch) (drawable-sizes button-container)))
-      (when menu-button
-	(multiple-value-setq (mbw mbh)
-	  (drawable-sizes (widget-window menu-button))))
-      (setf title
-	    (create-button 'title-bar :parent parent-window :master master
-			   :width 1 :height 1
-			   :x (if horizontal-p mbw 0)
-			   :y (if horizontal-p 0 bch)
-			   :gcontext gcontext :event-mask +push-button-mask+
-			   :background (aref pixmaps 0) :item name)
-	    (slot-value title 'parent) parent-window
-	    (getf children :title-bar) title
-	    (xlib:window-background parent-window) :parent-relative
-	    (xlib:window-event-mask parent-window) nil)
-      (if horizontal-p 
-	  (setf (slot-value title 'hmargin) (+ bcw mbw))
-	  (setf (slot-value title 'vmargin) (+ bch mbh)))
-      (xlib:map-subwindows parent-window)
-      title)))
+    (unless (eq :none (style-title-bar-position frame-style))
+      (let* ((title-pos (style-title-bar-position frame-style))
+	     (horizontal-p (case title-pos ((:top :bottom) t)))
+	     (parent-widget (getf children title-pos))
+	     (parent-window (widget-window parent-widget))
+	     (button-container (make-buttons-bar master parent-window))
+	     (menu-button (make-menu-button master parent-window))
+	     (pixmaps (frame-item-pixmaps frame-style title-pos))
+	     (bcw 0) (bch 0) (mbw 0) (mbh 0) (title))
+	(when button-container
+	  (multiple-value-setq (bcw bch) (drawable-sizes button-container)))
+	(when menu-button
+	  (multiple-value-setq (mbw mbh)
+	    (drawable-sizes (widget-window menu-button))))
+	(setf title
+	      (create-button 'title-bar :parent parent-window :master master
+			     :width 1 :height 1
+			     :x (if horizontal-p mbw 0)
+			     :y (if horizontal-p 0 bch)
+			     :gcontext gcontext :event-mask +push-button-mask+
+			     :background (aref pixmaps 0) :item name)
+	      (slot-value title 'parent) parent-window
+	      (getf children :title-bar) title
+	      (xlib:window-background parent-window) :parent-relative
+	      (xlib:window-event-mask parent-window) nil)
+	(if horizontal-p 
+	    (setf (slot-value title 'hmargin) (+ bcw mbw))
+	    (setf (slot-value title 'vmargin) (+ bch mbh)))
+	(xlib:map-subwindows parent-window)
+	title))))
 
 (defun edge-position (style edge-key w h)
   (with-slots (top-left-w top-left-h top-right-h bottom-left-w) style
@@ -339,12 +338,13 @@
 
 (defun update-title-bar-sizes (title-bar)
   (declare (optimize (speed 3) (safety 0)))
-  (with-slots (parent vmargin hmargin window) title-bar
-    (declare (type xlib:card16 hmargin vmargin))
-    (multiple-value-bind (width height) (drawable-sizes parent)
-      (declare (type xlib:card16 width height))
-      (setf (drawable-sizes window)
-	    (values (- width hmargin) (- height vmargin))))))
+  (when title-bar
+    (with-slots (parent vmargin hmargin window) title-bar
+      (declare (type xlib:card16 hmargin vmargin))
+      (multiple-value-bind (width height) (drawable-sizes parent)
+	(declare (type xlib:card16 width height))
+	(setf (drawable-sizes window)
+	      (values (- width hmargin) (- height vmargin)))))))
 
 (defun recompute-wm-normal-hints (window hmargin vmargin)
   (let ((hints (or (ignore-errors (xlib:wm-normal-hints window))
@@ -488,7 +488,10 @@
 
 ;;;; Focus management. According to ICCCM
 
-(defgeneric set-focus (input-model window timestamp))
+(defgeneric set-focus (input-model window timestamp)
+  (:documentation "Set focus to the given window according to the input model.
+Input model can be :globally-active :locally-active :passive :no-input.
+For more information on the input-model sementic see ICCCM 4.1.7"))
 
 (defmethod set-focus ((input-model (eql :globally-active)) window timestamp)
   (send-wm-protocols-client-message window :wm_take_focus (or timestamp 0)))
@@ -496,12 +499,12 @@
 (defmethod set-focus ((input-model (eql :locally-active)) window timestamp)
   (when (eql (xlib:window-map-state window) :viewable)
     (send-wm-protocols-client-message window :wm_take_focus (or timestamp 0))
-    (xlib:set-input-focus *display* window :parent)))
+    (xlib:set-input-focus *display* window :pointer-root)))
 
 (defmethod set-focus ((input-model (eql :passive)) window timestamp)
   (declare (ignorable timestamp))
   (when (eql (xlib:window-map-state window) :viewable)
-    (xlib:set-input-focus *display* window :parent)))
+    (xlib:set-input-focus *display* window :pointer-root)))
 
 (defmethod set-focus ((input-model (eql :no-input)) window timestamp)
   (declare (ignorable window timestamp))
@@ -528,10 +531,11 @@
 (defmethod menu-3-process ((ev motion-notify) (master decoration) &key key)
   (when (decoration-active-p master)
     (cond ((eql key :resize)
-	   (with-slots (root-x root-y) ev
-	     (find-corner root-x root-y (widget-window master)))
-	   (event-process ev (get-child master :bottom-right)))
-	  ((eql key :move) (event-process ev (get-child master :title-bar))))
+	   (activate-move-resize
+	       master *root* 'resize-status *resize-mode* *verbose-resize*))
+	  ((eql key :move)
+	   (activate-move-resize
+	       master *root* 'move-status *move-mode* *verbose-move*)))
     t))
 
 (defmethod menu-3-process ((event enter-notify) (master decoration) &rest rest)
@@ -549,8 +553,8 @@
   (case key
     (:kill (kill-client-window (get-child master :application :window t)))
     (:close (close-widget (get-child master :application)))
-    (:resize (event-process ev (get-child master :bottom-right)))
-    (:move (event-process ev (get-child master :title-bar))))
+    (:resize (initialize-resize master nil ev))
+    (:move (initialize-move master ev)))
   (when (or (eq key :close) (eq key :kill)) (xlib:ungrab-pointer *display*)))
 
 (defun define-menu-3 (action)
@@ -563,64 +567,65 @@
 
 ;;;; Misc.
 
-(defun raise-window (window)
-  (lambda ()
-    (case (first (wm-state window))
-      (1 (change-vscreen *root* :n (window-desktop-num window)))
-      (3 (uniconify (slot-value (lookup-widget window) 'icon))))
-    (put-on-top (lookup-widget window))))
-
-(defun make-menu-button-menu (master)
-  (let ((appli (get-child master :application))
-	(nb-vscreen (netwm:net-number-of-desktops *root-window*))
-	(menu))
-    (with-slots (window) appli      
-      (macrolet ((add (pair) `(push ,pair menu)))
-	(labels ((%send-message% (n)
-		   (let ((message (make-event :client-message
-					      :type :_net_wm_desktop
-					      :data (vector n))))
-		     (lambda () (event-process message appli))))
-		 (%sendTO% ()
-		   (loop with names = (workspace-names *root-window*)
-			 for i from 0 below nb-vscreen
-			 for s = (or (pop names) (format nil "workspace ~D" i))
-			 unless (= i (current-desk))
-			 collect (cons s (%send-message% i))))
-		 (%maximize% ()
-		   (let ((p (netwm:net-wm-state window)))
-		     (if (or (member :_net_wm_state_maximized_vert p)
-			     (member :_net_wm_state_maximized_horz p))
-			 "Un-maximize" "Maximize")))
-		 (%shade% () (if (shaded-p appli) "Un-shade" "Shade")))
-	  (add (cons "Iconify" (lambda () (iconify appli))))
-	  (add (cons "Destroy" (lambda () (kill-client-window window))))
-	  (add (cons "Close  " (lambda () (close-widget appli))))
-	  (add (cons (%shade%)  (lambda () (shade master))))
-	  (add (cons (%maximize%) (lambda () (maximize-window appli 1))))
-	  (if (= (or (window-desktop-num window) -1) +any-desktop+)
-	      (add (cons "Un-pin" (%send-message% (current-desk))))
-	      (add (cons "Pin   " (%send-message% +any-desktop+))))
-	  (add (cons "Send to" (%sendTO%))))))
-    (apply #'make-pop-up *root* menu)))
-
-(defun make-desk-entries (index)
-  (loop for win in (get-screen-content index :iconify-p t)
-	for state = (= 1 (first (wm-state win)))
-	collect (cons (format nil "~:[[ ~A ]~;~A~]" state (wm-name win))
-		      (raise-window win))))
-
-(defun make-running-menu (root)
+(defun make-desktop-menu (root callback-maker &key realize)
+  "Realize a root pop-up menu with as many entry as existing desktop. It attach
+   to each entry a callback realized with the given `callback-maker' function.
+   The callback-maker function should be a function of one argument of type
+   integer that will be the index of the desktop entry. It may return a lambda
+   or sub menu entries. If :realize is nil (the default value) it returns the
+   menu entries otherwise a pop-up-menu object is return."
   (loop with root-window = (widget-window root)
 	with names = (workspace-names root-window)
 	for i from 0 below (number-of-virtual-screens root-window)
 	for name = (or (pop names) (format nil "workspace ~D" i))
-	collect (cons name (make-desk-entries i)) into entries
-	finally (return (apply #'make-pop-up root entries))))
+	collect (cons name (funcall callback-maker i)) into entries
+	finally
+	  (return (if realize (apply #'make-pop-up root entries) entries))))
+
+(defun make-running-menu (root)
+  "Realize the root pop-up menu that shows all applications ordered by desktop."
+  (flet ((make-desktop-entries (index)
+	   (loop for w in (get-screen-content index :iconify-p t)
+		 for widget = (lookup-widget w)
+		 for state = (= 1 (first (wm-state w)))
+		 collect (cons (format nil "~:[[ ~A ]~;~A~]" state (wm-name w))
+			       (lambda ()
+				 (case (first (wm-state w))
+				   (1 (change-vscreen root :n index))
+				   (3 (uniconify (slot-value widget 'icon))))
+				 (put-on-top widget))))))
+    (make-desktop-menu root #'make-desktop-entries :realize t)))
+
+(defun make-menu-button-menu (master)
+  (let* ((app (get-child master :application))
+	 (appw (widget-window app))
+	 (net-wm-state (netwm:net-wm-state appw))
+	 (client-message (make-event :client-message :type :_net_wm_desktop))
+	 (shade-str (if (shaded-p app) "Un-shade" "Shade"))
+	 (max-str (if (or (member :_net_wm_state_maximized_vert net-wm-state)
+			  (member :_net_wm_state_maximized_horz net-wm-state))
+		      "Un-maximize" "Maximize")))
+    (flet ((send-message (n)
+	     (lambda ()
+	       (setf (slot-value client-message 'data) (vector n))
+	       (event-process client-message app))))
+      (make-pop-up
+          *root*
+	  (cons "Send to" (make-desktop-menu *root* #'send-message))
+	  (if (stick-p appw)
+	      (cons "Un-pin" (send-message (current-desk)))
+	      (cons "Pin   " (send-message +any-desktop+)))
+	  (cons max-str (lambda () (maximize-window app 1)))
+	  (cons shade-str (lambda () (shade master)))
+	  (cons "Close  " (lambda () (close-widget app)))
+	  (cons "Destroy" (lambda () (kill-client-window appw)))
+	  (cons "Iconify" (lambda () (iconify app)))))))
 
 ;; This is for updating the root properties
 ;; win_client_list, net_client_list(_stacking).
 (defun update-lists (app state root)
+  "Update root properties win_client_list, net_client_list(_stacking), 
+   by adjoining or removing the given application depending of state."
   (with-slots ((appw window) iconic-p) app
     (with-slots ((rw window) client-list) root
       (case (if (and (= state 3) (not iconic-p)) 0 state)
@@ -639,6 +644,7 @@
 		   (setf (gnome:win-client-list rw :mode :append) appw)))))))))
 
 (defun update-client-list-stacking (root)
+  "Recompute ans set the root property net_client_list_stacking."
   (with-slots (window client-list) root
     (loop for win in (query-application-tree window)
 	  when (gethash win client-list) collect win into wins

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.13 2003/09/12 16:03:15 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.14 2003/09/15 10:16:50 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -42,9 +42,11 @@
   ((window :initarg :window :reader widget-window)
    (gcontext :initarg :gcontext :reader widget-gcontext :allocation :class)))
 
-(defgeneric remove-widget (widget))
+(defgeneric remove-widget (widget)
+  (:documentation "Remove widget from internal cache."))
 
-(defgeneric close-widget (widget))
+(defgeneric close-widget (widget)
+  (:documentation "Close an application according to the ICCCM protocol."))
 
 (defgeneric focus-widget (widget timestamp))
 
@@ -56,13 +58,18 @@
 \(except if any widget with :_net_wm_type_desktop is present and widget is or 
 an application or a decoration\)."))
 
-(defgeneric repaint (widget theme-name focus))
-
-(defgeneric root-manager (widget))
+(defgeneric shade (widget)
+  (:documentation "shade/un-shade an application that is decorated."))
 
 (defgeneric shaded-p (widget)
   (:documentation "Return true if the widget is shaded in the sens of 
 the extended window manager specification."))
+
+(defgeneric root-manager (widget)
+  (:documentation "Returns the root-window child that is the place holder for
+ indicating that a netwm manager is present."))
+
+(defgeneric repaint (widget theme-name focus))
 
 (defmethod initialize-instance :after ((widget base-widget) &rest rest)
   (declare (ignore rest))
@@ -96,6 +103,7 @@ the extended window manager specification."))
   (typep widget 'base-widget))
 
 (defun lookup-widget (window)
+  "Returns the associated widget if any."
   (declare (optimize (speed 3) (safety 1)))
   (gethash window *widget-table*))
 
@@ -205,6 +213,7 @@ the extended window manager specification."))
 	       (if max-h (= max-h (screen-height)) t))))))
 
 (defsetf fullscreen-mode (application) (mode)
+  "Mode may be (or :on :off). Put or remove application in or from fullscreen."
   `(with-slots (window (fgeometry full-geometry) master icon) ,application
      (if (eq ,mode :on)
 	 (with-event-mask (*root-window*)
@@ -260,6 +269,7 @@ the extended window manager specification."))
 	(delete-properties window +properties-to-delete-on-withdrawn+)))))
 
 (defun find-input-model (window)
+  "Returns the input model keyword of this window according to ICCCM (4.1.7)."
   (let* ((hint (ignore-errors (xlib:get-property window :WM_HINTS)))
 	 (protocols (ignore-errors (xlib:wm-protocols window)))
 	 (input-p (and hint (logbitp 0 (first hint)) (= 1 (second hint))))
@@ -277,7 +287,7 @@ the extended window manager specification."))
 	 (app (make-instance 
 	         'application :window window :master master :input input)))
     (ignore-errors 
-      (create-icon app (or master *root*))
+      (create-icon app master)
       (if (or desktop-p dock-p)
 	  (let* ((prec-desk (get-root-desktop *root* t))
 		 (stack-mode (if prec-desk :above :below))
@@ -332,6 +342,7 @@ the extended window manager specification."))
 
 (declaim (inline draw-pixmap))
 (defun draw-pixmap (window gcontext pixmap)
+  "Draw and tile, if necessary, the pixmap in the window."
   (multiple-value-bind (width height) (drawable-sizes window)
     (xlib:with-gcontext (gcontext :tile pixmap :fill-style :tiled)
       (xlib:draw-rectangle window gcontext 0 0 width height t))))
@@ -394,11 +405,16 @@ the extended window manager specification."))
 (defmethod repaint ((widget box-button) theme-name focus)
   (declare (ignorable theme-name focus))
   (with-slots (window item-to-draw gcontext) widget
-    (xlib:clear-area window)
+    (xlib:clear-area window)  
+    (multiple-value-bind (w h) (drawable-sizes window)
+      (declare (type (unsigned-byte 16) w h))
+      (xlib:with-gcontext (gcontext :foreground *black*)
+        (xlib:draw-rectangle window gcontext 0 0 (1- w) (1- h))))
     (draw-centered-text window gcontext item-to-draw :color *black*)))
 
 ;; Self destructing message box after 2 seconds.
 (defun timed-message-box (window &rest messages)
+  "Map a message box, of parent `window'. Its life time is 2 seconds."
   (with-slots (window) (create-message-box messages :parent window)
     (xlib:map-window window)
     (pt:arm-timer 2 (lambda ()
@@ -641,7 +657,8 @@ the extended window manager specification."))
       (xlib:unmap-window (widget-window master)))
     (when (stringp (slot-value icon 'item-to-draw))
       (setf (slot-value icon 'item-to-draw) (wm-icon-name window)))
-    (xlib:map-window (widget-window icon))
+    (when *icon-hints*
+      (xlib:map-window (widget-window icon)))
     (when (eq *focus-type* :on-click)
       (give-focus-to-next-widget-in-desktop))))
 
@@ -660,6 +677,6 @@ the extended window manager specification."))
   (with-slots (window master application) icon
     (xlib:unmap-window window)
     (setf (application-iconic-p application) nil)
-    (unless (decoration-p master)
+    (unless master
       (with-slots (window) application
 	(setf (wm-state window) 1)))))

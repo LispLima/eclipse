@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.15 2003/09/16 14:24:41 hatchond Exp $
+;;; $Id: input.lisp,v 1.16 2003/09/16 21:32:53 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -183,8 +183,10 @@
 	    (when (or (< timestamp precedent-timestamp)
 		      (> (- timestamp precedent-timestamp) 15))
 	      (setf (decoration-precedent-time master) timestamp)
-	      (cond (move-status (move-widget master event *verbose-move*))
-		    (resize-status (resize master event *verbose-resize*))))
+	      (cond (move-status
+		     (move-widget master event *verbose-move* *move-mode*))
+		    (resize-status
+		     (resize master event *verbose-resize* *resize-mode*))))
 	    (progn
 	      (format t "The pointer has been frozen !!~%")
 	      (setf (decoration-active-p master) t)
@@ -193,8 +195,8 @@
 (defmethod event-process ((event button-release) (root root))
   (with-slots (move-status resize-status (master current-active-decoration)
 	       menu1 menu2 menu3 window-menu) root
-    (cond (move-status (finalize-move master *verbose-move*))
-	  (resize-status (finish-resize master *verbose-resize*))
+    (cond (move-status (finish-move master *verbose-move* *move-mode*))
+	  (resize-status (finish-resize master *verbose-resize* *resize-mode*))
 	  (t
 	   (with-slots (code) event
 	     (when window-menu
@@ -306,7 +308,7 @@
 	     (multiple-value-setq (wm-size-hints application-gravity)
 		 (recompute-wm-normal-hints window hmargin vmargin))))))
       ((or :WM_NAME :_NET_WM_NAME)
-       (when master
+       (when (and master (get-child master :title-bar))
 	 (with-slots (window item-to-draw) (get-child master :title-bar)
 	   (setf item-to-draw (wm-name (widget-window app)))
 	   (xlib:queue-event *display* :exposure :window window :count 0))))
@@ -384,9 +386,11 @@
 
 (defmethod event-process ((event exposure) (button button))
   (when (zerop (event-count event))
-    (with-slots (master) button
-      (let ((name (theme-name (root-decoration-theme *root*))))
-	(repaint button name (and master (focused-p master)))))))
+    (let* ((master (slot-value button 'master))
+	   (name (if master 
+		     (slot-value (decoration-frame-style master) 'name)
+		     (theme-name (root-decoration-theme *root*)))))
+      (repaint button name (and master (focused-p master))))))
 
 (defmethod event-process ((event exposure) (box box-button))
   (repaint box (theme-name (root-decoration-theme *root*)) nil))
@@ -395,8 +399,7 @@
   (close-widget (get-child (button-master close) :application)))
 
 (defmethod event-process ((event button-release) (icon-b iconify-button))
-  (with-slots (master) icon-b
-    (iconify (get-child master :application))))
+  (iconify (get-child (button-master icon-b) :application)))
 
 (defmethod event-process ((event button-press) (button menu-button))
   (with-slots (window-menu) *root*
@@ -418,23 +421,13 @@
 (defmethod event-process ((event button-press) (edge edge))
   (with-slots (master) edge
     (unless (shaded-p master)
-      (setf (window-priority (widget-window master)) :above
-	    (decoration-active-p master) t)
-      (where-is-pointer edge)
-      (update-clone master))))
+      (initialize-resize master edge event))))
 
 ;; Activate the resize process. (finally give the hand to root)
 (defmethod event-process ((event motion-notify) (edge edge))
-  (with-slots (window gcontext active-p) (button-master edge)
-    (with-slots (resize-status move-status current-active-decoration) *root*
-      (when (and active-p (not (or resize-status move-status)))
-	(grab-root-pointer)
-	(setf resize-status t
-	      current-active-decoration (button-master edge))
-	(when (eq *resize-mode* :box)
-	  (xlib:grab-server *display*)
-	  (draw-window-grid window gcontext *root-window*))
-	(when *verbose-resize* (initialize-geometry-info-box))))))
+  (with-slots (master) edge
+    (activate-move-resize
+        master *root* 'resize-status *resize-mode* *verbose-resize*)))
 
 (defmethod event-process ((event button-release) (edge edge))
   (with-slots (active-p) (button-master edge)
@@ -443,23 +436,14 @@
 ;; Initialize the move process.
 (defmethod event-process ((event button-press) (title title-bar))
   (with-slots (master armed active-p) title
-    (setf (window-priority (widget-window master)) :above)
     (unless (event-send-event-p event)
       (initialize-move master event))))
 
 ;; Start the movement.
 (defmethod event-process ((event motion-notify) (title title-bar))
-  (with-slots (move-status resize-status current-active-decoration) *root*
-    (with-slots (window gcontext active-p) (button-master title)
-      (when (and active-p (not (or move-status resize-status)))
-	(setf move-status t
-	      current-active-decoration (button-master title))
-	(grab-root-pointer)
-	(when *verbose-move* (initialize-geometry-info-box))
-	(when (eql *move-mode* :box)
-	  (xlib:grab-server *display*)
-	  (update-clone (button-master title))
-	  (draw-window-grid window gcontext *root-window*))))))
+  (with-slots (master armed active-p) title
+    (activate-move-resize master *root* 'move-status *move-mode* *verbose-move*)
+    (setf armed nil active-p nil)))
 
 (defmethod event-process ((event button-release) (title title-bar))
   (with-slots (master timestamp) title
@@ -475,9 +459,6 @@
 	(set-focus input-model window (event-time event))))))
 
 ;;; Events for an icon
-
-(defmethod event-process ((event exposure) (icon icon))
-  (repaint icon (theme-name (root-decoration-theme *root*)) nil))
 
 (defmethod event-process ((event button-press) (icon icon))
   (setf (icon-desiconify-p icon) t

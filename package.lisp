@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.6 2003/09/12 01:16:10 hatchond Exp $
+;;; $Id: package.lisp,v 1.7 2003/09/16 14:24:41 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -62,6 +62,7 @@
    "TOP-RIGHT"				  ;class
    "TRANSIENT-STYLE"			  ;class
 
+   "ACTIVATE-MOVE-RESIZE"                 ;function
    "APPLICATION-CLASS"			  ;function
    "APPLICATION-CLASS-NAME"		  ;function
    "APPLICATION-CLASS-TYPE"		  ;function
@@ -98,10 +99,10 @@
    "ECLIPSE-PATH"			  ;function
    "EDGE-POSITION"			  ;function
    "ENSURE-THEME-DIRECTORY-EXISTS"	  ;function
-   "FINALIZE-MOVE"			  ;function
    "FIND-CORNER"			  ;function
    "FIND-DECORATION-FRAME-STYLE"	  ;function
    "FIND-INPUT-MODEL"			  ;function
+   "FINISH-MOVE"			  ;function
    "FINISH-RESIZE"			  ;function
    "FONT-NAME"				  ;setf function
    "FREE-THEME"				  ;function
@@ -132,6 +133,8 @@
    "INITIALIZE"				  ;function
    "INITIALIZE-GEOMETRY-INFO-BOX"	  ;function
    "INITIALIZE-MANAGER"			  ;function
+   "INITIALIZE-MOVE"                      ;function
+   "INITIALIZE-RESIZE"                    ;function
    "INIT-LOG-FILE"			  ;function
    "INPUT-FOCUS"                          ;function
    "KEYCODE-REGISTERED-P"		  ;function
@@ -148,7 +151,6 @@
    "MAKE-BUTTONS-BAR"			  ;function
    "MAKE-CORNER"			  ;function
    "MAKE-DECORATION"			  ;function
-   "MAKE-DESK-ENTRIES"			  ;function
    "MAKE-EDGES"				  ;function
    "MAKE-GEOMETRY"			  ;function
    "MAKE-KEYSTROKE"			  ;function
@@ -179,7 +181,6 @@
    "PROCEDE-DECORATION"			  ;function
    "QUERY-APPLICATION-TREE"		  ;function
    "%QUIT%"				  ;function
-   "RAISE-WINDOW"			  ;function
    "REALIZE-MENU-ITEMS"			  ;function
    "REALIZE-POP-UP"			  ;function
    "RECOMPUTE-WM-NORMAL-HINTS"		  ;function

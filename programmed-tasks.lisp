@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PROGRAMMED-TASKS  -*-
-;;; $Id: programmed-tasks.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
+;;; $Id: programmed-tasks.lisp,v 1.3 2002/11/07 14:54:27 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001 Iban HATCHONDO
@@ -31,23 +31,29 @@
 
 (in-package :PROGRAMMED-TASKS)
 
-(defvar preprogrammed-tasks nil)
+(defvar preprogrammed-tasks nil 
+  "A set of tasks. If nil then no task are registered.")
 
 (defun arm-timer (delta-time lambda)
+  "Arm a timer that expires in delta-time (unit is second). At expiration 
+   the given lambda (with no parameter) will be executed."
   (push (cons (+ delta-time (get-universal-time)) lambda)
 	preprogrammed-tasks))
 
-(defun get-preprogrammed-task ()
-  (assoc (get-universal-time) preprogrammed-tasks :test #'>=))
-
-(defun remove-preprogrammed-task (task)
-  (setf preprogrammed-tasks (remove task preprogrammed-tasks :test #'equal)))
-
 (defun execute-preprogrammed-tasks ()
+  "Execute all tasks that have an expired time."
   (loop with task = (get-preprogrammed-task)
 	while task do
 	  (funcall (cdr task))
 	  (remove-preprogrammed-task task)
 	  (setf task (get-preprogrammed-task))))
+
+(defun get-preprogrammed-task ()
+  "Get the next task to execute if any at this time."
+  (assoc (get-universal-time) preprogrammed-tasks :test #'>=))
+
+(defun remove-preprogrammed-task (task)
+  "Remove the given task. A task is a pair (time . lambda)."
+  (setf preprogrammed-tasks (remove task preprogrammed-tasks :test #'equal)))
 
 

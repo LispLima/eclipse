@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.6 2003/09/16 21:32:53 hatchond Exp $
+;;; $Id: gestures.lisp,v 1.7 2003/09/16 21:56:12 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -29,29 +29,36 @@
 (defvar *mousestrokes* (make-hash-table :test #'eq))
 
 (defun lookup-keystroke (code state)
+  "Find the associated callback if any for this pair code modifier state."
   (gethash (cons code state) *keystroke-map*))
 
 (defun lookup-mouse-stroke (button state)
+  "Find the associated callback if any for this pair button modifier state."
   (gethash (cons button state) *mouse-stroke-map*))
 
 (defun keycode-registered-p (keycode &optional (count 1))
+  "Returns t if this keycode is used for any keystroke."
   (loop for i from keycode below (+ keycode count)
 	when (aref *registered-keycodes* keycode) do (return t)))
 
 (defun unregister-all-keystrokes ()
+  "Unregister all keystroke at the X server level."
   (xlib:ungrab-key *root-window* :any :modifiers #x8000)
   (setf *registered-keycodes* (make-array 256 :element-type 'bit))
   (clrhash *keystroke-map*))
 
 (defun register-all-keystrokes ()
+  "Register, at the X server level, all declared keystroke."
   (loop for keystroke being each hash-value in *keystrokes*
 	do (define-combo-internal keystroke *root-window*)))
 
 (defun unregister-all-mouse-strokes ()
+  "Unregister all keystroke at the X server level."
   (xlib:ungrab-button *root-window* :any :modifiers #x8000)
   (clrhash *mouse-stroke-map*))
 
 (defun register-all-mouse-strokes ()
+  "Register, at the X server level, all declared mouse strokes."
   (loop for mouse-stroke being each hash-value in *mousestrokes*
 	do (define-combo-internal mouse-stroke *root-window* :mouse-p t)))
     
@@ -146,15 +153,8 @@
 	(t 
 	 (mapcar #'(lambda (m) (kb:modifier->modifier-mask dpy m)) modifiers))))
 
-(defmacro action ((&rest f1) (&rest f2))
-  (when (or (eq (car f1) :release) (eq (car f2) :press)) (rotatef f1 f2))
-  `(lambda (event)
-     (typecase event
-       (button-press ,@(cdr f1))
-       (key-press ,@(cdr f1))
-       (key-release ,@(cdr f2)))))
-
 (defun action-key->lambda (action-keyword)
+  "Returns the associated predefined callback for the given action keyword."
   (case action-keyword
     (:switch-win-up
      (action () (:press (circulate-window *root* :direction :above))))
@@ -180,6 +180,14 @@
      #'(lambda (event)
 	 (mouse-stroke-for-move-and-resize event :action :resize)))
     ))
+
+(defmacro action ((&rest f1) (&rest f2))
+  (when (or (eq (car f1) :release) (eq (car f2) :press)) (rotatef f1 f2))
+  `(lambda (event)
+     (typecase event
+       (button-press ,@(cdr f1))
+       (key-press ,@(cdr f1))
+       (key-release ,@(cdr f2)))))
 
 (defmacro unrealize ((window &key mouse-p) code mask)
   `(progn

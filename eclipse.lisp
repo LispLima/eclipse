@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.7 2003/09/12 01:16:46 hatchond Exp $
+;;; $Id: eclipse.lisp,v 1.8 2003/09/16 21:32:53 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -36,7 +36,7 @@
 	(manager (xlib:create-window :parent root-window 
 				     :override-redirect :on
 				     :width 1 :height 1
-				     :x -5 :y -5)))
+				     :x 0 :y 0)))
     (when old-wm
       (setf (xlib:window-event-mask old-wm) '(:structure-notify)))
 
@@ -102,6 +102,7 @@
 	  (netwm:net-supported window) +netwm-protocol+
 	  (netwm:net-supporting-wm-check window) manager
 	  (netwm:net-supporting-wm-check manager) manager
+	  (netwm:net-wm-name manager) "eclipse"
 	  (netwm:net-number-of-desktops window) nb-vs
 	  (netwm:net-current-desktop window) first-desknum
 	  (netwm:net-desktop-viewport window) (make-viewport-property nb-vs)
@@ -151,8 +152,7 @@
       (setf (xlib:window-cursor root-window) (root-default-cursor *root*))
       (unless (root-decoration-theme *root*) 
 	(setf (decoration-theme) "microGUI"))
-      (init-edges-cursors)
-      (initialize-clone))))
+      (init-edges-cursors))))
 
 (defun eclipse (&optional display-specification)
   (initialize display-specification)
