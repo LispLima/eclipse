@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.47 2005/01/16 23:25:59 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.48 2005/01/18 23:22:44 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -437,13 +437,25 @@
    Input model can be :globally-active :locally-active :passive :no-input.
    For more information on the input-model sementic see ICCCM 4.1.7"))
 
-(defmethod set-focus ((input-model (eql :globally-active)) window timestamp)
-  (send-wm-protocols-client-message window :wm_take_focus (or timestamp 0)))
+(defmethod set-focus :around (input-model window timestamp)
+  ;; If we have a valid timestamp then assign focus directly
+  ;; otherwise set the net-active-window to provoke a property-notify event
+  ;; on the root-property-holder. Then the property-notify event will handled
+  ;; and will assign the focus with a valid timestamp.
+  ;; It seems a bit complicated but this is the bettter way I found to not 
+  ;; violate the ICCCM (section 4.1.7).
+  (if (and timestamp (> timestamp 0))
+      (and (next-method-p) (call-next-method))
+      (with-slots ((ww window)) (root-property-holder *root*)
+	(setf (netwm:net-active-window ww) window))))
 
-(defmethod set-focus ((input-model (eql :locally-active)) window timestamp)
+(defmethod set-focus ((input-model (eql :globally-active)) window time)
+  (send-wm-protocols-client-message window :wm_take_focus (or time 0)))
+
+(defmethod set-focus ((input-model (eql :locally-active)) window time)
   (when (eql (xlib:window-map-state window) :viewable)
     (xlib:set-input-focus *display* window :pointer-root)
-    (send-wm-protocols-client-message window :wm_take_focus (or timestamp 0))))
+    (send-wm-protocols-client-message window :wm_take_focus (or time 0))))
 
 (defmethod set-focus ((input-model (eql :passive)) window timestamp)
   (declare (ignorable timestamp))

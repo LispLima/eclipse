@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.21 2004/11/30 23:48:10 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.22 2004/12/16 21:36:47 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -120,8 +120,8 @@
       :data (list managing-since 
 		  (xlib:find-atom display +xa-wm+)
 		  (xlib:window-id manager)))
-    (make-instance 'standard-property-holder :window manager)
-    manager))
+    (setf (xlib:window-event-mask manager) '(:property-change))
+    (make-instance 'standard-property-holder :window manager)))
 
 (defun init-gnome-compliance (display window manager)
   (gnome:intern-gnome-atom display)
@@ -158,13 +158,13 @@
       ;; Specific for X display
       (setf (xlib:display-error-handler display) #'default-handler
 	    (xlib:display-after-function display) #'xlib:display-force-output)
-      (setf *root* (make-instance 'root :window root-window)
+      (setf *root* (make-instance 'root :window root-window :manager manager)
 	    *root-window* root-window
 	    (root-default-cursor *root*) (get-x-cursor *display* :xc_left_ptr)
 	    (root-sm-conn *root*) (connect-to-session-manager
 				      display-specification sm-client-id))
       ;; init all gnome properties on root.
-      (init-gnome-compliance display root-window manager)
+      (init-gnome-compliance display root-window (widget-window manager))
       (ppm:initialize colormap)
       ;; Eclipse globals vars.
       (setf *black* (xlib:screen-black-pixel screen)
@@ -191,7 +191,7 @@
       (unless (root-decoration-theme *root*)
 	(setf (decoration-theme) "microGUI")))))
 
-(defun eclipse (&key display sm-client-id die-on-init-error)
+(defun eclipse (&key display sm-client-id die-on-init-error activate-log)
   "Starts the Eclipse window manager.
     - :display (or null string): if given it is expected it respects the 
       standard X DISPLAY specification: hostname:displaynumber.screennumber
@@ -205,10 +205,12 @@
       NIL (default) or the empty string.
     - :die-on-init-error (boolean): indicates if Eclipse should prevent
       from debugger or not during initialisation phase.
+    - :activate-log (boolean): indicates if errors should be logged.
+      If T then errors will be logged in a file named: eclipse-yyyy-mm-dd.log
   If neither the DISPLAY environment variable is defined nor the :display
   argument is defined then Eclipse will not be able to starts."
   (declare (type (or null string) display sm-client-id))
-  (declare (type boolean die-on-init-error))
+  (declare (type boolean activate-log die-on-init-error))
   (when *display* 
     (xlib:close-display *display*)
     (setf *display* nil))
@@ -216,7 +218,8 @@
       (handler-case (initialize display sm-client-id)
 	(error () (%quit%)))
       (initialize display sm-client-id))
-  ;(init-log-file)
+  (when activate-log
+    (init-log-file))
 
   ;; This is for releasing any previous pointer grab.
   (ignore-errors

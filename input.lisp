@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.40 2005/01/05 23:13:07 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.41 2005/01/16 23:25:59 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -78,6 +78,13 @@
   (declare (ignorable w))
   (when (string= (event-selection e) +xa-wm+)
     (error 'exit-eclipse)))
+
+(defmethod event-process ((e property-notify) (w standard-property-holder))
+  (when (eql (event-atom e) :_net_active_window)
+    (let* ((window (netwm:net-active-window (widget-window w) :window-list t))
+	   (widget (lookup-widget window)))
+      (when (application-p widget)
+	(set-focus (application-input-model widget) window (event-time e))))))
 
 ;;; Events for the root window
 
@@ -389,7 +396,8 @@
 (defmethod event-process ((event button-press) (button menu-button))
   (with-slots (window-menu) *root*
     (with-slots (master window armed active-p) button
-      (when (eq *focus-type* :on-click) (focus-widget button 0))
+      (when (eq *focus-type* :on-click)
+	(focus-widget button (event-time event)))
       (and window-menu (destroy-substructure window-menu))
       (setf window-menu (make-menu-button-menu master))
       (realize-pop-up window-menu (event-root-x event) (event-root-y event))
@@ -405,7 +413,8 @@
 	(unless (eq 0 (logand mod state))		       
 	  (setf fill-p (not *maximize-fill*)))
 	(maximize master (event-code event) :fill-p fill-p)))
-    (when (eq *focus-type* :on-click) (focus-widget max-b 0))))
+    (when (eq *focus-type* :on-click)
+      (focus-widget max-b (event-time event)))))
 
 ;; Initialize the resize process.
 (defmethod event-process ((event button-press) (edge edge))

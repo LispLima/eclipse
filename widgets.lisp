@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.43 2004/12/20 19:18:20 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.44 2005/01/16 23:25:59 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -137,7 +137,8 @@
 ;;;; The ROOT
 
 (defclass root (base-widget)
-  ((resize-status :initform nil :accessor root-resize-status)
+  ((property-holder :initarg :manager :accessor root-property-holder)
+   (resize-status :initform nil :accessor root-resize-status)
    (move-status :initform nil :accessor root-move-status)
    (default-cursor :initform nil :accessor root-default-cursor)
    (current-active-widget :initform nil)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.20 2005/01/18 23:22:44 ihatchondo Exp $
+;;; $Id: gestures.lisp,v 1.21 2005/02/03 22:47:04 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -323,7 +323,7 @@
     (unless (or (decoration-p widget) (application-p widget))
       (return-from mouse-stroke-for-move-and-resize nil))
     (when (eq *focus-type* :on-click)
-      (focus-widget widget 0))
+      (focus-widget widget (event-time event)))
     (xlib:grab-pointer (event-child event) +pointer-event-mask+)
     (menu-3-process event widget :key action)
     (unless (menu-3-process (make-event :motion-notify) widget :key action)
@@ -340,9 +340,11 @@
   (loop with map = *keystroke-map*
 	for mod in (stroke-modifiers (gethash :switch-win-up *keystrokes*))
 	for code = (unless (eq mod :and) (kb:keyname->keycodes dpy mod))
-	when code
-	do (setf (gethash (cons (if (listp code) (car code) code) #x8000) map)
-		 #'circulate-window-modifier-callback))
+	when code do
+	  (mapc #'(lambda (c)
+		    (setf (gethash (cons c #x8000) map)
+			  #'circulate-window-modifier-callback))
+		code))
   (xlib:grab-keyboard root-window)
   (unless *current-widget-info*
     (setf *current-widget-info* (create-message-box nil :parent root-window)))
@@ -358,8 +360,8 @@
     (loop with map = *keystroke-map*
 	  for mod in (stroke-modifiers (gethash :switch-win-up *keystrokes*))
 	  for code = (unless (eq mod :and) (kb:keyname->keycodes *display* mod))
-	  when code
-	  do (remhash (cons (if (listp code) (car code) code) #x8000) map))
+	  when code do
+	    (mapc #'(lambda (c) (remhash (cons c #x8000) map)) code))
     (let ((widget (lookup-widget (car *windows*))))
       (when widget (setf (application-wants-iconic-p widget) nil)))
     (xlib:unmap-window (widget-window *current-widget-info*))

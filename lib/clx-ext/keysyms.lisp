@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: Keyboard -*-
-;;; $Id: keysyms.lisp,v 1.6 2005/01/15 12:27:00 ihatchondo Exp $
+;;; $Id: keysyms.lisp,v 1.7 2005/01/16 23:22:26 ihatchondo Exp $
 ;;;
 ;;; This is a CLX extension for managing keyboard.
 ;;;
@@ -71,7 +71,7 @@
 
 (defun keyname->keycodes (disp keyname)
   "Returns the list of keycode associated with the specified keyname."
-  (xlib:keysym->keycodes disp (keyname->keysym keyname)))
+  (multiple-value-list (xlib:keysym->keycodes disp (keyname->keysym keyname))))
 
 (defun modifier->modifier-mask (disp modifier-name)
   "Returns the modifier-mask associated with this modifier-name."

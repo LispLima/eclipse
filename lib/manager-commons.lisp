@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: MANAGER-COMMONS -*-
-;;; $Id: manager-commons.lisp,v 1.6 2005/01/07 15:13:37 ihatchondo Exp $
+;;; $Id: manager-commons.lisp,v 1.7 2005/01/07 22:34:57 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -101,7 +101,10 @@
   (get-property window property-atom
     :transform (when window-list-p
 		 (lambda (id)
-		   (xlib::lookup-window (xlib:drawable-display window) id)))))
+		   (declare (type xlib:card29 id))
+		   (unless (zerop id)
+		     (xlib::lookup-window
+		         (xlib:drawable-display window) id))))))
 
 (defun utf8->strings (data)
   "Converts a vector of (unsigned-byte 8) that represents utf8 string(s) into

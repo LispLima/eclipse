@@ -1,21 +1,25 @@
 @interp@ @SHELL@
-# $Id: eclipse.in,v 1.8 2004/01/13 00:09:41 ihatchondo Exp $
+# $Id: eclipse.in,v 1.9 2004/11/30 23:48:10 ihatchondo Exp $
 #
 # @configure_input@
 # This file starts the eclipse window manager
 
 usage () { 
-    printf "\nusage: eclipse [ --display=dpy ] [ --sm-client-id=id ]\n\n"; 
+    printf "\nusage: eclipse [options]\n\n"
+    printf "   --display=dpy specifies the X server to use.\n"
+    printf "   --sm-client-id=id specifies the sesion manager id to use.\n"
+    printf "   --activate-log specifies that errors must be logged.\n\n" 
     exit 1;
 }
 
 display_spec=""
 sm_client_id=""
+activate_log=""
 options=""
 
 ## Parse and collect options.
 
-if [ $# -gt 2 ] ; then usage ; fi
+if [ $# -gt 3 ] ; then usage ; fi
 
 while [ $# -gt 0 ] ; do
   case "$1" in
@@ -29,13 +33,17 @@ while [ $# -gt 0 ] ; do
 	  sm_client_id=":sm-client-id \"$tmp\"";
 	  shift ;
 	  ;;
+      --activate-log)
+	  activate_log=":activate-log t";
+	  shift ;
+	  ;;
       -* | *) 
 	  printf "\n $1 unknow option \n";
 	  usage ;;
   esac
 done
 
-options="$display_spec $sm_client_id :die-on-init-error t"
+options="$display_spec $sm_client_id :die-on-init-error t $activate_log"
 
 ## 
 
