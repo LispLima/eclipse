@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.8 2003/09/16 21:32:53 hatchond Exp $
+;;; $Id: eclipse.lisp,v 1.9 2003/09/30 12:18:36 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -150,6 +150,7 @@
 			  :exposures :OFF
 			  :font (xlib:open-font display *font-name*)))
       (setf (xlib:window-cursor root-window) (root-default-cursor *root*))
+      (setf (slot-value *root* 'gcontext) *gcontext*)
       (unless (root-decoration-theme *root*) 
 	(setf (decoration-theme) "microGUI"))
       (init-edges-cursors))))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.10 2003/09/16 14:24:41 hatchond Exp $
+;;; $Id: global.lisp,v 1.11 2003/09/30 12:18:36 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -55,12 +55,15 @@
 (defvar +xa-wm+ nil)
 
 ;; Default value of all the "customisable" environment variables
+(defparameter *menu-1-exit-p* t)
 (defparameter *close-display-p* t)
 (defparameter *menu-1-items* nil)
 (defparameter *change-desktop-message-active-p* t)
 (defparameter *verbose-move* t)
 (defparameter *verbose-resize* t)
+(defparameter *verbose-window-cycling* t)
 (defparameter *warp-pointer-when-cycle* t)
+(defparameter *cycle-icons-p* t "Alt-Tab shows or not iconified windows.")
 (defparameter *focus-new-mapped-window* t)
 (defparameter *focus-when-window-cycle* t)
 (defparameter *double-click-speed* 200 "the speed of the double click")
@@ -79,8 +82,8 @@
   "icon box fill strategy, one of :{top,bottom}-{left,right}")
 (defparameter *icon-box-sort-function* nil
   "Function determining icon order within the box.
-NIL corresponds to the default which is to sort on order of creation
-\(aka `icon-sort-creation-order'\).")
+  NIL corresponds to the default which is to sort on order of creation
+  \(aka `icon-sort-creation-order'\).")
 
 (defsetf font-name () (name)
   `(setf *font-name* ,name
@@ -101,7 +104,7 @@ NIL corresponds to the default which is to sort on order of creation
 
 (defmacro deftypedparameter (type symbol value &optional documentation)
   "define a parameter with the same syntax and behavior as defparameter 
-   except that its type must be given first."
+  except that its type must be given first."
   `(progn
      (defparameter ,symbol ,value ,documentation)
      (declaim (type ,type ,symbol))))

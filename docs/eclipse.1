@@ -1,5 +1,5 @@
 .TH Eclipse 1 "(c) 2001 Iban HATCHONDO"
-.\"$Id: eclipse.1,v 1.6 2003/09/30 12:18:37 hatchond Exp $
+.\"$Id: eclipse.1,v 1.7 2003/10/01 09:02:53 hatchond Exp $
 
 .SH NAME
 eclipse - a window manager in Common Lisp
@@ -144,6 +144,15 @@ of the the uper left corner of the window you are moving set it to
 If you want to have a small window that presents you the sizes
 of the window you are resizing set it to \fIt\fP otherwise
 \fInil\fP. The default value is \fIt\fP.
+.TP
+.B\-*verbose-window-cycling*\ \fIboolean\fP
+During window rotation, if set to \fIt\fP eclipse will display, in a
+small window, the name of the focus window and its icon if
+exist. Default value is \fIt\fP.
+.TP
+.B\-*cycle-icons-p*\ \fIboolean\fP
+During window rotation, if set to \fIt\fP iconified window will be
+included in the rotation. Default value is \fIt\fP. 
 .TP
 .B\-*warp-pointer-when-cycle*\ \fIboolean\fP
 If set to \fIt\fP, the mouse pointer is warped around the upper-left

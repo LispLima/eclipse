@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.16 2003/09/16 21:32:53 hatchond Exp $
+;;; $Id: input.lisp,v 1.18 2003/10/01 18:26:35 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -283,8 +283,8 @@
       (set-focus input-model window (event-time event)))))
 
 (defmethod event-process ((event button-press) (application application))
-  (xlib:allow-events *display* :replay-pointer)
-  (put-on-top application))
+  (put-on-top application)
+  (xlib:allow-events *display* :replay-pointer))
 
 (defmethod event-process ((event focus-out) (application application))
   (with-slots (master) application
@@ -294,7 +294,7 @@
 
 (defmethod event-process ((event focus-in) (application application))
   (with-slots (master window) application
-    (unless (eql (event-mode event) :ungrab)
+    (unless (eql (event-mode event) :grab)
       (when master (dispatch-repaint master :focus t))
       (setf (netwm:net-active-window *root-window*) window))))
 
@@ -472,3 +472,8 @@
 (defmethod event-process ((event button-release) (icon icon))
   (when (icon-desiconify-p icon)
     (uniconify icon)))
+
+;;; Events for Message Box
+
+(defmethod event-process ((event visibility-notify) (box box-button))
+  (setf (window-priority (widget-window box)) :above))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.10 2003/09/16 14:24:41 hatchond Exp $
+;;; $Id: misc.lisp,v 1.11 2003/09/16 14:47:12 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -121,7 +121,7 @@
 
 (defun motif-wm-decoration (window)
   "Returns the state (or :on :off) of the :_MOTIF_WM_HINT property that
-   indicates the application wants or not to be decorated."
+  indicates the application wants or not to be decorated."
   (let ((prop (xlib:get-property window :_MOTIF_WM_HINTS)))
     (or (and prop (logbitp 1 (first prop)) (zerop (third prop)) :OFF) :ON)))
 
@@ -133,7 +133,7 @@
 
 (defun send-wm-protocols-client-message (window atom &rest data)
   "Send a client-message of type :wm-protocol to the specified window
-   with data being the given atom plus the rest of the function args."
+  with data being the given atom plus the rest of the function args."
   (xlib:send-event window
 		   :client-message
 		   nil
@@ -144,8 +144,8 @@
 
 (defsetf window-priority (window &optional sibling) (priority)
   "Set the window priority such as (setf xlib:window-priority) but 
-   also invoke update-client-list-stacking to reflect the priority
-   change in all the root properties that are involved in."
+  also invoke update-client-list-stacking to reflect the priority
+  change in all the root properties that are involved in."
   `(progn
      (setf (xlib:window-priority ,window ,sibling) ,priority)
      (update-client-list-stacking *root*)))
@@ -160,8 +160,8 @@
 
 (defun query-application-tree (root-window)
   "Returns the children of the specified root-window as if all applications
-   where undecorated. The children are returned as a sequence of windows in
-   current stacking order, from bottom-most (first) to top-most (last)."
+  where undecorated. The children are returned as a sequence of windows in
+  current stacking order, from bottom-most (first) to top-most (last)."
   (loop for window in (xlib:query-tree root-window)
 	for obj = (lookup-widget window)
 	for appw = (typecase obj
@@ -175,8 +175,8 @@
 
 (defun run-application (program &rest arguments)
   "Returns a lambda of zero arguments which when funcalled will try to 
-   run the program named `program' with arguments `arguments'. If the 
-   invocation failed a pop-up window will appear reporting the error."
+  run the program named `program' with arguments `arguments'. If the 
+  invocation failed a pop-up window will appear reporting the error."
   (lambda ()
     (catch 'wrong-name
       (handler-bind ((error #'handle-wrong-name-condition))

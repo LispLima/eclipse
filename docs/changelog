@@ -1,5 +1,5 @@
 -*- Mode: ChangeLog -*-
-$Id: changelog,v 1.3 2002/07/02 14:54:39 hatchond Exp $
+$Id: changelog,v 1.4 2002/11/07 14:54:27 hatchond Exp $
 0.01 => 0.02
 
      Eclipse should now compile on every ANSI-compliant Common Lisp
@@ -55,3 +55,173 @@ pre 0.03=>0.03
      - added opaque resize mode.
      - new theme interface (needs to be documented).
      - some new themes have been added (CoolClean, brushed-metal, Step).
+
+0.03=>0.04
+
+     - created an eclipse-internals package.
+     - some bugs fix.
+     - some functionalities added.
+     - file splitting to reorganize the project a little:
+     - wm.lisp and global.lisp had been splitted into:
+	- widgets.lisp (base-widget, root, application, buttons, ...)
+	- input.lisp (general event processing)
+	- gestures.lisp (key-combo, cursor movement)
+	- eclipse.lisp (Top level functions)
+	- move-resize (moving and resizing master)
+	- misc.lisp (...)
+	- lib/clx-ext/clx-extensions.lisp
+     - gnome-manager.lisp had been splitted into:
+	- manager-commons.lisp
+	- gnome-manager.lisp
+	- netwm-manager.lisp
+	- one directory added with one sub-directory: lib and lib/clx-ext
+	- a new package clx-extensions in lib/clx-ext
+	- some files had moved:
+	  - image-reader.lisp into lib
+	  - event.lisp ...... into lib/clx-ext
+	  - cursor.lisp ..... ----------------
+	  - cursordef.lisp .. ----------------
+	  - keysysms.lisp ... ----------------
+	  - keysymdef.lisp .. ----------------
+
+     - commit Christian Lynbech patch:
+       CMUCL seems to have tighten the handling of certain things so this
+       patch will do three necessary things:
+
+       - in system.lisp (compile-theme) remove path from :output-file name as
+         this includes path specs from the input file.
+
+       - in wm.lisp (menu-3-prcess) removes the &allow-other-keys which CMUCL
+         18d chokes on (some previous versions seemed more lax, they also
+	 accepted (lambda (&rest) ...) which 18d does not but you have gotten
+	 rid of that).
+
+      - in lib/image-reader.lisp (load-ppm) changes function to use two
+        streams as there are many things you cannot do on a non-character
+	string including calling `unread-char'.
+	
+0.04=>0.05
+
+     - various bug fix. (with-state missing, undecore-application, some
+       unhandle events during menu-3 loop, ...)
+     - procede-decoration code is inside an unwind-protect.
+     - support for focus-new-mapped-window
+     - support for :_net_wm_state_maximized_{horz/vert},
+       and :_net_wm_state_fullscreen.
+     - fix typo parenthesis, and grid undraw in mouse stroke resize/move.
+     - more netwm complience improvement (fullscreen, hidden, 
+       icon-name, maximized)
+     - Christian Lynbech patch for icon managment has been applied.
+       "It provides an icon box, ie. a configurable place where icons are
+        stacked. As part of this change, I have changed the default location
+	of icons from (750,50) to (0,0). If the icon box overflows, icons will
+	be created ayt (0,0). I have also decreased the default height from 60
+	to 20 to minimize the space waste (if the application supplies an
+	icon, it will of course take precedence).
+
+	The patch allso adds different kinds of sorting options. Icons can be
+	sorted by creation time (I have added a new slot in the `icon' class)
+	or name or class (or whatever else you can think of).
+
+	It still needs a few things, such as the possibility of disabling the
+	icon box and other fill orders than :top-right (ie. filling from the
+	top right corner of the box)."
+     
+     - Unrelated to the icon box thing, the patch also contains a set of
+       application inspection function (see the end of "misc.lisp"), A
+       disabling of the expression that removes the "Exit" entry in the root
+       menu so that you can close Eclipse down and finally a new option,
+       *close-display-p*, that regulates whether exiting Eclipse also kills
+       the entire X session (if *close-display-p* is nil, Eclipse will just
+       exit).
+     
+     - ICCCM complience and extended window manager specification complience.
+       - bugs fix relative to extended wm spec (i.e.: we now should interact
+         correctly with gnome 2.2)
+       - added ICCCM session managment complience: we now use/react to the
+         owning of the WM_S{screen number} selection. see ICCCM 2.8
+
+0.05=>0.06
+
+     - The package now exports almost every symbols. They are sorted in
+       alphabetical order and type order (class, generic function,
+       function, ...)
+
+     - An application that does not support to be maximized in fullscreen
+       don't have the _net_wm_state_fullscreentom present in its
+       _net_wm_state property anymore.
+
+     - lib/clx-patch.lisp: fixed bug found in input-focus.
+
+     - few new methods:
+       dispatch-repaint: new method for the repaint protocol.
+       repaint: the main method of the repaint protocol.
+       (draw-focused-decoration & draw-unfocused-decoration: removed.)
+
+     - themes are now defined in their own packages.
+       All theme are updated.
+
+0.06=>0.07
+
+     - shade is now implemented (wm.lisp).
+       To {un}shade a window double click on title bar.
+
+     - *double-click-speed* for user configuration.
+       use it to customize the time you want for double click.
+       Default value: 200 (timestamp unit of the X server)
+
+     - added support for the xvidmode extension
+       (lib/clx-ext/xvidmode.lisp).
+
+     - added support for :net_wm_state_{below, above}
+
+     - various changes in window stacking order manipulation.
+       (see put-on-top, and put-on-bottom)
+     
+     - buttons are now able to display a pixmap that shows its state (e.g: 
+       pressed or not).
+	
+     - added support for _net_active_window message
+
+     - various  bug fix and improvements:
+
+       - typo fix *wRAp-pointer-when-cycle* => *wARp-pointer-when-cycle*
+                   full-screen-mode => fullscreen-mode
+
+       - changing the focus now cares of the map state of the window it
+	 is supose to gives the focus to. (Should avoid lots of match-error).
+         Wrong nil timestamp has been fixed.
+
+       - fullscreen-mode should now be correct: the spec say it would be
+         better to undecore the window when in fullscreen. It does now.
+
+
+       - maximize-window signature changes. It now expect an application 
+	 instead of a decoration.  
+	 => STROKES USING MAXIMIZE-WINDOW SHOULD BE UPDATED.
+
+       - minor changes in update-edges-geometry, and move-resize.lisp.
+
+       - virtual-screen.lisp re-implementation. It now use the X server
+         data such the root window tree, and window property that hold the
+	 desktop number instead of an internal substructure that has to be
+	 updated each time you destroy, un/iconify, shade, unshade, etc.
+
+       - fix incorect placement of the menu button when the title bar is
+	 vertical.
+
+       - fix handling of message of type :_WIN_WORKSPACE :_NET_CURRENT_DESKTOP.
+       
+       - fix the _net_active_window property handling for undecorated windows.
+
+       - fix missplaced handling for message of type _net_close_window.
+
+       - some code clean up (removed some unused code).
+
+     - lots of documentations added almost every where.
+
+0.07=>0.08
+
+
+
+       

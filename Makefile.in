@@ -1,5 +1,5 @@
 # -*- Mode: Makefile -*-
-# $Id: Makefile.in,v 1.5 2002/11/07 15:54:34 hatchond Exp $
+# $Id: Makefile.in,v 1.6 2003/04/07 13:35:32 hatchond Exp $
 #
 # Makefile for Eclipse window manager.
 
@@ -101,7 +101,8 @@ install:
 	    for theme in ${themes} ; do				\
 	      test -f "themes/$$theme/theme.o" &&		\
 	      $(install) -d ${themedir}/$$theme &&		\
-	      for file in themes/$$theme/* ; do			\
+	      $(install) ${themedir}/$$theme/theme.o &&		\
+	      for file in themes/$$theme/*.pnm ; do		\
 		$(install) $$file ${themedir}/$$theme/. ;	\
 	      done ;						\
 	    done ;						\

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PROGRAMMED-TASKS  -*-
-;;; $Id: programmed-tasks.lisp,v 1.3 2002/11/07 14:54:27 hatchond Exp $
+;;; $Id: programmed-tasks.lisp,v 1.4 2003/09/30 12:18:36 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001 Iban HATCHONDO
@@ -36,7 +36,7 @@
 
 (defun arm-timer (delta-time lambda)
   "Arm a timer that expires in delta-time (unit is second). At expiration 
-   the given lambda (with no parameter) will be executed."
+  the given lambda (with no parameter) will be executed."
   (push (cons (+ delta-time (get-universal-time)) lambda)
 	preprogrammed-tasks))
 

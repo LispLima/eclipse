@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.7 2003/09/16 21:56:12 hatchond Exp $
+;;; $Id: gestures.lisp,v 1.8 2003/09/30 12:18:36 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -30,11 +30,13 @@
 
 (defun lookup-keystroke (code state)
   "Find the associated callback if any for this pair code modifier state."
-  (gethash (cons code state) *keystroke-map*))
+  (or (gethash (cons code state) *keystroke-map*)
+      (gethash (cons code #x8000) *keystroke-map*)))
 
 (defun lookup-mouse-stroke (button state)
   "Find the associated callback if any for this pair button modifier state."
-  (gethash (cons button state) *mouse-stroke-map*))
+  (or (gethash (cons button state) *mouse-stroke-map*)
+      (gethash (cons button #x8000) *keystroke-map*)))
 
 (defun keycode-registered-p (keycode &optional (count 1))
   "Returns t if this keycode is used for any keystroke."
@@ -104,7 +106,7 @@
     :keysyms (mapcar #'kb:keyname->keysym key-name-set)
     :default-modifiers-p default-modifiers-p
     :modifiers modifiers
-    :action action))
+    :action (or action (action-key->lambda name))))
 
 (defun keystroke-p (stroke)
   (typep stroke 'keystroke))
@@ -129,7 +131,7 @@
     :button (list button)
     :default-modifiers-p default-modifiers-p
     :modifiers modifiers
-    :action action))
+    :action (or action (action-key->lambda name))))
 
 (defun mouse-stroke-p (stroke)
   (typep stroke 'mouse-stroke))
@@ -156,10 +158,8 @@
 (defun action-key->lambda (action-keyword)
   "Returns the associated predefined callback for the given action keyword."
   (case action-keyword
-    (:switch-win-up
-     (action () (:press (circulate-window *root* :direction :above))))
-    (:switch-win-down
-     (action () (:press (circulate-window *root* :direction :below))))
+    (:switch-win-up #'(lambda (e) (circulate-window-up-and-down e :above)))
+    (:switch-win-down #'(lambda (e) (circulate-window-up-and-down e :below)))
     (:switch-screen-left
      (action (:press (change-vscreen *root* :direction #'-)) ()))
     (:switch-screen-right
@@ -207,7 +207,7 @@
 	   for mask in (translate-modifiers dpy modifiers) do
 	   (loop for key in (stroke-keys ,stroke) do
 		 (unrealize (,dest-window :mouse-p ,mouse-p) key mask)
-		 (when (and default-modifiers-p (not (eql mask :any)))
+		 (when (and default-modifiers-p (not (eql mask #x8000)))
 		   (when caps-l 
 		     (unrealize (,dest-window :mouse-p ,mouse-p)
 		       key (+ mask caps-l)))
@@ -218,40 +218,38 @@
 		     (unrealize (,dest-window :mouse-p ,mouse-p)
 		       key (+ mask num-l caps-l))))))))
 
-(defmacro realize ((window &key mouse-p) code mask action-keyword action)
+(defmacro realize ((window &key mouse-p) code mask action)
   `(progn
      ,@(if mouse-p
-	   `((setf (gethash (cons ,code ,mask) *mouse-stroke-map*)
-		 (or ,action (action-key->lambda ,action-keyword)))
+	   `((setf (gethash (cons ,code ,mask) *mouse-stroke-map*) ,action)
 	     (xlib:grab-button ,window
 			       ,code 
 			       '(:button-press) 
 			       :modifiers ,mask 
 			       :sync-pointer-p t))
-	   `((setf (gethash (cons ,code ,mask) *keystroke-map*)
-		   (or ,action (action-key->lambda ,action-keyword)))
+	   `((setf (gethash (cons ,code ,mask) *keystroke-map*) ,action)
 	     (setf (aref *registered-keycodes* ,code) 1)
 	     (xlib:grab-key ,window ,code :modifiers ,mask :owner-p nil)))))
 
 (defmacro define-combo-internal (stroke dest-window &key mouse-p)
-  `(with-slots (name modifiers default-modifiers-p action) ,stroke  
+  `(with-slots (modifiers default-modifiers-p action) ,stroke  
      (loop with dpy = (xlib:drawable-display ,dest-window)
            with num-l = (kb:modifier->modifier-mask dpy :NUM-LOCK)
 	   with caps-l = (kb:modifier->modifier-mask dpy :CAPS-LOCK)
 	   for mask in (translate-modifiers dpy modifiers) do
 	   (loop for key in (stroke-keys ,stroke) do
 		 (realize (,dest-window :mouse-p ,mouse-p)
-		   key mask name action)
-		 (when (and default-modifiers-p (not (eql mask :any)))
+		   key mask action)
+		 (when (and default-modifiers-p (not (eql mask #x8000)))
 		   (when caps-l 
 		     (realize (,dest-window :mouse-p ,mouse-p)
-		       key (+ mask caps-l) name action ))
+		       key (+ mask caps-l) action ))
 		   (when num-l 
 		     (realize (,dest-window :mouse-p ,mouse-p)
-		       key (+ mask num-l) name action))
+		       key (+ mask num-l) action))
 		   (when (and num-l caps-l)
 		     (realize (,dest-window :mouse-p ,mouse-p)
-		       key (+ mask num-l caps-l) name action)))))))
+		       key (+ mask num-l caps-l) action)))))))
 
 (defun define-key-combo (name &key keys
 			          (default-modifiers-p t)
@@ -326,3 +324,57 @@
     (xlib:grab-pointer (event-child event) +pointer-event-mask+)
     (menu-3-process event widget :key action)
     (funcall (define-menu-3 action))))
+
+;;; Hook and Callbacks for :switch-win-{up, down} keystrokes.
+
+(defvar *depth* nil)
+(defvar *current-widget-info* nil)
+
+(defun initialize-circulate-window (root-window dpy)
+  "Initialize gestures internal hooks before circulating windows."
+  (loop with map = *keystroke-map*
+	for mod in (stroke-modifiers (gethash :switch-win-up *keystrokes*))
+	for code = (unless (eq mod :and) (kb:keyname->keycodes dpy mod))
+	when code
+	do (setf (gethash (cons (if (listp code) (car code) code) #x8000) map)
+		 #'circulate-window-modifier-callback))
+  (xlib:grab-keyboard root-window)
+  (unless *current-widget-info*
+    (setf *current-widget-info* (create-message-box nil :parent root-window)))
+  (setf *depth* 0))
+
+(defun circulate-window-modifier-callback (event)
+  (when (typep event 'key-release)
+    (xlib:ungrab-keyboard *display*)
+    (loop with map = *keystroke-map*
+	  for mod in (stroke-modifiers (gethash :switch-win-up *keystrokes*))
+	  for code = (unless (eq mod :and) (kb:keyname->keycodes *display* mod))
+	  when code
+	  do (remhash (cons (if (listp code) (car code) code) #x8000) map))
+    (let ((widget (lookup-widget (input-focus *display*))))
+      (when widget (setf (application-wants-iconic-p widget) nil)))
+    (xlib:unmap-window (widget-window *current-widget-info*))
+    (setf *depth* nil)))
+
+(defun circulate-window-up-and-down (event dir)
+  "Make window circulating according to the `dir' argument (or :above :below)."
+  (when (typep event 'key-press)
+    (with-slots ((root-win root)) event
+      (unless *depth*
+	(initialize-circulate-window root-win (xlib:drawable-display root-win)))
+      (if (eq dir :above) (incf *depth*) (decf *depth*))
+      (let ((widget (circulate-window
+			(lookup-widget root-win)
+			:direction dir
+			:nth *depth*
+			:icon-p *cycle-icons-p*)))
+	(when (and *verbose-window-cycling* widget)
+	  (with-slots (window)
+	      (if (decoration-p widget) (get-child widget :application) widget)
+	    (setf (message-pixmap *current-widget-info*)
+		  (clx-ext::wm-hints-icon-pixmap window))
+	    (setf (button-item-to-draw *current-widget-info*) (wm-name window)))
+	  (with-slots (window) *current-widget-info*	  
+	    (xlib:map-window window)
+	    (setf (xlib:window-priority window) :above)
+	    (repaint *current-widget-info* nil nil)))))))

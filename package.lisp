@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.7 2003/09/16 14:24:41 hatchond Exp $
+;;; $Id: package.lisp,v 1.8 2003/09/30 12:18:36 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -73,6 +73,7 @@
    "BASE-WIDGET-P"			  ;function
    "BUTTON-P"				  ;function
    "CHECK-SIZE"				  ;function
+   "CIRCULATE-WINDOW-UP-AND-DOWN"	  ;function
    "COPY-GEOMETRY"			  ;function
    "CREATE-APPLICATION"			  ;function
    "CREATE-BUTTON"			  ;function

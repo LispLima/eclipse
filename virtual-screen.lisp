@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.7 2003/09/12 09:10:02 hatchond Exp $
+;;; $Id: virtual-screen.lisp,v 1.8 2003/09/16 14:24:41 hatchond Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -48,12 +48,12 @@
 
 (defun current-vscreen (win)
   "Get the current virtual screen index. The window parameter must be
-   the window that owns the win_workspace or _net_current_desktop property."
+  the window that owns the win_workspace or _net_current_desktop property."
   (or (netwm:net-current-desktop win) (gnome:win-workspace win) 0))
 
 (defun number-of-virtual-screens (win)
   "Get the number of virtual screens. The window parameter must be the window
-   that owns the win_workspace_count or _net_number_of_desktops property."
+  that owns the win_workspace_count or _net_number_of_desktops property."
   (or (gnome:win-workspace-count win) (netwm:net-number-of-desktops win) 1))
 
 (defsetf number-of-virtual-screens () (n)
@@ -97,6 +97,7 @@
 	    (let ((widget (lookup-widget (input-focus *display*))))
 	      (when (application-p widget)
 		(setf (application-wants-focus-p widget) t))))
+	  (xlib:set-input-focus *display* :pointer-root :pointer-root)
 	  (with-pointer-grabbed (window nil)
 	    (map-or-unmap-vscreen #'xlib:map-window new)
 	    (map-or-unmap-vscreen #'xlib:unmap-window cur)))
@@ -109,7 +110,7 @@
 
 (defun get-screen-content (scr-num &key iconify-p)
   "Returns the list of application's windows that represent the contents
-   of the given virtual screen. Use :iconify-p t to includes iconfied windows"
+  of the given virtual screen. Use :iconify-p t to includes iconfied windows"
   (loop for win in (query-application-tree *root-window*)
 	when (window-belongs-to-vscreen-p win scr-num iconify-p) collect win))
 
@@ -127,23 +128,45 @@
 	  (unless given-p
 	    (xlib:set-input-focus *display* :pointer-root :pointer-root))))
 
-(defmethod circulate-window ((root root) &key direction)
-  (let ((screen-wins (get-screen-content (current-desk))))
-    (or screen-wins (return-from circulate-window nil))
-    (when (= 1 (length screen-wins)) (setf direction :above))
-    (let* ((above-p (eq direction :above))
-	   (wins (if above-p screen-wins (reverse screen-wins)))
-	   (desktop (and (eql direction :below) (get-root-desktop root t)))
-	   (one (lookup-widget (first wins)))
-	   (two (if above-p one (lookup-widget (second wins)))))
-      (with-slots (master) one (when master (setf one master)))
-      (with-slots (master) two (when master (setf two master)))
-      (when (and (eq direction :below) desktop)
-	(setf direction :above above-p t))
-      (with-slots (window) two
-	(and (not above-p) *warp-pointer-when-cycle* 
-	     (xlib:warp-pointer window 8 5))
-        (setf (window-priority (widget-window one) desktop) direction)
-	(and above-p *warp-pointer-when-cycle* (xlib:warp-pointer window 8 5))
-	(and (eq *focus-type* :on-click) *focus-when-window-cycle*
-	     (focus-widget two 0))))))
+(defmethod circulate-window ((root root) &key direction (nth 0) icon-p)
+  (let* ((wins (reverse (get-screen-content (current-desk) :iconify-p icon-p)))
+	 (length (length wins)))
+    (or wins (return-from circulate-window nil))
+    (setf nth (mod nth length))
+    (let ((above-p (eq direction :above))
+	  (focus-dest (nth nth wins))
+	  (first (lookup-widget (car wins))))
+      ;; Grab the pointer to avoid enter notify events race concurrence
+      ;; between the window hierarchy change and the warp-pointer call.
+      (with-pointer-grabbed ((widget-window root) nil)
+	(when (and (/= length 1) icon-p (application-wants-iconic-p first))
+	  (iconify first))
+	(flet ((set-window-priority (window sibling priority)
+		 (with-slots (master) (lookup-widget window)
+		   (when master (setf window (widget-window master))))
+		 (when (lookup-widget sibling)
+		   (with-slots (master) (lookup-widget sibling)
+		     (when master (setf sibling (widget-window master)))))
+		 (setf (window-priority window sibling) priority)))
+	  (cond ((= length 1) (set-window-priority focus-dest nil :above))
+		((= nth 0)
+		 (let ((sibling (if above-p (last wins) (cdr wins))))
+		   (set-window-priority (car wins) (car sibling) :below)
+		   (setf focus-dest (second wins))))
+		((or (and (= nth (1- length)) (not above-p))
+		     (and (= nth 1) above-p))
+		 (set-window-priority focus-dest nil :above))
+		(t (unless above-p
+		     (setf focus-dest (nth (incf nth) wins)))
+		   (set-window-priority (car wins) focus-dest :below)
+		   (set-window-priority focus-dest nil :above))))
+	(with-slots (master) (setf focus-dest (lookup-widget focus-dest))
+	  (when (and icon-p (application-iconic-p focus-dest))
+	    (uniconify (application-icon focus-dest))
+	    (setf (application-wants-iconic-p focus-dest) t))
+	  (when master (setf focus-dest master)))
+	(when *warp-pointer-when-cycle*
+	  (xlib:warp-pointer (widget-window focus-dest) 8 5)))
+      (when (and (eq *focus-type* :on-click) *focus-when-window-cycle*)
+	(focus-widget focus-dest 0))
+      focus-dest)))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.19 2003/09/30 12:18:36 hatchond Exp $
+;;; $Id: wm.lisp,v 1.20 2003/10/01 01:53:05 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -170,7 +170,7 @@
   (eq :horizontal (style-title-bar-direction (decoration-frame-style master))))
 
 (defun make-menu-button (master parent-window)
-  (with-slots (children frame-style gcontext) master
+  (with-slots (children frame-style) master
     (when (frame-item-exist-p frame-style :menu-button)
       (let ((pixmaps (frame-item-pixmaps frame-style :menu-button))
 	    (horizontal-p (title-bar-horizontal-p master)))
@@ -184,12 +184,11 @@
 		     :item (aref pixmaps 1)
 		     :width width :height height
 		     :event-mask '(:owner-grab-button . #.+push-button-mask+)
-		     :gcontext gcontext
 		     :y (if horizontal-p (ash (- th height) -1) (- th height))
 		     :x (if horizontal-p 0 (ash (- tw width) -1))))))))))
 
 (defun make-buttons-bar (master parent-window)
-  (with-slots (children frame-style gcontext) master
+  (with-slots (children frame-style) master
     (flet ((make-container (horizontal-p)
 	     (xlib:create-window 
 	        :parent parent-window
@@ -211,8 +210,7 @@
 				    :parent container :master master
 				    :background bkgrd :item (aref pixmaps 1)
 				    :x x :y y :width width :height height
-				    :event-mask +push-button-mask+
-				    :gcontext gcontext))
+				    :event-mask +push-button-mask+))
 	       (if horizontal-p (incf x width) (incf y height))
 	    finally 
 	      (multiple-value-bind (w h) (drawable-sizes parent-window)
@@ -226,7 +224,7 @@
 		(return container))))))	    
 
 (defun make-title-bar (master name)
-  (with-slots (children frame-style gcontext) master
+  (with-slots (children frame-style) master
     (unless (eq :none (style-title-bar-position frame-style))
       (let* ((title-pos (style-title-bar-position frame-style))
 	     (horizontal-p (case title-pos ((:top :bottom) t)))
@@ -246,7 +244,7 @@
 			     :width 1 :height 1
 			     :x (if horizontal-p mbw 0)
 			     :y (if horizontal-p 0 bch)
-			     :gcontext gcontext :event-mask +push-button-mask+
+			     :event-mask +push-button-mask+
 			     :background (aref pixmaps 0) :item name)
 	      (slot-value title 'parent) parent-window
 	      (getf children :title-bar) title
@@ -267,7 +265,7 @@
       (:left (values 0 top-left-h)))))
 
 (defun make-edges (master)
-  (with-slots (children window frame-style gcontext) master
+  (with-slots (children window frame-style) master
     (multiple-value-bind (width height) (drawable-sizes window)
       (loop for type in '(right left top bottom)
 	    for child in '(:right :left :top :bottom)
@@ -290,10 +288,10 @@
 				    :x x :y y
 				    :width (pixmap-width background)
 				    :height (pixmap-height background)
-				    :gcontext gcontext :cursor cursor))))))
+				    :cursor cursor))))))
 
 (defun make-corner (master width height)
-  (with-slots (children window frame-style gcontext) master
+  (with-slots (children window frame-style) master
     (loop for type in '(top-left top-right bottom-left bottom-right)
 	  for gravity in '(:north-west :north-east :south-west :south-east)
 	  for child in '(:top-left :top-right :bottom-left :bottom-right)
@@ -314,7 +312,7 @@
 				  :x (or x (- width w))
 				  :y (or y (- height h))
 				  :width w :height h
-				  :gcontext gcontext :cursor cursor)))))
+				  :cursor cursor)))))
 
 (defun update-edges-geometry (master)
   (declare (optimize (speed 3) (safety 0))
@@ -406,7 +404,6 @@
 			     'decoration
 			     :window window
 			     :frame-style style
-			     :gcontext *gcontext*
 			     :children (list :application application)
 			     :application-gravity gravity
 			     :wm-size-hints wm-sizes)))
@@ -489,17 +486,18 @@
 ;;;; Focus management. According to ICCCM
 
 (defgeneric set-focus (input-model window timestamp)
-  (:documentation "Set focus to the given window according to the input model.
-Input model can be :globally-active :locally-active :passive :no-input.
-For more information on the input-model sementic see ICCCM 4.1.7"))
+  (:documentation 
+   "Set focus to the given window according to the input model.
+   Input model can be :globally-active :locally-active :passive :no-input.
+   For more information on the input-model sementic see ICCCM 4.1.7"))
 
 (defmethod set-focus ((input-model (eql :globally-active)) window timestamp)
   (send-wm-protocols-client-message window :wm_take_focus (or timestamp 0)))
 
 (defmethod set-focus ((input-model (eql :locally-active)) window timestamp)
   (when (eql (xlib:window-map-state window) :viewable)
-    (send-wm-protocols-client-message window :wm_take_focus (or timestamp 0))
-    (xlib:set-input-focus *display* window :pointer-root)))
+    (xlib:set-input-focus *display* window :pointer-root)
+    (send-wm-protocols-client-message window :wm_take_focus (or timestamp 0))))
 
 (defmethod set-focus ((input-model (eql :passive)) window timestamp)
   (declare (ignorable timestamp))
@@ -569,11 +567,11 @@ For more information on the input-model sementic see ICCCM 4.1.7"))
 
 (defun make-desktop-menu (root callback-maker &key realize)
   "Realize a root pop-up menu with as many entry as existing desktop. It attach
-   to each entry a callback realized with the given `callback-maker' function.
-   The callback-maker function should be a function of one argument of type
-   integer that will be the index of the desktop entry. It may return a lambda
-   or sub menu entries. If :realize is nil (the default value) it returns the
-   menu entries otherwise a pop-up-menu object is return."
+  to each entry a callback realized with the given `callback-maker' function.
+  The callback-maker function should be a function of one argument of type
+  integer that will be the index of the desktop entry. It may return a lambda
+  or sub menu entries. If :realize is nil (the default value) it returns the
+  menu entries otherwise a pop-up-menu object is return."
   (loop with root-window = (widget-window root)
 	with names = (workspace-names root-window)
 	for i from 0 below (number-of-virtual-screens root-window)
@@ -627,7 +625,7 @@ For more information on the input-model sementic see ICCCM 4.1.7"))
 ;; win_client_list, net_client_list(_stacking).
 (defun update-lists (app state root)
   "Update root properties win_client_list, net_client_list(_stacking), 
-   by adjoining or removing the given application depending of state."
+  by adjoining or removing the given application depending of state."
   (with-slots ((appw window) iconic-p) app
     (with-slots ((rw window) client-list) root
       (case (if (and (= state 3) (not iconic-p)) 0 state)
@@ -676,7 +674,7 @@ For more information on the input-model sementic see ICCCM 4.1.7"))
 	   (if (or (= win-workspace scr-num) stick-p)
 	       (xlib:map-window window)
 	       (with-event-mask (*root-window*)
-		 (xlib:unmap-window window))))
+	   	 (xlib:unmap-window window))))
 	  ((or (= win-workspace scr-num) stick-p)
 	   (decore-application window application))
 	  (t (with-event-mask (*root-window*)
@@ -695,7 +693,8 @@ For more information on the input-model sementic see ICCCM 4.1.7"))
 	(time))
 
     ;; Sets the root window pop-up menu
-    (nconc *menu-1-items* (acons "Exit" (lambda () (setf exit 1)) '()))
+    (when *menu-1-exit-p*
+      (nconc *menu-1-items* (acons "Exit" (lambda () (setf exit 1)) '())))
     (with-slots (menu1 menu3) *root*
       (setf menu1 (apply #'make-pop-up *root* *menu-1-items*)
 	    menu3 (make-pop-up *root*

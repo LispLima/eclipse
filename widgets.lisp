@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.14 2003/09/15 10:16:50 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.15 2003/09/30 12:18:36 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -54,22 +54,35 @@
   (:documentation "sets the widget stacking order on top of the others."))
 
 (defgeneric put-on-bottom (widget)
-  (:documentation "sets the widget stacking order on bottom of the others 
-\(except if any widget with :_net_wm_type_desktop is present and widget is or 
-an application or a decoration\)."))
+  (:documentation
+   "Sets the widget stacking order on bottom of the others \(except if any
+   widget with :_net_wm_type_desktop is present and widget is or an 
+   application or a decoration\)."))
 
 (defgeneric shade (widget)
   (:documentation "shade/un-shade an application that is decorated."))
 
 (defgeneric shaded-p (widget)
-  (:documentation "Return true if the widget is shaded in the sens of 
-the extended window manager specification."))
+  (:documentation
+   "Returns true if the widget is shaded in the sens of the extended window
+    manager specification."))
 
 (defgeneric root-manager (widget)
-  (:documentation "Returns the root-window child that is the place holder for
- indicating that a netwm manager is present."))
+  (:documentation
+   "Returns the root-window child that is the place holder for indicating that
+   a netwm manager is present."))
 
-(defgeneric repaint (widget theme-name focus))
+(defgeneric repaint (widget theme-name focus)
+  (:documentation
+   "This method is dedicated to widget repaint such as every buttons, icons,
+   edges ...
+   It is specialized on widget type, theme name (via an eql specializer) and a
+   boolean that indicate if the corresponding toplevel (type decoration) is or
+   not focused.
+
+   Except for standard expose events, the repaint dispatching on focus change
+   will be perform according to parts-to-redraw-on-focus list given in
+   define-theme."))
 
 (defmethod initialize-instance :after ((widget base-widget) &rest rest)
   (declare (ignore rest))
@@ -155,12 +168,13 @@ the extended window manager specification."))
 
 (defconstant +properties-to-delete-on-withdrawn+
   '(:_net_wm_state :_net_wm_desktop :_win_workspace))
-  
+
 (defclass application (base-widget)
   ((master :initarg :master :reader application-master)
    (input-model :initform nil :initarg :input :reader application-input-model)
    (icon :initform nil :initarg :icon :reader application-icon)
    (iconic-p :initform nil :accessor application-iconic-p)
+   (wants-iconic-p :initform nil :accessor application-wants-iconic-p)
    (wants-focus-p :initform nil :accessor application-wants-focus-p)
    (initial-geometry :initform (make-geometry))
    (full-geometry :initform (make-geometry))))
@@ -295,6 +309,7 @@ the extended window manager specification."))
 	    (pushnew :_net_wm_state_skip_pager netwm-state)
 	    (pushnew :_net_wm_state_skip_taskbar netwm-state)
 	    (when desktop-p
+	      (pushnew :_net_wm_state_sticky netwm-state)
 	      (add-desktop-application *root* app)
 	      (setf (window-priority window prec-desk) stack-mode))
 	    (setf (netwm:net-wm-state window) netwm-state
@@ -341,16 +356,20 @@ the extended window manager specification."))
   (typep widget 'button))
 
 (declaim (inline draw-pixmap))
-(defun draw-pixmap (window gcontext pixmap)
-  "Draw and tile, if necessary, the pixmap in the window."
-  (multiple-value-bind (width height) (drawable-sizes window)
-    (xlib:with-gcontext (gcontext :tile pixmap :fill-style :tiled)
-      (xlib:draw-rectangle window gcontext 0 0 width height t))))
+(defun draw-pixmap (window gctxt pix &key (x 0) (y 0) width height)
+  "Draw, and tile if necessary, the pixmap in the given region in the window."
+  (multiple-value-bind (w h) (drawable-sizes window)
+    (unless width (setf width w))
+    (unless height (setf height h)))
+  (if (= (xlib:drawable-depth pix) 1)
+      (xlib:copy-plane pix gctxt 1 0 0 width height window x y)
+      (xlib:with-gcontext (gctxt :tile pix :fill-style :tiled :ts-x x :ts-y y)
+	(xlib:draw-rectangle window gctxt x y width height t))))
 
 ;; When calling this function arguments non optional are
 ;; :parent :x :y :width :height
 ;; the others are optional.
-(defun create-button (button-type &key parent x y width height gcontext
+(defun create-button (button-type &key parent x y width height
 				  item background master (border-width 0)
 				  (border *black*)
 				  (gravity :north-west)
@@ -364,53 +383,55 @@ the extended window manager specification."))
 		  :background background :border border
 		  :gravity gravity :bit-gravity (if item :north-west :forget)
 		  :cursor cursor :event-mask event-mask)
-      :gcontext gcontext
-      :item-to-draw item
-      :master master))
+      :item-to-draw item :master master))
 
 ;;;; Box button
 ;; Use it for displaying short message in window, that do not require
 ;; any user intervention (no OK/Cancel confirmation).
 
-(defclass box-button (button) ())
+(defclass box-button (button)
+  ((pixmap :initform nil :initarg :pixmap-to-display :accessor message-pixmap)))
 
-(defun create-message-box (messages
-			   &key parent (border-width 1) (background *white*))
+(defun create-message-box (messages &key parent pixmap
+			                 (border-width 1)
+			                 (background *white*))
   (setf messages (apply #'concatenate 'string messages))
   (let ((message-box
 	 (create-button
 	    'box-button
-	    :parent parent :event-mask '(:exposure)
+	    :parent parent :event-mask '(:exposure :visibility-change)
 	    :x 0 :y 0 :width 1 :height 1 :border-width border-width
-	    :background background :item messages
-	    :gcontext *gcontext*)))
+	    :background background :item messages)))
     (setf (xlib:window-override-redirect (widget-window message-box)) :on
-	  (button-item-to-draw message-box) messages)
+	  (button-item-to-draw message-box) messages
+	  (message-pixmap message-box) pixmap)
     message-box))
 
-(defmethod (setf button-item-to-draw) (message (box box-button))
-  (with-slots (window gcontext) box
+(defmethod (setf button-item-to-draw) (m (box box-button))
+  (with-slots (window (gctxt gcontext) pixmap) box
     (multiple-value-bind (width height)
-	(xlib:text-extents (xlib:gcontext-font gcontext) message)
-      (incf width 40) 
-      (incf height 20)
+	(xlib:text-extents (xlib:gcontext-font gctxt) m :translate #'translate)
+      (incf width 20) (incf height 20)
+      (when pixmap
+	(setf height (max (+ 20 (xlib:drawable-height pixmap)) height))
+	(incf width (+ 10 (xlib:drawable-width pixmap))))
       (multiple-value-bind (children parent) (xlib:query-tree window)
 	(declare (ignore children))
 	(let ((x (ash (- (xlib:drawable-width parent) width) -1))
 	      (y (ash (- (xlib:drawable-height parent) height) -1)))
 	  (setf (drawable-sizes window) (values width height)
 		(window-position window) (values x y)
-		(slot-value box 'item-to-draw) message))))))
+		(slot-value box 'item-to-draw) m))))))
 
-(defmethod repaint ((widget box-button) theme-name focus)
+(defmethod repaint ((widget box-button) theme-name focus &aux x)
   (declare (ignorable theme-name focus))
-  (with-slots (window item-to-draw gcontext) widget
-    (xlib:clear-area window)  
-    (multiple-value-bind (w h) (drawable-sizes window)
-      (declare (type (unsigned-byte 16) w h))
-      (xlib:with-gcontext (gcontext :foreground *black*)
-        (xlib:draw-rectangle window gcontext 0 0 (1- w) (1- h))))
-    (draw-centered-text window gcontext item-to-draw :color *black*)))
+  (with-slots (window item-to-draw gcontext pixmap) widget
+    (xlib:clear-area window)
+    (when pixmap
+      (multiple-value-bind (w h) (drawable-sizes pixmap)
+	(draw-pixmap window gcontext pixmap :x 10 :y 10 :width w :height h)
+	(setf x (+ w 20))))
+    (draw-centered-text window gcontext item-to-draw :color *black* :x x)))
 
 ;; Self destructing message box after 2 seconds.
 (defun timed-message-box (window &rest messages)
@@ -549,9 +570,8 @@ the extended window manager specification."))
 (defun icon-p (widget)
   (typep widget 'icon))
 
-(defun create-icon (application master
-		    &optional (gcontext *gcontext*) (bg-color *black*))
-  (with-slots (window icon) application
+(defun create-icon (application master &optional (bg-color *black*))
+  (with-slots (window icon gcontext) application
     (let ((background (clx-ext::wm-hints-icon-pixmap window))
 	  (width 45) (height 20))
       (if (typep background 'xlib:pixmap)
@@ -568,7 +588,6 @@ the extended window manager specification."))
 		    'icon
 		    :parent *root-window* :master master
 		    :x 0 :y 0 :width width :height height
-		    :gcontext gcontext
 		    :item (unless background (wm-icon-name window))
 		    :background (or background bg-color))
 	    (slot-value icon 'application) application)

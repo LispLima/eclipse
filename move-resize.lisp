@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.4 2003/08/28 14:50:35 hatchond Exp $
+;;; $Id: move-resize.lisp,v 1.5 2003/09/30 12:18:36 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -33,8 +33,7 @@
 
 (defun initialize-geometry-info-box ()
   (unless *geometry-info-box*
-    (setf *geometry-info-box* 
-	  (create-message-box '("nil") :parent *root-window* :border-width 0)))
+    (setf *geometry-info-box* (create-message-box nil :parent *root-window*)))
   (with-slots (window) *geometry-info-box*
     (xlib:map-window window)
     (setf (xlib:window-priority window) :above)))
@@ -114,16 +113,28 @@
 
 (defun initialize-resize (master edge pointer-event)
   "Initialize the internal settings for the resize process."
-  (setf (window-priority (widget-window master)) :above
-	(decoration-active-p master) t)
+  (setf (window-priority (widget-window master)) :above)
   (if (base-widget-p edge)
       (where-is-pointer edge)
       (with-slots (root-x root-y) pointer-event
-	(find-corner root-x root-y (widget-window master)))))
+	(find-corner root-x root-y (widget-window master))))
+  (let ((prop (netwm:net-wm-state (get-child master :application :window t))))
+    (when (member :_net_wm_state_maximized_vert prop)
+      (case *card-point*
+	((:ne :se) (setf *card-point* :east))
+	((:nw :sw) (setf *card-point* :west))
+	((:north :south) (setf *card-point* nil))))
+    (when (member :_net_wm_state_maximized_horz prop)
+      (case *card-point*
+	((:ne :nw) (setf *card-point* :north))
+	((:se :sw) (setf *card-point* :south))
+	((:east :west) (setf *card-point* nil))))
+    (setf (decoration-active-p master) (if *card-point* t nil))))
 
 (defgeneric resize-from (widget)
-  (:documentation "Resize an application or a master according
-   to the given master or application respectively."))
+  (:documentation 
+   "Resize an application or a master according to the given master or
+    application respectively."))
 
 (defmethod resize-from ((master decoration))
   (declare (optimize (speed 3) (safety 0)))
@@ -166,7 +177,7 @@
 
 (defun find-corner (root-x root-y window)
   "Initialize the resize process when activated from somewhere else 
-   than a decoration edge."
+  than a decoration edge."
   (declare (optimize (speed 3) (safety 0))
 	   (type xlib:int16 root-x root-y))
   (multiple-value-bind (x y w h) (window-geometry window)
@@ -183,7 +194,7 @@
 
 (defun check-size (size base inc min-size max-size)
   "If the given size respects all the given constraints, then return size. 
-   Otherwise returns the nearest satisfying size."
+  Otherwise returns the nearest satisfying size."
   (declare (optimize (speed 3) (safety 0))
 	   (type xlib:card16 size base inc min-size max-size))
   (if (< min-size size max-size)
@@ -287,7 +298,20 @@
   (with-slots (window active-p gcontext) widget
     (when active-p
       (let ((new-x (- (the (signed-byte 16) (event-root-x event)) *delta-x*))
-	    (new-y (- (the (signed-byte 16) (event-root-y event)) *delta-y*)))
+	    (new-y (- (the (signed-byte 16) (event-root-y event)) *delta-y*))
+	    (scr-w (screen-width)) (scr-h (screen-height)))
+	(declare (type (signed-byte 16) new-x new-y))
+	(declare (type (unsigned-byte 16) scr-w scr-h))
+	(multiple-value-bind (x y w h)
+	    (window-geometry (if (eq mode :box) (widget-window *clone*) window))
+	  (declare (type (signed-byte 16) x y))
+	  (declare (type (unsigned-byte 16) w h))
+	  (when (and (>= x 0) (< -40 new-x 0)) (setf new-x 0))
+	  (when (and (>= y 0) (< -40 new-y 0)) (setf new-y 0))
+	  (when (and (>= (- scr-w x w) 0) (< -40 (- scr-w new-x w) 0))
+	    (setf new-x (- scr-w w)))
+	  (when (and (>= (- scr-h y h) 0) (< -40 (- scr-h new-y h) 0))
+	    (setf new-y (- scr-h h))))
 	(when verbose-p (display-coordinates new-x new-y))
 	(if (and (decoration-p widget) (eql mode :box))
 	    (with-slots (window) *clone*	    
