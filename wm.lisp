@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.46 2004/12/16 21:36:47 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.47 2005/01/16 23:25:59 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -623,7 +623,7 @@
 	    (setf (gnome:win-client-list rw :mode :append) window))))))
 
 (defun update-client-list-stacking (root)
-  "Recompute ans set the root property net_client_list_stacking."
+  "Recompute and set the root property net_client_list_stacking."
   (with-slots (window client-list) root
     (loop for win in (query-application-tree window)
 	  when (gethash win client-list) collect win into wins

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.18 2004/04/08 21:25:01 ihatchondo Exp $
+;;; $Id: gestures.lisp,v 1.19 2005/01/18 18:14:06 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -22,74 +22,35 @@
 
 (in-package :ECLIPSE-INTERNALS)
 
-(defmacro action ((&rest f1) (&rest f2))
-  (when (or (eq (car f1) :release) (eq (car f2) :press)) (rotatef f1 f2))
-  `(lambda (event)
-     (typecase event
-       (button-press ,@(cdr f1)) (button-release ,@(cdr f2))
-       (key-press ,@(cdr f1)) (key-release ,@(cdr f2)))))
-
-(defmacro unrealize ((window &key mouse-p) code mask)
-  `(progn
-     ,@(if mouse-p
-	   `((remhash (cons ,code ,mask) *mouse-stroke-map*)
-	     (xlib:ungrab-button ,window ,code :modifiers ,mask))
-	   `((remhash (cons ,code ,mask) *keystroke-map*)
-	     (setf (aref *registered-keycodes* ,code) 0)
-	     (xlib:ungrab-key ,window ,code :modifiers ,mask)))))
+(defmacro with-combo-realizer((mode) stroke &key destination type)
+  (let* ((prefix (ecase mode (:undefine 'unrealize) (:define 'realize)))
+	 (macro (intern (format nil "~a-~a" prefix type))))
+    `(with-slots (name modifiers default-modifiers-p action) ,stroke
+       (remhash name ,(if (eq type :keystroke) '*keystrokes* '*mousestrokes*))
+       (loop with dpy = (xlib:drawable-display ,destination)
+	     with num-l = (kb:modifier->modifier-mask dpy :NUM-LOCK)
+	     with caps-l = (kb:modifier->modifier-mask dpy :CAPS-LOCK)
+	     for mask in (translate-modifiers dpy modifiers) do
+	     (loop for key in (stroke-keys ,stroke) do
+		   (,macro ,destination key mask action)
+	           (when (and default-modifiers-p (not (eql mask #x8000)))
+		     (when caps-l 
+		       (,macro ,destination key (+ mask caps-l) action))
+		     (when num-l 
+		       (,macro ,destination key (+ mask num-l) action))
+		     (when (and num-l caps-l)
+		       (,macro ,destination key
+			       (+ mask num-l caps-l) action))))))))
 
 (defmacro undefine-combo-internal (stroke dest-window &key mouse-p)
-  `(with-slots (name modifiers default-modifiers-p action) ,stroke
-     (remhash name ,(if mouse-p '*mousestrokes* '*keystrokes*))
-     (loop with dpy = (xlib:drawable-display ,dest-window)
-	   with num-l = (kb:modifier->modifier-mask dpy :NUM-LOCK)
-	   with caps-l = (kb:modifier->modifier-mask dpy :CAPS-LOCK)
-	   for mask in (translate-modifiers dpy modifiers) do
-	   (loop for key in (stroke-keys ,stroke) do
-		 (unrealize (,dest-window :mouse-p ,mouse-p) key mask)
-		 (when (and default-modifiers-p (not (eql mask #x8000)))
-		   (when caps-l 
-		     (unrealize (,dest-window :mouse-p ,mouse-p)
-		       key (+ mask caps-l)))
-		   (when num-l 
-		     (unrealize (,dest-window :mouse-p ,mouse-p)
-		       key (+ mask num-l)))
-		   (when (and num-l caps-l)
-		     (unrealize (,dest-window :mouse-p ,mouse-p)
-		       key (+ mask num-l caps-l))))))))
-
-(defmacro realize ((window &key mouse-p) code mask action)
-  `(progn
-     ,@(if mouse-p
-	   `((setf (gethash (cons ,code ,mask) *mouse-stroke-map*) ,action)
-	     (xlib:grab-button ,window
-			       ,code 
-			       '(:button-press) 
-			       :modifiers ,mask 
-			       :sync-pointer-p t))
-	   `((setf (gethash (cons ,code ,mask) *keystroke-map*) ,action)
-	     (setf (aref *registered-keycodes* ,code) 1)
-	     (xlib:grab-key ,window ,code :modifiers ,mask :owner-p nil)))))
+  `(with-combo-realizer (:undefine) ,stroke
+     :type ,(if mouse-p :mousestroke :keystroke)
+     :destination ,dest-window))
 
 (defmacro define-combo-internal (stroke dest-window &key mouse-p)
-  `(with-slots (modifiers default-modifiers-p action) ,stroke  
-     (loop with dpy = (xlib:drawable-display ,dest-window)
-           with num-l = (kb:modifier->modifier-mask dpy :NUM-LOCK)
-	   with caps-l = (kb:modifier->modifier-mask dpy :CAPS-LOCK)
-	   for mask in (translate-modifiers dpy modifiers) do
-	   (loop for key in (stroke-keys ,stroke) do
-		 (realize (,dest-window :mouse-p ,mouse-p)
-		   key mask action)
-		 (when (and default-modifiers-p (not (eql mask #x8000)))
-		   (when caps-l 
-		     (realize (,dest-window :mouse-p ,mouse-p)
-		       key (+ mask caps-l) action ))
-		   (when num-l 
-		     (realize (,dest-window :mouse-p ,mouse-p)
-		       key (+ mask num-l) action))
-		   (when (and num-l caps-l)
-		     (realize (,dest-window :mouse-p ,mouse-p)
-		       key (+ mask num-l caps-l) action)))))))
+  `(with-combo-realizer (:define) ,stroke
+     :type ,(if mouse-p :mousestroke :keystroke)
+     :destination ,dest-window))
 
 ;;;; Internal machinery for stroke management.
 
@@ -101,9 +62,26 @@
 
 (declaim (type (simple-array bit (256)) *registered-keycodes*))
 
-(defun action-key->lambda (action-keyword)
-  "Returns the associated callback for the given action keyword."
-  (get action-keyword 'callback))
+(defun realize-keystroke (window code mask action)
+  (setf (gethash (cons code mask) *keystroke-map*) action)
+  (setf (aref *registered-keycodes* code) 1)
+  (xlib:grab-key window code :modifiers mask :owner-p nil))
+
+(defun unrealize-keystroke (window code mask action)
+  (declare (ignore action))
+  (remhash (cons code mask) *keystroke-map*)
+  (setf (aref *registered-keycodes* code) 0)
+  (xlib:ungrab-key window code :modifiers mask))
+
+(defun realize-mousestroke (window code mask action)
+  (setf (gethash (cons code mask) *mouse-stroke-map*) action)
+  (xlib:grab-button 
+      window code '(:button-press) :modifiers mask :sync-pointer-p t))
+
+(defun unrealize-mousestroke (window code mask action)
+  (declare (ignore action))
+  (remhash (cons code mask) *mouse-stroke-map*)
+  (xlib:ungrab-button window code :modifiers mask))
 
 ;; Public.
 
@@ -112,6 +90,10 @@
    action-keyword (keyword): the name of the stroke.
    callback (function): a function designator of one argument of type event."
   (setf (get action-keyword 'callback) callback))
+
+(defun action-key->lambda (action-keyword)
+  "Returns the associated callback for the given action keyword."
+  (get action-keyword 'callback))
 
 (defun lookup-keystroke (code state)
   "Find the associated callback if any for this pair (code, modifier state)."
@@ -239,8 +221,14 @@
 	(t 
 	 (mapcar #'(lambda (m) (kb:modifier->modifier-mask dpy m)) modifiers))))
 
-
 ;;;; End user functions for keystrokes and mousestrokes definition.
+
+(defmacro action ((&rest f1) (&rest f2))
+  (when (or (eq (car f1) :release) (eq (car f2) :press)) (rotatef f1 f2))
+  `(lambda (event)
+     (typecase event
+       (button-press ,@(cdr f1)) (button-release ,@(cdr f2))
+       (key-press ,@(cdr f1)) (key-release ,@(cdr f2)))))
 
 (defun define-key-combo (name &key keys
 			          (default-modifiers-p t)
