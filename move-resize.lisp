@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.8 2003/10/09 15:04:08 ihatchondo Exp $
+;;; $Id: move-resize.lisp,v 1.9 2003/11/19 10:29:08 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -294,8 +294,7 @@
   (declare (optimize (speed 3) (safety 0)))
   (declare (type (signed-byte 16) x y x2 y2))
   (declare (type (unsigned-byte 16) w h w2 h2))
-  (or (and (<= x (+ x2 w2)) (<= x2 (+ x w)) (<= y (+ y2 h2)) (<= y2 (+ y h)))
-      (and (<= x2 (+ x w)) (<= x (+ x2 w2)) (<= y2 (+ y h)) (<= y (+ y2 h2)))))
+  (and (<= x (+ x2 w2)) (<= x2 (+ x w)) (<= y (+ y2 h2)) (<= y2 (+ y h))))
 
 (defun region-intersect-window-in-screen (x y w h &rest windows-to-skip)
   "Returns a window list that has an intersection with the given region
