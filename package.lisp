@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.4 2003/08/28 14:50:35 hatchond Exp $
+;;; $Id: package.lisp,v 1.5 2003/09/07 01:35:44 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -86,7 +86,7 @@
    "DEFINE-KEY-COMBO"			  ;function
    "DEFINE-MENU-3"			  ;function
    "DEFINE-MOUSE-COMBO"			  ;function
-   "DELETE-ROOT-PROPERTIES"		  ;function
+   "DELETE-PROPERTIES"		          ;function
    "DISMISS-MOVE-RESIZE"		  ;function
    "DISPLAY-COORDINATES"		  ;function
    "DISPLAY-GEOMETRY"			  ;function
