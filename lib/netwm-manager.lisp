@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.2 2003/03/19 09:18:47 hatchond Exp $
+;;; $Id: netwm-manager.lisp,v 1.3 2003/08/28 14:40:34 hatchond Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -37,7 +37,7 @@
 		set-workspace-names 
 		set-atoms-property get-atoms-property
 		get-window-property
-		make-window-list-seter)
+		define-window-list-property-accessor)
   (:export
    net-supported             net-client-list
    net-client-list-stacking  net-number-of-desktops
@@ -140,29 +140,31 @@ In order to use it, you should first call intern-atoms to be sure all
 
 ;; _NET_CLIENT_LIST
 
-(defun net-client-list (window &key window-list)
-  (get-window-property window :_NET_CLIENT_LIST window-list))
-
-(make-window-list-seter net-client-list :_NET_CLIENT_LIST)
-
-(defsetf net-client-list (window &key (mode :replace)) (win)
-  " To set this property give or a single window or a list of window.
-    you can add or remove one window from the property or
-    simply replace the actual value by a new list."
-  `(set-net-client-list ,window ,win ,mode))
+(define-window-list-property-accessor (net-client-list)
+  :property-atom :_NET_CLIENT_LIST
+  :reader-documentation
+  "Returns the _net_client_list property. 
+    - window: a window
+    - window-list: if true the returned list is a list of window. Otherwise 
+      the returned list is the list of window-id."
+  :writer-documentation
+  "To set this property give or a single window or a list of window.
+   You can add or remove one window from the property or simply
+   replace the actual value by a new list.")
 
 ;; _NET_CLIENT_LIST_STACKING
 
-(defun net-client-list-stacking (window &key window-list)
-  (get-window-property window :_NET_CLIENT_LIST_STACKING window-list))
-
-(make-window-list-seter net-client-list-stacking :_NET_CLIENT_LIST_STACKING)
-
-(defsetf net-client-list-stacking (window &key (mode :replace)) (win)
-  " To set this property give a single window or a list of window.
-    you can add/remove one window from the property or
-    simply replace the actual value by a new list."
-  `(set-net-client-list-stacking ,window ,win ,mode))
+(define-window-list-property-accessor (net-client-list-stacking)
+    :property-atom :_NET_CLIENT_LIST_STACKING
+    :reader-documentation
+    "Returns the _net_client_list_stacking property. 
+    - window: a window
+    - window-list: if true the returned list is a list of window. Otherwise 
+      the returned list is the list of window-id."
+    :writer-documentation 
+    "To set this property give a single window or a list of window.
+     You can add/remove one window from the property or
+     simply replace the actual value by a new list.")
 
 ;; _NET_NUMBER_OF_DESKTOPS
 
@@ -241,16 +243,17 @@ In order to use it, you should first call intern-atoms to be sure all
 
 ;; _NET_VIRTUAL_ROOTS
 
-(defun net-virtual-roots (window &key window-list)
-  (get-window-property window :_NET_VIRTUAL_ROOTS window-list))
-
-(make-window-list-seter net-virtual-roots :_NET_VIRTUAL_ROOTS :CARDINAL)
-
-(defsetf net-virtual-roots (window &key (mode :replace)) (windows)
-  " To set this property give or a single window or a list of window.
-    you can add or remove one window from the property or
-    simply replace the actual value by a new list."
-  `(set-net-virtual-roots ,window ,windows ,mode))
+(define-window-list-property-accessor (net-virtual-roots)
+  :property-atom :_NET_VIRTUAL_ROOTS
+  :reader-documentation
+  "Returns the _net_virtual_roots property. 
+    - window: a window
+    - window-list: if true the returned list is a list of window. Otherwise 
+      the returned list is the list of window-id."
+  :writer-documentation 
+  "To set this property give or a single window or a list of window.
+   You can add or remove one window from the property or simply
+   replace the actual value by a new list.")
 
 ;; _NET_SHOWING_DESKTOP
 

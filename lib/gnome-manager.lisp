@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: GNOME -*-
-;;; $Id: gnome-manager.lisp,v 1.3 2002/07/02 14:53:59 hatchond Exp $
+;;; $Id: gnome-manager.lisp,v 1.1 2002/11/07 14:23:31 hatchond Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -37,7 +37,7 @@
 		set-workspace-names 
 		set-atoms-property get-atoms-property
 		get-window-property
-		make-window-list-seter)
+		define-window-list-property-accessor)
   (:export
    win-client-list           win-workspace-count
    win-workspace-names       win-workspace
@@ -92,16 +92,18 @@ exist in the server."))
 
 ;; Each entry is a window-id of a managed client.
 
-(defun win-client-list (window &key window-list)
-  (get-window-property window :_WIN_CLIENT_LIST window-list))
-
-(make-window-list-seter win-client-list :_WIN_CLIENT_LIST :CARDINAL)
-
-(defsetf win-client-list (window &key (mode :replace)) (win)
-  " To set this property give or a single window or a list of window.
-    you can add or remove one window from the property or
-    simply replace the actual value by a new list."
-  `(set-win-client-list ,window ,win ,mode))
+(define-window-list-property-accessor (win-client-list)
+  :property-atom :_WIN_CLIENT_LIST
+  :data-type :CARDINAL
+  :reader-documentation
+  "Returns the _win_client_list property. 
+    - window: a window
+    - window-list: if true the returned list is a list of window. Otherwise 
+      the returned list is the list of window-id."
+  :writer-documentation
+  "To set this property give or a single window or a list of window.
+   You can add or remove one window from the property or simply
+   replace the actual value by a new list.")
 
 ;; _WIN_WORKSPACE_COUNT
 

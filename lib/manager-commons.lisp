@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: MANAGER-COMMONS -*-
-;;; $Id: $
+;;; $Id: manager-commons.lisp,v 1.1 2002/11/07 14:23:31 hatchond Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -207,19 +207,25 @@
 	   (lambda (id)
 	     (xlib::lookup-window (xlib:drawable-display window) id)))))
 
-(defmacro make-window-list-seter (type atom &optional (data-type :WINDOW))
-  (let ((primary (with-standard-io-syntax (format nil "~A" type)))
-	(setter (with-standard-io-syntax (format nil "SET-~A" type))))
-    `(defun ,(intern setter) (window win mode)
-       (when win
-	 (change-property
-	     window
-	     ,atom
-	     (cond ((eq mode :remove)
-		    (setf mode :replace)
-		    (remove win (,(intern primary) window :window-list t)))
-		   ((listp win) win)
-		   (t (list win)))
-	     ,data-type
-	     32
-	     :mode mode :transform #'xlib:window-id)))))
+(defmacro define-window-list-property-accessor 
+    ((name) &key property-atom (data-type :window)
+                 reader-documentation writer-documentation)
+  (let ((reader (with-standard-io-syntax (format nil "~A" name))))
+    `(progn
+       (defun ,(intern reader) (window &key window-list)
+	 ,@(when reader-documentation `(,reader-documentation))
+	 (get-window-property window ,property-atom window-list))
+       (defsetf ,(intern reader) (window &key (mode :replace)) (win)
+	 ,@(when writer-documentation `(,writer-documentation))
+	 `(when ,win
+	     (change-property
+	       ,window
+	       ,',property-atom
+	       (cond ((eq ,mode :remove)
+		      (remove ,win (,',(intern reader) ,window :window-list t)))
+		     ((listp ,win) ,win)
+		     (t (list ,win)))
+	       ,',data-type
+	       32
+	       :mode (if (eq ,mode :remove) :replace ,mode)
+	       :transform #'xlib:window-id))))))
