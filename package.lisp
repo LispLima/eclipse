@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: $
+;;; $Id: package.lisp,v 1.1 2002/11/07 15:08:44 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -28,8 +28,3 @@
    eclipse
    )
   (:documentation ""))
-
-(defun start-eclipse (display)
-  (eclipse:eclipse display)
-  (eclipse::%quit%))
- 
