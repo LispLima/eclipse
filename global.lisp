@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.23 2004/03/15 00:00:23 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.24 2004/04/08 21:22:32 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -185,7 +185,7 @@
 (defun get-username ()
   "Returns the real user name (a string) associated with the current process."
   #+sbcl (sb-unix:uid-username (sb-unix:unix-getuid))
-  #+cmu (unix:user-info-name (unix:unix-getpwuid (unix:unix-getuid)))
+  #+cmu18e (unix:user-info-name (unix:unix-getpwuid (unix:unix-getuid)))
   #+allegro-v6.2 (excl.osi:pwent-name (excl.osi:getpwent (excl.osi:getuid)))
   #-(or sbcl cmu allegro-v6.2) "nobody")
 
