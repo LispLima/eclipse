@@ -1,5 +1,5 @@
 -*- Mode: ChangeLog -*-
-$Id: changelog,v 1.2 2002/06/24 07:33:44 james Exp $
+$Id: changelog,v 1.3 2002/07/02 14:54:39 hatchond Exp $
 0.01 => 0.02
 
      Eclipse should now compile on every ANSI-compliant Common Lisp
@@ -47,3 +47,11 @@ $Id: changelog,v 1.2 2002/06/24 07:33:44 james Exp $
      - added two more predifined keystrokes for simulating the mouse buttons
         four and five (the wheel).
      - added some #. reader for avoiding some consing in some defconstant.
+
+pre 0.03=>0.03
+
+     - grid undraw failure during move in box type is now fixed.
+     - added coordinates display during move and resize.
+     - added opaque resize mode.
+     - new theme interface (needs to be documented).
+     - some new themes have been added (CoolClean, brushed-metal, Step).

@@ -1,4 +1,4 @@
-# $Id$
+# $Id: configure.in,v 1.2 2002/06/24 07:33:44 james Exp $
 AC_INIT()
 
 SRC=`pwd`
@@ -11,7 +11,7 @@ interp=""
 
 # implementation dependant lisp system args : (default is for cmucl) 
 with_image="-core"
-load="-load"
+load_switch="-load"
 eval_form="-eval"
 save_lisp="save-lisp"
 
@@ -70,7 +70,7 @@ do
    if test $dir = no
    then break
    elif test -d $dir
-     then gnome_entry_dir=$dir; break
+     then gnome_entry_dir=$dir/wm-properties; break
      else gnome_entry_dir=no
    fi
 done
@@ -95,9 +95,10 @@ then
  if test -d ${core_dest}
  then core_dest=`dirname ${core_dest}`/`basename ${core_dest}`/eclipse-lisp.core
  fi
- ARGS="${with_image} ${core_dest} ${eval_form} \"(eclipse \${display_spec})\""
+ ARGS="${with_image} ${core_dest}\
+       ${eval_form} \"(eclipse:eclipse \${display_spec})\""
 else
- ARGS="${CORE} ${load} ${SRC}/load-eclipse.lisp ${eval_form}\
+ ARGS="${CORE} ${load_switch} ${SRC}/load-eclipse.lisp ${eval_form}\
  \"(start \${display_spec})\""
 fi
 
@@ -118,7 +119,7 @@ AC_SUBST(ARGS)
 AC_SUBST(INSTALL)
 AC_SUBST(eval_form)
 AC_SUBST(with_image)
-AC_SUBST(load)
+AC_SUBST(load_switch)
 AC_SUBST(save_lisp)
 AC_SUBST(core_dest)
 AC_SUBST(gnome_entry_dir)
@@ -152,6 +153,6 @@ if test -n "${CORE}"
 then printf " - use specific image  : ${CORE}.\n"
 else printf " - use specific image  : no.\n"
 fi
-printf " - compile in an image : ${core_dest}\n"
+printf " - compile in an image : ${core_dest}.\n"
 printf " - create gnome entry  : ${gnome_entry_dir}.\n"
 printf " - installer           : ${INSTALL}.\n"

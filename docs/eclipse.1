@@ -1,5 +1,5 @@
 .TH Eclipse 1 "(c) 2001 Iban HATCHONDO"
-.\"$Id: eclipse.1,v 1.2 2002/06/24 07:33:44 james Exp $
+.\"$Id: eclipse.1,v 1.3 2002/07/02 14:54:39 hatchond Exp $
 
 .SH NAME
 eclipse - a window manager in Common Lisp
@@ -42,7 +42,7 @@ releasing the pointer when desired. During this operation the window
 is represented as a 3x3 grid that shows you the future window
 geometry.
 Similarly, windows are moved by pressing any pointer button on the
-titlebar. Two "move-modes" are available : opaque or box (3x3 grid).
+titlebar. Two modes are available : opaque or box (3x3 grid).
 
 When new windows are created, \fIeclipse\fP will honor any size and
 location information requested by the user (usually through the
@@ -63,7 +63,7 @@ go to the previous or next workspace.
 move the pointer up, down, right, or left, depending of the "arrow"
 key you pressed.
 .TP
-.B\-Ctrl-Alt-( z, w, x, q, a )\ 
+.B\-Ctrl-Alt-( z, w, x )\ 
 emulate button-press. Use \fBz\fP for button1 and so on with \fBw\fP
 \fBx\fP. This emulation does not work for re-sizing or moving windows,
 nor does it work on the root-window.
@@ -122,9 +122,14 @@ or in the telnet session) :
 .B\-*nb-vscreen*\ \fIinteger\fP 
 Indicate the number of virtual screens do you want.
 .TP
-.B\-*move-type*\ \fIkeyword\fP (or \fB:box :opaque\fP) 
+.B\-*move-mode*\ \fIkeyword\fP (or \fB:box :opaque\fP) 
 As usual :box will draw a 3x3 grid to show you the window move ;
 :opaque moves the window directly. (The box mode looks good on
+laptops).
+.TP
+.B\-*resize-mode*\ \fIkeyword\fP (or \fB:box :opaque\fP) 
+As usual :box will draw a 3x3 grid to show you the window resizing ;
+:opaque resizes the window directly. (The box mode looks good on
 laptops).
 .TP
 .B\-*focus-type*\ \fIkeyword\fP (or \fB:none :on-click :when-switch\fP).
@@ -133,10 +138,6 @@ laptops).
  \fB:on-click\fP focus change when click on a titlebar.
  \fB:when-switch\fP focus change when circulating window.
 
-.TP
-.B\-*font-color*\ \fIxlib:color\fP
-Here is the default value (xlib:make-color :red 0.00 :green 0.00 :blue
-0.25) to change the font color of the titlebar.
 .TP
 .B\-*theme*\ \fIstring\fP
 Change the theme. There's only one theme available at the moment. In

@@ -1,93 +1,107 @@
 -*- Mode: Text; Syntax: ANSI-English; Package: CL-USER; Base: 10. -*-
+$Id: README,v 1.2 2002/06/24 07:36:55 james Exp $
 
-                                   ECLIPSE
+				    ECLIPSE
 
-                                 Version 0.02
-                                     $Id$
-
-                 Copyright (C) 2000 - 2002 Iban HATCHONDO
-                             <hatchond@yahoo.fr>
+				  Version 0.03
 
 
+                   Copyright (C) 2000-2001-2002 Iban HATCHONDO
+			       <hatchond@yahoo.fr>
 
-For complete instructions on how to use Eclipse, please read the manual.  This
-file contains only intallation instructions and some other general
-information.
 
+
+For complete instructions on how to use Eclipse, please read the
+manual.  This file contains only intallation instructions and some
+other general information. 
 Eclipse comes without ABSOLUTELY NO WARRANTY. See the COPYING file for
 details.
 
-I would love to receive feedback/comments/ideas/bugreports, so feel free to
-send me any comments you might have.  See the mailing list at
-http://lists.unlambda.com/mailman/listinfo/eclipse for the Eclipse development
-community.
+I would love to receive feedback/coments/idea/bugreports, so feel free
+to send me any comments you might have.
+
+Finally, I only compiled and tested Eclipse with CMUCL.  It should
+work for other ANSI CL implementations, but the Makefile may have to
+be modified, I guess. 
+(I have test it under x86 and Sparc ultra 1 with solaris).
 
 
-Finally, I have only compiled and tested Eclipse with CMUCL.  It should work
-for other ANSI CL implementations, but the Makefile may have to be modified.
-(I have tested it under Linux/x86 and on a Sun Solaris on an Ultra 1).
 
+Requirements :
+--------------
 
-Requirements:
--------------
-
-In order to use Eclipse, you need the following working on your machine:
-
- - Common Lisp (see http://www.cons.org/cmucl for a free implementation)
- - LOOP (it usually comes standard, at least for CMUCL and ACL)
- - CLX library (ANSI CL implementation of the X11 Protocol)
- - MK-Defsystem library (http://sourceforge.net/projects/clocc/)
+In order to use Eclipse, you need the following to work on your
+machine :
+ - Common Lisp (see the <http://www.cons.org/cmucl> for a free implementation)
+ - Loop (it usually comes with the standard, at least for CMUCL and ACL)
+ - CLX library (AINSI CL implementation of the Xlib)
+ - MK-Defsystem library (<http://sourceforge.net/projects/clocc/>)
  - GNOME (optional)
 
-You can find all the Lisp parts in Debian packages
-(http://www.debian.org/distrib/packages), I recommend using them.
+You can find all the Lisp parts in the Debian CMU CL packages
+(<http://www.debian.org/distrib/packages>), I recommand them.
 
- - A core image of the language that includes CLX and defsystem (and LOOP if
-   needed).  See the core creation section for more information.
+ - A core image of the language that includes CLX and defsystem (and
+   loop if needed). See the core creation section for more information.
 
-Note that the CLX version distributed with CMUCL up to and including version
-18d has a bug.  The patch for this bug is contained in the file
-'clx-patch.lisp' distributed with Eclipse.  The CLX version in CLOCC does not
-have this bug, nor does the Debian distribution of CMUCL.  For compiling the
-CLX distributed with CMUCL see the file #p"target:tools/clxcom.lisp".  (In
-this case 'target' means the location of the CMUCL source code, which may not
-be installed.)
 
-Installation:
--------------
 
-The following
+Compilation & Install :
+-----------------------
 
-  shell$ ./configure
-  shell$ make
-  shell$ make install
+shell $ ./configure
+shell $ make
+shell $ make install
 
-should work, at least for a typical CMUCL.
+should work. (at least for CMUCL)
 
-See `./configure --help` for options that can be used.  The particular
-'--enable' and '--with' options recognized:
+see ./configure --help for options that can be used.
+the particular --enable and --with options recognized:
 
-  --with-lisp=DIR or FILE         Your lisp program.
-
-  --with-core=FILE                The particular core image to use if the
-                                  default one is not appropriate.
-
-  --enable-compile-into-core=FILE Core image name for compilation.
-				  This is disabled by default.
-				  Default core name: eclipse-lisp.core.
-
-  --with-gnome-entry-dir=PATH     Path to the Gnome wm-properties directory.
-				  This is enabled by default.
-				  (Default search list:
+  --with-lisp=DIR or FILE         your lisp system.
+  --with-core=FILE                specifies particular core image to use if
+				  the default one is not appropriate.
+  --enable-compile-into-core=FILE core image name for compile destination
+				  default is disable.
+				  default core name : eclipse-lisp.core.
+  --with-gnome-entry-dir=PATH     path to the wm-properties directory.
+				  default is enable.
+				  (default search list :
 					 /usr/share/gnome/wm-properties
 					 /usr/local/share/gnome/wm-properties )
 
-Core Creation:
---------------
 
-Here is an example of creating a core for CMUCL:
+Core creation :
+---------------
 
-CMU Common Lisp release x86-linux 2.4.22  3 October 2000 build 1154, running on localhost.localdomain
+In order to run Eclipse, you need a Lisp core file that contains:
+
+   - CLX, the Common Lisp interface to the X Window System
+   - mk:defsystem, the portable, free defsystem facility
+
+
+1. For CMU CL:
+    Get, the file "clx-library.x86f" from an appropriate site
+    (Debian, or cons.org, according to the system you are running).
+   For other CL implementations, you will probably find everything you
+   need from sourceforge.net under the project named CLOCC.
+   (see <http://sourceforge.net/projects/clocc/>).
+
+2. Get the mk:defsystem from sourceforge.net (the file is called defsystem.lisp)
+
+3. Compile the file defsystem.lisp
+
+4. Run a fresh Lisp
+
+6. Load the compiled files for clx and defsystem.
+
+7. Dump an image.
+
+
+Here is an example of this operation for CMU CL:
+
+CMU Common Lisp release x86-linux 2.4.22 3 October 2000 build 1154, 
+running on localhost.localdomain
 Send questions to cmucl-help@cons.org. and bug reports to cmucl-imp@cons.org.
 Loaded subsystems:
     Python 1.0, target Intel x86
@@ -100,7 +114,7 @@ T
 
 ; Loading #p"/usr/local/src/cmucl-2.4.22/subsystems/defsystem-library.x86f".
 T
-* (save-lisp "lisp-custom.core")
+* (save-lisp "custom-lisp+clx+defsystem.core")
 [Doing purification: Done.]
 [Undoing binding stack... done]
 [Saving current lisp image into lisp-custom.core:
@@ -109,13 +123,9 @@ Writing 2954992 bytes from the Static space at 0x28000000.
 Writing 4096 bytes from the Dynamic space at 0x48000000.
 done.]
 
-Now create a symlink named 'lisp.core' in your standard CMUCL directory from
-your custom image to start Lisp with the new image by default.  Otherwise you
-can use the CMUCL shell option '-core'.  (See the "CMUCL User's Manual" for
-more complete information.)
+Process inferior-lisp finished
 
-
-Local Variables:
-fill-column: 78
-mode: auto-fill
-End:
+Now create a symlink in your standard cmucl directory from your custom
+image to lisp.core to start lisp with the new image by default.
+Otherwise use the CMUCL shell option -core. (see CMUCL manual for
+complete information).

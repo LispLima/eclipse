@@ -1,7 +1,7 @@
 # -*- Mode: Makefile -*-
-# $Id$
+# $Id: Makefile.in,v 1.2 2002/06/24 07:33:44 james Exp $
 #
-# Makefile for the Eclipse Common Lisp Window Manager.
+# Makefile for Eclipse window manager.
 
 LISP = @LISP@
 CORE = @CORE@
@@ -11,7 +11,7 @@ PRG = eclipse
 # lisp argument name for evaluting forms :
 eval_form = @eval_form@
 # lisp argument name for loading file :
-load = @load@
+load_switch = @load_switch@
 # lisp function for saving a system image :
 save_lisp = @save_lisp@
 
@@ -24,41 +24,53 @@ bindir = @bindir@
 datadir = @datadir@
 mandir = @mandir@
 install = @INSTALL@
-gnome = @gnome_entry_dir@
-gnome_entry_dir = @gnome_entry_dir@/wm-properties
+gnome_entry_dir = @gnome_entry_dir@
 
-all:	compile core
+all:	compile themes core
 
 compile:
-	@$(LISP) $(CORE) -load compile.lisp
+	@$(LISP) $(CORE) ${load_switch} compile.lisp
 
 core:	
 	@if test ! ${core_dest} = no;\
-        then $(LISP) $(CORE) ${eval_form}\
+        then $(LISP) $(CORE) ${load_switch} system.lisp ${eval_form}\
 	"(progn\
-	   (load \"system.lisp\")\
-	   (mk:operate-on-system :eclipse :load)\
+	   (operate-on-system :eclipse :load)\
 	   (${save_lisp} \"${core_dest}\"))";\
 	fi
+
+
+.PHONY: themes
+
+themes:
+	@for theme in themes/*; \
+	do \
+	 $(LISP) $(CORE) \
+		 ${load_switch} system.lisp \
+	         ${eval_form} "(progn\
+				 (compile-theme \"$$theme\")\
+				 #+:cmu(ext:quit)\
+			         #+:allegro(excl:exit))";\
+	done
 
 clean:
 	/bin/rm -f load-eclipse.lisp
 	/bin/rm -f eclipse
 	/bin/rm -f *.err
-	@$(LISP) $(CORE) ${eval_form}\
+	@$(LISP) $(CORE) ${load_switch} system.lisp ${eval_form}\
 	 "(progn\
-	    (load \"system.lisp\")\
-	    (mk:operate-on-system :eclipse :clean)\
+	    (operate-on-system :eclipse :clean)\
 	    #+:cmu(ext:quit)\
 	    #+:allegro(excl:exit))"
 	@if test ! ${core_dest} = no; then /bin/rm -f ${core_dest}; fi
+	@for theme in themes/*; do /bin/rm -f $$theme/theme.o; done
 
 install:
 	$(install) -d ${bindir}
 	$(install) -m 755 ${PRG} ${bindir}/${PRG}
 	$(install) -d ${mandir}/man1
 	$(install) -m 644 docs/eclipse.1 ${mandir}/man1/eclipse.1
-	if test ! ${gnome} = no;\
+	if test ! ${gnome_entry_dir} = no;\
 	then\
 	  if ! test -d ${gnome_entry_dir};\
 	  then $(install) -d ${gnome_entry_dir};\

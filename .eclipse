@@ -1,3 +1,7 @@
+;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
+
+(in-package :ECLIPSE-INTERNALS)
+
 ;;;;; Base configuration
 
 ;; Global definitions
@@ -50,21 +54,23 @@
   :keys '(:C)
   :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
 (define-key-combo :scroll-up
-  :keys '(:q)
+  :keys '(:a)
   :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
 (define-key-combo :scroll-down
-  :keys '(:a)
+  :keys '(:q)
   :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Custom variables.
 
 (setf (number-of-virtual-screens) 4
-      *move-type* :box
+      *move-mode* :box
+      *resize-mode* :opaque
       *focus-type* :none
-      *font-color* (xlib:make-color :red 0.00 :green 0.00 :blue 0.25)
-      *theme* "microGUI"
-      *change-desktop-message-active-p* nil)
+      *verbose-move* nil
+      *verbose-resize* nil
+      *change-desktop-message-active-p* nil
+      (decoration-theme) "microGUI")
 
 ;; Application menu
 

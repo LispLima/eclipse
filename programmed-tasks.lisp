@@ -1,5 +1,5 @@
-;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id$
+;;; -*- Mode: Lisp; Package: PROGRAMMED-TASKS  -*-
+;;; $Id: programmed-tasks.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001 Iban HATCHONDO

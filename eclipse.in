@@ -1,8 +1,8 @@
 @interp@ @SHELL@
-# $Id$
+# $Id: eclipse.in,v 1.2 2002/06/24 07:33:44 james Exp $
 #
 # @configure_input@
-# This file starts the Eclipse Common Lisp Window Manager.
+# This file start the eclipse window manager
 
 display_spec=`if [ -n "$1" ]; then echo \"$1\"; fi`
 @LISP@ @ARGS@

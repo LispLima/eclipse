@@ -1,5 +1,5 @@
-;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id$
+;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
+;;; $Id: menu.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
 ;;;
 ;;; This file is part of Eclipse
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO, Robert STRANDH
@@ -17,8 +17,10 @@
 ;;; You should have received a copy of the GNU General Public License
 ;;; along with this program; if not, write to the Free Software
 ;;; Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
+    				
 ;;; Pop-up menu
+
+(in-package :ECLIPSE-INTERNALS)
 
 (defvar *gctxt*)
 (defvar *black*)
@@ -45,8 +47,7 @@
 
 (defun make-raise-window (window)
   (when window
-    (let ((width (xlib:drawable-width window))
-	  (height (xlib:drawable-height window)))
+    (multiple-value-bind (width height) (drawable-sizes window)
       (setf (xlib:gcontext-foreground *gctxt*) *background2*)
       (xlib:draw-rectangle window *gctxt* 0 0 width height t)
       (setf (xlib:gcontext-foreground *gctxt*) *white*)
@@ -57,6 +58,7 @@
 			     (1- width) (1- height) (1- width) 0)))))
 
 (defun highlight (item)
+  (declare (inline draw-glyphs))
   (with-slots (window armed text) item
     (when window
       (let ((height (xlib:drawable-height window)))
@@ -73,14 +75,14 @@
     (make-raise-window pix)
     pix))
 
-;;; menu-object
+;;; menu-widget
 
-(defclass menu-object ()
+(defclass menu-widget ()
   ((armed :initform nil)))
 
 ;;; menu-item
 
-(defclass menu-item (menu-object)
+(defclass menu-item (menu-widget)
   ((window :initform nil)
    (client :initform nil :initarg :client)
    (text :initarg :text)))
@@ -106,7 +108,7 @@
 				     :key-press
 				     :key-release
 				     :owner-grab-button)))
-	      (setf (gethash window *object-table*) item)
+	      (setf (gethash window *widget-table*) item)
 	      (incf y *default-menu-height*)
 	      (when map (xlib:map-window window))))
 	 items))
@@ -135,10 +137,10 @@
 	  (arm item)))))
 
 (defmethod event-process ((event exposure) (item menu-item))
+  (declare (inline draw-glyphs))
   (with-slots (window armed client text) item
     (when window
-      (let* ((width (xlib:drawable-width window))
-	     (height (xlib:drawable-height window)))
+      (multiple-value-bind (width height) (drawable-sizes window)
 	(setf (xlib:gcontext-foreground *gctxt*) *background1*)
 	(xlib:draw-rectangle window *gctxt* 0 0 width height t)
 	(setf (xlib:gcontext-foreground *gctxt*) *black*)
@@ -180,8 +182,8 @@
 (defmethod event-process ((event button-release) (item menu-leaf-item))
   (with-slots (armed text client callback) item
     (when armed
-      (destroy-substructure (menu-root item))
-      (when callback (funcall callback)))))
+      (when callback (funcall callback))
+      (destroy-substructure (menu-root item)))))
 
 (defmethod event-process ((event leave-notify) (item menu-leaf-item))
   (disarm item))
@@ -233,7 +235,7 @@
 					      root-window
 					      subwidth
 					      subheight))
-	      (gethash item-container *object-table*) sub-menu))
+	      (gethash item-container *widget-table*) sub-menu))
       (decf subwidth (* 2 *menu-item-margin*))
       (realize-menu-items item-container subwidth items))))
 
@@ -242,7 +244,7 @@
     (when has-substructure
       (mapc #'(lambda (item)
 		(destroy-substructure item)
-		(remhash (slot-value item 'window) *object-table*)
+		(remhash (slot-value item 'window) *widget-table*)
 		(setf (slot-value item 'window) nil))
 	    items)
       (xlib:destroy-window item-container))
@@ -274,7 +276,7 @@
 
 ;;; pop-up menu
 
-(defclass pop-up-menu (menu-object)
+(defclass pop-up-menu (menu-widget)
   ((window :initform nil)
    (client :initform nil :initarg :client)
    (items :initarg :items)))
@@ -311,7 +313,7 @@
 				     root-window
 				     (+ subwidth (* 2 *menu-item-margin*))
 				     (+ subheight (* 2 *menu-item-margin*))))
-	    (gethash window *object-table*) pop-up-menu
+	    (gethash window *widget-table*) pop-up-menu
 	    armed t)
       (xlib:map-window window)
       (realize-menu-items window subwidth items :map t))))
@@ -321,23 +323,23 @@
     (when window
       (mapc #'(lambda (item)
 		(destroy-substructure item)
-		(remhash (slot-value item 'window) *object-table*)
+		(remhash (slot-value item 'window) *widget-table*)
 		(setf (slot-value item 'window) nil))
 	    items)
       (xlib:destroy-window window)
-      (remhash window *object-table*)
+      (remhash window *widget-table*)
       (setf (slot-value pop-up-menu 'armed) nil
 	    window nil))))
 
-(defmethod arm ((object pop-up-menu))
-  (setf (slot-value object 'armed) t))
+(defmethod arm ((widget pop-up-menu))
+  (setf (slot-value widget 'armed) t))
 
-(defmethod disarm ((object pop-up-menu))
-  (setf (slot-value object 'armed) nil))
+(defmethod disarm ((widget pop-up-menu))
+  (setf (slot-value widget 'armed) nil))
 
-(defmethod menu-root ((object pop-up-menu))
-  object)
+(defmethod menu-root ((widget pop-up-menu))
+  widget)
 
-(defmethod menu-root-application-window ((object pop-up-menu))
-  (slot-value (slot-value object 'client) 'window))
+(defmethod menu-root-application-window ((widget pop-up-menu))
+  (slot-value (slot-value widget 'client) 'window))
 

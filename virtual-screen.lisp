@@ -1,5 +1,5 @@
-;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id$
+;;; -*- Mode: Lisp; Package: VIRTUAL-SCREEN -*-
+;;; $Id: virtual-screen.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -16,7 +16,6 @@
 ;;; You should have received a copy of the GNU General Public License
 ;;; along with this program; if not, write to the Free Software
 ;;; Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
 
 ;;;; Virtual screen
 
