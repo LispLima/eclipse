@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.35 2004/02/12 23:30:22 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.36 2004/02/13 18:23:16 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -563,7 +563,7 @@
   nil)
 
 (defmethod menu-3-process ((event pointer-event) (w base-widget) &rest rest)
-  (declare (ignore event w rest))
+  (declare (ignorable event w rest))
   (xlib:ungrab-pointer *display*)
   t)
 
