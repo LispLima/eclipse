@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.5 2003/05/14 08:56:16 hatchond Exp $
+;;; $Id: eclipse.lisp,v 1.6 2003/08/28 14:50:35 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -91,7 +91,7 @@
   (netwm:intern-atoms display)
   (let ((first-desknum (current-vscreen window))
 	(nb-vs (number-of-virtual-screens window)))
-    (delete-root-properties)
+    (delete-properties window (append +gnome-protocols+ +netwm-protocol+))
     (unless (< -1 first-desknum nb-vs) (setf first-desknum 0))
     (setf (gnome:win-protocols window) +gnome-protocols+
 	  (gnome:win-supporting-wm-check manager) manager
