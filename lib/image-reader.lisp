@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PPM -*-
-;;; $Id: image-reader.lisp,v 1.9 2004/03/04 15:37:50 ihatchondo Exp $
+;;; $Id: image-reader.lisp,v 1.10 2004/03/09 19:26:28 ihatchondo Exp $
 ;;;
 ;;; This a ppm image reader for CLX
 ;;; This file is part of Eclipse
@@ -115,6 +115,7 @@
 (defgeneric image-width (image))
 (defgeneric image-height (image))
 (defgeneric image-pixel (image x y))
+(defgeneric image-pixels (image))
 (defgeneric (setf image-pixel) (x y pixel image))
 (defgeneric make-image-from-stream (type stream width height mlevel))
 
