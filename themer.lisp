@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: themer.lisp,v 1.2 2003/05/14 08:56:17 hatchond Exp $
+;;; $Id: themer.lisp,v 1.3 2003/06/11 18:29:23 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -29,7 +29,12 @@
   (gethash name *themes*))
 
 (defclass frame-style ()
-  ((title-bar-position
+  ((name 
+     :initform "no name"
+     :type string
+     :initarg :theme-name
+     :reader frame-style-theme-name)
+   (title-bar-position
      :initform :top
      :type keyword
      :initarg :title-bar-position
@@ -130,31 +135,56 @@
 (defun transient-style-p (astyle)
   (typep astyle 'transient-style))
 
+(defun widget->frame-item-key (widget)
+  "returns the keyword or nil that correspond to the widget."
+  (typecase widget
+    (close-button :close)
+    (maximize-button :maximize)
+    (iconify-button :icon-b)
+    (menu-button :menu-button)
+    (title-bar :title-bar)
+    (top :top)
+    (top-left :top-left)
+    (top-right :top-right)
+    (right :right)
+    (left :left)
+    (bottom :bottom)
+    (bottom-right :bottom-right)
+    (bottom-left :bottom-left)))
+
 (defmethod style-title-bar-direction ((style frame-style))
   (case (style-title-bar-position style)
     ((:top :bottom) :horizontal)
     ((:right :left) :vertical)))
 
-(defmethod get-pixmap ((style frame-style) key)
-  (gethash key (style-pixmap-table style)))
+(defmethod get-pixmap ((style frame-style) pixmap-key)
+  "returns the pixmap associated with the given pixmap keyword."
+  (gethash pixmap-key (style-pixmap-table style)))
 
-(defmethod frame-item-pixmaps ((style frame-style) key)
-  (or (gethash key (style-frame-item-pixmaps style))
-      '#(nil nil nil)))
+(defmethod frame-item-pixmaps ((style frame-style) frame-item-key)
+  "returns the pixmaps array associated with the given frame item keyword."
+  (or (gethash frame-item-key (style-frame-item-pixmaps style))
+      '#(nil nil nil nil)))
 
-(defmethod frame-item-exist-p ((style frame-style) key)
-  (gethash key (style-frame-item-pixmaps style)))
+(defmethod frame-item-exist-p ((style frame-style) frame-item-key)
+  (gethash frame-item-key (style-frame-item-pixmaps style)))
 
-(defmethod frame-item-sizes ((style frame-style) key)
-  (let ((pixmap (aref (frame-item-pixmaps style key) 0)))
+(defmethod frame-item-sizes ((style frame-style) frame-item-key)
+  "returns the sizes, as a multiple value, of the frame item according to
+   the sizes of the first pixmap in its associated pixmaps array."
+  (let ((pixmap (aref (frame-item-pixmaps style frame-item-key) 0)))
     (if (xlib:pixmap-p pixmap) (drawable-sizes pixmap) (values 0 0))))
 
-(defmethod frame-item-width ((style frame-style) key)
-  (let ((pixmap (aref (frame-item-pixmaps style key) 0)))
+(defmethod frame-item-width ((style frame-style) frame-item-key)
+  "returns the width of the frame item according to the width of the
+   first pixmap in its associated pixmaps array."
+  (let ((pixmap (aref (frame-item-pixmaps style frame-item-key) 0)))
     (if (xlib:pixmap-p pixmap) (xlib:drawable-width pixmap) 0)))
 
-(defmethod frame-item-height ((style frame-style) key)
-  (let ((pixmap (aref (frame-item-pixmaps style key) 0)))
+(defmethod frame-item-height ((style frame-style) frame-item-key)
+  "returns the height of the frame item according to the width of the
+   first pixmap in its associated pixmaps array."
+  (let ((pixmap (aref (frame-item-pixmaps style frame-item-key) 0)))
     (if (xlib:pixmap-p pixmap) (xlib:drawable-height pixmap) 0)))
 
 (defmethod frame-button-sizes ((style frame-style))
@@ -268,7 +298,7 @@
 		       (bottom-left-w eclipse::bottom-left-w)
 		       (bottom-left-h eclipse::bottom-left-h)) ,style-to-define
 	    ,@(loop for (key names) in items
-		    for array = (make-array 3 :initial-element nil)
+		    for array = (make-array 4 :initial-element nil)
 		    when (eq key :custom)
 		    do (setf array (make-array (length names))) end
 		    when (case key ((:close :icon-b :maximize) t))
@@ -330,13 +360,15 @@
 	`(defun initialize-frame (dir window)
 	   (let ((,fs1 ,(and items1 `(make-instance 
 				         ',(intern (symbol-name style1)
-						   "ECLIPSE-INTERNALS") 
+						   "ECLIPSE-INTERNALS")
+				         :theme-name ,theme-name
 				         :title-bar-position ,title-pos1
 				         :parts-to-redraw-on-focus
 				         ',parts-to-redraw-on-focus1)))
 		 (,fs2 ,(and items2 `(make-instance
 				         ',(intern (symbol-name style2)
-						   "ECLIPSE-INTERNALS") 
+						   "ECLIPSE-INTERNALS")
+				         :theme-name ,theme-name
 				         :title-bar-position ,title-pos2
 				         :parts-to-redraw-on-focus
 				         ',parts-to-redraw-on-focus2))))
