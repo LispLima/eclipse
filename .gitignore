@@ -26,3 +26,16 @@ _$*
 *.ln
 core
 # CVS default ignores end
+# $Id$
+# Generated files
+eclipse
+load-eclipse.lisp
+# CMUCL stuff
+*.x86f
+*.err
+*.core
+# Autoconf stuff
+Makefile
+*.cache
+*.log
+*.status
