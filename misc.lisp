@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.19 2004/01/20 12:58:01 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.20 2004/01/20 13:08:46 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -321,9 +321,7 @@
   invocation failed a pop-up window will appear reporting the error."
   (lambda ()
     (handler-case (%run-program% program arguments)
-      (error (c) 
-	(declare (ignore c))
-	(timed-message-box *root-window* "Wrong application name")))))
+      (error () (timed-message-box *root-window* "Wrong application name")))))
 
 (defun make-viewport-property (n)
   (make-list (* 2 n) :initial-element 0))
