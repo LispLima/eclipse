@@ -1,5 +1,5 @@
 @interp@ @SHELL@
-# $Id: eclipse.in,v 1.5 2004/01/09 13:36:49 ihatchondo Exp $
+# $Id: eclipse.in,v 1.7 2004/01/12 11:22:05 ihatchondo Exp $
 #
 # @configure_input@
 # This file starts the eclipse window manager
@@ -15,7 +15,7 @@ options=""
 
 ## Parse and collect options.
 
-if [ $# -ne 0 -a $# -gt 2 ] ; then usage ; fi
+if [ $# -gt 2 ] ; then usage ; fi
 
 while [ $# -gt 0 ] ; do
   case "$1" in
