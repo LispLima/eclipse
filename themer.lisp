@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: themer.lisp,v 1.9 2004/03/09 19:26:27 ihatchondo Exp $
+;;; $Id: themer.lisp,v 1.10 2005/01/07 16:32:17 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -20,13 +20,13 @@
 
 (in-package :ECLIPSE-INTERNALS)
 
-(defparameter *themes* (make-hash-table :test #'equal))
-
 (deftype pixmaps () `(simple-array (or null xlib:pixmap) (*)))
+
+(defparameter *themes* (make-hash-table :test #'equal))
 
 (declaim (inline lookup-theme))
 (defun lookup-theme (name)
-  "return named theme or nil"
+  "Returns named theme or nil"
   (declare (optimize (speed 3) (safety 1)))
   (gethash name *themes*))
 
@@ -130,20 +130,11 @@
      :initform 0
      :type (unsigned-byte 16)
      :initarg :hmargin
-     :reader style-hmargin)     
-   ))
-
-(defclass default-style (frame-style) ())
-(defclass transient-style (frame-style) ())
-
-(defun default-style-p (astyle)
-  (typep astyle 'default-style))
-
-(defun transient-style-p (astyle)
-  (typep astyle 'transient-style))
+     :reader style-hmargin))
+  (:documentation "Protocol class"))
 
 (defun widget->frame-item-key (widget)
-  "returns the keyword or nil that correspond to the widget."
+  "Returns the keyword or nil that correspond to the widget."
   (typecase widget
     (close-button :close)
     (maximize-button :maximize)
@@ -160,41 +151,48 @@
     (bottom-left :bottom-left)))
 
 (defmethod style-title-bar-direction ((style frame-style))
+  "Returns the titlebar direction - one of: (:horizontal :vertical) -."
   (case (style-title-bar-position style)
     ((:top :bottom) :horizontal)
     ((:right :left) :vertical)))
 
 (defmethod get-pixmap ((style frame-style) pixmap-key)
-  "returns the pixmap associated with the given pixmap keyword."
+  "Returns the pixmap associated with the given pixmap keyword."
   (gethash pixmap-key (style-pixmap-table style)))
 
 (defmethod frame-item-pixmaps ((style frame-style) frame-item-key)
-  "returns the pixmaps array associated with the given frame item keyword."
+  "Returns the pixmaps array associated with the given frame item keyword."
   (or (gethash frame-item-key (style-frame-item-pixmaps style))
       '#(nil nil nil nil)))
 
 (defmethod frame-item-exist-p ((style frame-style) frame-item-key)
+  "Returns T if the specified frame-item-key correspond to any part
+   of the specified style."
   (gethash frame-item-key (style-frame-item-pixmaps style)))
 
 (defmethod frame-item-sizes ((style frame-style) item-key)
-  "returns the sizes, as a multiple value, of the frame item according to
+  "Returns the sizes, as a multiple value, of the frame item according to
    the sizes of the first pixmap in its associated pixmaps array."
   (let ((pixmap (aref (the pixmaps (frame-item-pixmaps style item-key)) 0)))
     (if (xlib:pixmap-p pixmap) (drawable-sizes pixmap) (values 0 0))))
 
 (defmethod frame-item-width ((style frame-style) item-key)
-  "returns the width of the frame item according to the width of the
-   first pixmap in its associated pixmaps array."
+  "Returns the width of the frame item according to the width of the
+   first pixmap in its associated pixmaps array. A zero size is returned if 
+   no pixmap can be found."
   (let ((pixmap (aref (the pixmaps (frame-item-pixmaps style item-key)) 0)))
     (if (xlib:pixmap-p pixmap) (xlib:drawable-width pixmap) 0)))
 
 (defmethod frame-item-height ((style frame-style) item-key)
-  "returns the height of the frame item according to the width of the
-   first pixmap in its associated pixmaps array."
+  "Returns the height of the frame item according to the width of the
+   first pixmap in its associated pixmaps array. A zero size is returned if 
+   no pixmap can be found."
   (let ((pixmap (aref (the pixmaps (frame-item-pixmaps style item-key)) 0)))
     (if (xlib:pixmap-p pixmap) (xlib:drawable-height pixmap) 0)))
 
 (defmethod frame-button-sizes ((style frame-style))
+  "Returns as a multiple values the width and height of the frame button.
+   If no button NIL is returned."
   (with-slots (frame-item-pixmaps) style
     (let ((bpixmaps (or (gethash :close frame-item-pixmaps)
 			(gethash :maximize frame-item-pixmaps)
@@ -213,6 +211,15 @@
     (clrhash frame-item-pixmaps)
     (setf pixmap-table nil 
 	  frame-item-pixmaps nil)))
+
+(defclass default-style (frame-style) ())
+(defclass transient-style (frame-style) ())
+
+(defun default-style-p (astyle)
+  (typep astyle 'default-style))
+
+(defun transient-style-p (astyle)
+  (typep astyle 'transient-style))
 
 (defclass theme ()
   ((name 
@@ -246,9 +253,13 @@
 ;;;; misc functions.
 
 (defun pixmap-width (pixmap)
+  "Returns the width of the pixmap, zero size is returned if pixmap is not of
+   type xlib:pixmap."
   (if (xlib:pixmap-p pixmap) (xlib:drawable-width pixmap) 0))
 
 (defun pixmap-height (pixmap)
+  "Returns the height of the pixmap, zero size is returned if pixmap is not of
+   type xlib:pixmap."
   (if (xlib:pixmap-p pixmap) (xlib:drawable-height pixmap) 0))
 
 (defun load-pnm->pixmap (directory fname window)
@@ -256,7 +267,12 @@
   (when (probe-file fname)
     (xlib:image-pixmap window (ppm:load-ppm-into-clx-image fname window))))
 
-(defun make-background (background window directory)
+(defun make-background (background window &optional directory)
+  "Returns the background of the specified window computed from the given
+   background (or null integer string xlib:color
+                  (member :none :parent-relative)).
+   If background is of type string it is expected to be a pnm filename
+   designator."
   (let ((screen (car (xlib:display-roots (xlib:drawable-display window)))))
     (etypecase background
       (string (load-pnm->pixmap directory background window))
@@ -266,6 +282,7 @@
        (xlib:alloc-color (xlib:screen-default-colormap screen) background)))))
 
 (defun find-decoration-frame-style (theme window)
+  "Returns the frame-style suitable to the specified application window."
   (with-slots (default-style transient-style) theme
     (if (ignore-errors (window-transient-p window))
 	(or transient-style default-style)
@@ -275,11 +292,10 @@
   (declare (type simple-string theme-dir))
   (unless (char= (char theme-dir (1- (length theme-dir))) #\/)
     (setf theme-dir (format nil "~A/" theme-dir)))
-  (unless (directory theme-dir)
-    (setf theme-dir (if (directory (eclipse-path "themes/" theme-dir))
-			(eclipse-path "themes/" theme-dir)
-			(eclipse-path "themes/microGUI/"))))
-  theme-dir)
+  (cond ((directory theme-dir) theme-dir)
+	((directory (eclipse-path "themes/" theme-dir))
+	 (eclipse-path "themes/" theme-dir))
+	(t (eclipse-path "themes/microGUI/"))))
 
 ;;;; theme manipulation.
 
@@ -299,7 +315,7 @@
   (unuse-package (format nil "~:@(~A~)-ECLIPSE-THEME" name)))
 
 (defun load-theme (root-window name)
-  "loads and returns theme named by parameter name. Themes are cached."
+  "Loads and returns theme named by parameter name. Themes are cached."
   (unless (lookup-theme name)
     (fmakunbound 'initialize-frame)
     (setf name (ensure-theme-directory-exists name))
