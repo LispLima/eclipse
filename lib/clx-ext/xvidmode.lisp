@@ -594,10 +594,10 @@
      (values 
       (loop for i of-type card32 in hsync
 	    collect (/ (ldb (byte 16 0) i) 100.)
-	    collect (/ (ldb (byte 32 16) i) 100.))
+	    collect (/ (ldb (byte 16 16) i) 100.))
       (loop for i of-type card32 in vsync
 	    collect (/ (ldb (byte 16 0) i) 100.)
-	    collect (/ (ldb (byte 32 16) i) 100.))
+	    collect (/ (ldb (byte 16 16) i) 100.))
       (string-get vendor-name-length vindex)
       (string-get model-name-length mindex)))))
 
@@ -729,6 +729,6 @@
 (defun __card32->card16__ (i)
   (declare (type card32 i))
   #+clx-little-endian
-  (progn (values (ldb (byte 16 0) i) (ldb (byte 32 16) i)))
+  (progn (values (ldb (byte 16 0) i) (ldb (byte 16 16) i)))
   #-clx-little-endian
-  (progn (values (ldb (byte 32 16) i) (ldb (byte 16 0) i))))
+  (progn (values (ldb (byte 16 16) i) (ldb (byte 16 0) i))))
