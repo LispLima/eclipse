@@ -1,0 +1,110 @@
+;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
+
+(in-package :ECLIPSE-INTERNALS)
+
+;;;;; Base configuration
+
+;; Global definitions
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Keyboard shortcuts
+
+;; circulate windows : Alt-Tab / A
+
+(define-key-combo :switch-win-up
+  :keys '(:TAB)
+  :modifiers '(:ALT-LEFT))
+(define-key-combo :switch-win-down
+  :keys '(:A)
+  :modifiers '(:ALT-LEFT))
+
+;; change of virtual screen : Ctrl-LeftArrow / RightArrow
+
+(define-key-combo :switch-screen-left
+  :keys '(:LEFT)
+  :modifiers '(:CONTROL-LEFT))
+(define-key-combo :switch-screen-right
+  :keys '(:RIGHT)
+  :modifiers '(:CONTROL-LEFT))
+
+;; move mouse pointer : Ctrl-Alt-LeftArrow / RightArrow
+
+(define-key-combo :move-right
+  :keys '(:RIGHT)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+(define-key-combo :move-left
+  :keys '(:LEFT)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+(define-key-combo :move-up
+  :keys '(:UP)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+(define-key-combo :move-down
+  :keys '(:DOWN)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+
+;; mouse click : Ctrl-Alt-Z / X / C (left middle right)
+
+(define-key-combo :left-click
+  :keys '(:W)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+(define-key-combo :middle-click
+  :keys '(:X)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+(define-key-combo :right-click
+  :keys '(:C)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+(define-key-combo :scroll-up
+  :keys '(:a)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+(define-key-combo :scroll-down
+  :keys '(:q)
+  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+
+;; example of user define keystroke:
+;(define-key-combo :raise-pointered-window
+;  :keys '(:F4)
+;  :modifiers 0
+;  :default-modifiers-p nil 
+;  :fun #'(lambda (event)
+;	   (put-on-top (event-child event))))
+
+;; mouse strokes for moving and resizing windows.
+
+(define-mouse-combo :move-window
+	:button 2
+	:modifiers '(:SHIFT-LEFT :SHIFT-RIGHT))
+
+(define-mouse-combo :resize-window
+	:button 3
+	:modifiers '(:SHIFT-LEFT :SHIFT-RIGHT))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Custom variables.
+
+(setf (number-of-virtual-screens) 4
+      *move-mode* :box
+      *resize-mode* :opaque
+      *focus-type* :none
+      *verbose-move* nil
+      *verbose-resize* nil
+      *wrap-pointer-when-cycle* nil
+      *focus-new-mapped-window* t
+      *change-desktop-message-active-p* nil
+      (decoration-theme) "microGUI")
+
+;; Application menu
+
+(setf *menu-1-items* 
+      (list (cons "Emacs"    (run-application "emacs"))
+	    (cons "Netscape" (run-application "netscape"))
+	    (cons "Gv"       (run-application "gv"))
+	    (cons "XMMS"     (run-application "xmms"))
+	    (cons "Xterm"    (run-application "xterm"))
+	    ))
+
+;; Desktop-names
+
+;(setf (workspace-names) '("Main" "Work" "Internet" "Games"))
+
+
+
