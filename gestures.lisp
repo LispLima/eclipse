@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.16 2004/02/12 23:30:22 ihatchondo Exp $
+;;; $Id: gestures.lisp,v 1.17 2004/03/08 23:40:33 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -285,11 +285,10 @@
 	  while child do (setf window child)
 	  finally
 	    (xlib:send-event window type nil
-			     :x x :y y :root-x root-x :root-y root-y
-			     :window window :event-window window
-			     :root root :child child
-			     :state nil :code buton-number
-			     :same-screen-p ssp :time (event-time ev)))))
+	      :x x :y y :root-x root-x :root-y root-y
+	      :state nil :code buton-number
+	      :window window :event-window window :root root :child child
+	      :same-screen-p ssp :time (event-time ev)))))
 
 (defun mouse-stroke-for-move-and-resize (event &key action)
   (let ((widget (lookup-widget (event-child event))))
@@ -299,7 +298,8 @@
       (focus-widget widget 0))
     (xlib:grab-pointer (event-child event) +pointer-event-mask+)
     (menu-3-process event widget :key action)
-    (funcall (the function (define-menu-3 action)))))
+    (unless (menu-3-process (make-event :motion-notify) widget :key action)
+      (xlib:ungrab-pointer *display*))))
 
 ;;; Hook and Callbacks for :switch-win-{up, down} keystrokes.
 
