@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.31 2004/08/20 21:51:08 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.32 2005/01/06 16:24:18 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -76,13 +76,20 @@
 ;; returns the part that is interesting in a window manager point of view.
 
 (defun window-transient-p (app-window)
+  "Returns true if the window is considered as transient for another one.
+   A window is considered as transient if its wm_transient_for property is
+   set, or if it has the _net_wm_window_type_dialog atom present in its 
+   _net_wm_state property."
   (or (xlib:transient-for app-window)
       (member :_net_wm_window_type_dialog (netwm:net-wm-state app-window))))
 
 (defun wm-state (window)
+  "Returns the wm_state property of a window as xlib:get-property would."
   (xlib:get-property window :WM_STATE))
 
 (defsetf wm-state (window &key (icon-id 0)) (state)
+  "Sets the wm_state property of a window. Note that its _net_wm_state property
+   will be updated accordingly to the value given for the wm_state."
   (let ((net-wm-state (gensym)))
     `(let ((,net-wm-state (netwm:net-wm-state ,window)))
        (if (or (= ,state 3) (= ,state 0))
@@ -95,19 +102,29 @@
 	   32))))
 
 (defun workspace-names (window)
+  "Returns the workspace names according to the first property that is set
+   between _net_wm_desktop_names and _win_workspace_names respectively."
   (or (netwm:net-desktop-names window) (gnome:win-workspace-names window)))
 
 (defsetf workspace-names () (names)
+  "Sets both the _win_workspace_names and the _net_wm_desktop_names properties
+   to the given list of name."
   `(when ,names
      (setf (netwm:net-desktop-names *root-window*) ,names
            (gnome:win-workspace-names *root-window*) ,names)))
 
 (defun wm-name (window)
+  "Returns the name of the window according to the first property that is set
+   between _net_wm_name and wm_name respectively. If none, \"incognito\" is
+   returned."
   (or (ignore-errors (netwm:net-wm-name window))
       (ignore-errors (xlib:wm-name window))
       "incognito"))
 
 (defun wm-icon-name (window)
+  "Returns the icon name of the window according to the first property that
+   is set between _net_wm_icon_name and wm_icon_name respectively. If none,
+   \"incognito\" is returned."
   (or (ignore-errors (netwm:net-wm-icon-name window))
       (ignore-errors (xlib:wm-icon-name window))
       "incognito"))
@@ -137,9 +154,13 @@
 			  :bits-per-pixel bits-per-pixel :data data)))))
 
 (defun window-desktop-num (window)
+  "Returns the desktop number according to the first property that is set
+   between _net_wm_desktop and _win_workspace respectively."
   (or (netwm:net-wm-desktop window) (gnome:win-workspace window)))
 
 (defsetf window-desktop-num (window) (n)
+  "Sets both the _win_workspace and the _net_wm_desktop properties of the 
+   specified window to n."
   `(setf (gnome:win-workspace ,window) ,n
 	 (netwm:net-wm-desktop ,window) ,n))
 
@@ -454,17 +475,25 @@
 	when (application-p val) collect val))
 
 (defun application-name (app)
-  (xlib:wm-name (widget-window app)))
+  "Returns the name of an application widget."
+  (wm-name (widget-window app)))
 
 (defun application-find (name)
+  "Returns the first application widget that is named by the specfied name."
   (car (member name (application-list) :test #'equal :key #'application-name)))
 
 (defun application-class (app)
+  "Returns the class of an application widget.
+   (see the WM_CLASS property in ICCCM section 4.1.2.5)."
   (multiple-value-bind (name type) (xlib:get-wm-class (widget-window app))
     (cons name type)))
 
 (defun application-class-name (app)
+  "Returns the class name of an application widget.
+   (see the WM_CLASS property in ICCCM section 4.1.2.5)."
   (car (application-class app)))
 
 (defun application-class-type (app)
+  "Returns the class type of an application widget.
+   (see the WM_CLASS property in ICCCM section 4.1.2.5)."
   (cdr (application-class app)))

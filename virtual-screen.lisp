@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.22 2004/12/16 21:36:47 ihatchondo Exp $
+;;; $Id: virtual-screen.lisp,v 1.23 2005/01/16 23:25:59 ihatchondo Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -58,16 +58,21 @@
 ;;;; Public
 
 (defun current-vscreen (win)
-  "Get the current virtual screen index. The window parameter must be
-  the window that owns the win_workspace or _net_current_desktop property."
+  "Returns the current virtual screen index. The window parameter must be
+   the window that owns the win_workspace or _net_current_desktop property."
   (or (netwm:net-current-desktop win) (gnome:win-workspace win) 0))
 
 (defun number-of-virtual-screens (win)
-  "Get the number of virtual screens. The window parameter must be the window
-  that owns the win_workspace_count or _net_number_of_desktops property."
+  "Returns the number of virtual screens. The window parameter must be the
+   window that owns the win_workspace_count or _net_number_of_desktops
+   property."
   (or (gnome:win-workspace-count win) (netwm:net-number-of-desktops win) 1))
 
 (defsetf number-of-virtual-screens () (n)
+  "Sets the number of virtual screens (desktops). If the given value is less 
+   than the actual number of virtual screens, then all applications that
+   belongs to the virtual screens that will be removed will be re-attached
+   to the last one (new-value - 1)."
   `(with-slots (window) *root*
      (let ((nb-vscreens (number-of-virtual-screens window))
 	   (cur (current-vscreen window)))
@@ -88,7 +93,7 @@
 	 (update-workarea-property *root*)))))
 
 (defun input-focus (display)
-  "Find the application that is currently focused if anyone is."
+  "Finds and returns the application that is currently focused if anyone is."
   (loop with w = (xlib:input-focus display)
 	until (or (not (xlib:window-p w)) (application-p (lookup-widget w)))
 	do (multiple-value-bind (children parent) (xlib:query-tree w)
@@ -96,12 +101,19 @@
 	     (setf w parent))
 	finally (return w)))
 
-(defmethod change-vscreen ((root root) &key direction n)
+(defmethod change-vscreen ((root root) &key direction (n 1))
+  "Change the current visible virtual screen.
+   :direction (or null function): a designator for a function that must take
+    two integer arguments and that returns an integer. The arguments will be
+    the current virtual screen index and the value of :n (1 by default).
+   :n (integer): If :direction is given then it will be used to compute the new 
+    virtual screen index with the direction function. If :direction isn't given
+    then it will be used as the new virtual screen index."
   (declare (type (or null function) direction))
   (with-slots ((rw window)) root
     (let* ((nb-vscreens (number-of-virtual-screens rw))
 	   (cur (netwm:net-current-desktop rw))
-	   (new (if direction (mod (funcall direction cur 1) nb-vscreens) n)))
+	   (new (mod (if direction (funcall direction cur n) n) nb-vscreens)))
       (unless (integerp new)
 	(error "No destination given to change-vscreen~%"))
       (when (and (< -1 new nb-vscreens) (/= cur new))
@@ -133,13 +145,13 @@
 		       &key (predicate #'window-belongs-to-vscreen-p) iconify-p
 		            (skip-taskbar t) (skip-desktop t) (skip-dock t))
   "Returns the list of application's windows that represent the contents
-  of the given virtual screen. 
+   of the given virtual screen. 
    :iconify-p to include or not iconfied windows (default nil).
    :skip-taskbar to include window with skip-taskbar hint (default t).
    :skip-desktop to include window with desktop window type (default t).
    :skip-dock to include window with dock window type (default t).
-   :predicate a function of six arguments:
-     window screen-number iconify-p skip-taskbar-p skip-desktop-p skip-dock-p."
+   :predicate a designator for a function of six arguments:
+    window screen-number iconify-p skip-taskbar-p skip-desktop-p skip-dock-p."
   (declare (type function predicate))
   (loop with i = (if (eql scr-num +any-desktop+) (current-desk) scr-num)
 	for w in (query-application-tree *root-window*)
@@ -165,6 +177,18 @@
 
 (defmethod circulate-window
     ((root root) &key direction (nth 0) icon-p windows (desk (current-desk)))
+  "Lowers the nth highest mapped child of the specified virtual screen
+   (indicated by the :desk key argument) if direction is :below. If direction
+   is :above then it raises the nth lowest mapped child of the specified
+   virtual screen.
+   :direction (or null :above :below): the restack order (default to :below).
+   :nth (unsigned-byte *): the nth application to restack (default to 0).
+   :icon-p (boolean): if T then the circulation will includes iconified
+    applications that belongs to the specified virtual screen.
+   :windows (list): the list of window into which the restack must be computed.
+    If not given then (screen-content desk :iconify-p icon-p) will be used.
+   :desk (unsigned-byte *): the index of the virtual screen on which the 
+    restacking s taking place. (default to (current-desk))."
   (unless windows
     (setf windows (reverse (screen-content desk :iconify-p icon-p))))
   (or windows (return-from circulate-window nil))
