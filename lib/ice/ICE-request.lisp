@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-request.lisp,v 1.1 2004/01/12 11:10:51 ihatchondo Exp $
+;;; $Id: ICE-request.lisp,v 1.2 2004/03/02 19:14:26 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -22,79 +22,78 @@
 
 ;;;; helpful stuff for the declare-request macro code generation.
 
-(defmacro destructuring-slot-key-args ((&rest key-args) slot-decl &body body)
+(defmacro with-slot-key-args ((&rest key-args) slot-decl &body body)
   `(destructuring-bind (&key ,@key-args &allow-other-keys) (cdr ,slot-decl)
      ,@body))
 
+(defmacro with-reply-buffer ((buffer input-byte-order) &rest slots)
+  (with-gensym (index buff ibo length)
+    `(let* ((,buff ,buffer) (,ibo ,input-byte-order)
+	    (,index 4)
+	    (,length (buffer-read-card32 ,ibo ,buff ,index)))
+       (declare (type buffer ,buff))
+       (declare (ignorable ,length))
+       (loop for i from 0 to 3 do (setf (aref ,buff (+ i 4)) (aref ,buff i)))
+       (setf ,index 4)
+       ,@(unless (member 'MAJOR-OPCODE slots :key #'car)
+	   `((setf major-opcode (buffer-read-card8 ,ibo ,buff ,index))))
+       ,@(loop for slot-description in slots
+	       for name = (car slot-description) collect	       
+	       (with-slot-key-args ((type 'card8) (pad-size 0) length)
+		   slot-description
+		 (flet ((type-reader (type)
+			  (format nil "BUFFER-READ-~a" (symbol-name type))))
+		   `(setf ,(intern (symbol-name name))
+		          (,(sintern (type-reader type)) ,ibo ,buff ,index
+		          ,@(when length `(,(intern (symbol-name length)))))
+		          ,@(unless (zerop pad-size)
+			      `(,index (+ ,index ,pad-size))))))))))
+
+(defmacro with-request-buffer ((buffer output-byte-order length) &rest slots)
+  (with-gensym (index buff obo)
+    `(let ((,buff ,buffer) (,obo ,output-byte-order)
+	   (,index 4))
+       (declare (type buffer ,buff))
+       ,@(unless (member 'MAJOR-OPCODE slots :key #'car)
+	   `((buffer-write-card8 major-opcode ,obo ,buff ,index)))
+       ,@(loop for slot-desc in slots 
+	       for name = (intern (symbol-name (car slot-desc))) collect
+	       (with-slot-key-args ((type 'card8) (pad-size 0)) slot-desc
+		 (flet ((type-writer (type)
+			  (format nil "BUFFER-WRITE-~a" (symbol-name type))))
+		   `(prog1
+		        (,(sintern (type-writer type)) ,name ,obo ,buff ,index)
+		      ,@(unless (zerop pad-size) `((incf ,index ,pad-size)))))))
+       (loop for i from 0 to 3 do (setf (aref ,buff i) (aref ,buff (+ i 4))))
+       (setf ,index 4)
+       (buffer-write-card32 ,length ,obo ,buff ,index))))
+
 (defun get-type (slot-declaration)
   "returns the type (or card8) given in a slot declaration."
-  (destructuring-slot-key-args ((type 'card8)) slot-declaration
+  (with-slot-key-args ((type 'card8)) slot-declaration
     type))
 
 (defun get-pad-size (slot-declaration)
   "returns the pad-size (or 0) given in a slot declaration."
-  (destructuring-slot-key-args ((pad-size 0)) slot-declaration 
+  (with-slot-key-args ((pad-size 0)) slot-declaration 
     pad-size))
-
-(defun make-form-writer (slot-description)
-  (destructuring-bind (name &key (type 'card8) (pad-size 0) &allow-other-keys)
-      slot-description
-    (flet ((type-writer (type)
-	     (sintern (format nil "BUFFER-WRITE-~a" (symbol-name type)))))
-      (let ((form `(,(type-writer type)
-		    ,(intern (symbol-name name))
-		    output-byte-order buffer index)))
-      `(prog1
-	   ,(macroexpand form)
-	 ,@(unless (zerop pad-size) `((incf index ,pad-size))))))))
-
-(defun make-form-reader (slot-description)
-  (destructuring-bind (name 
-		       &key (type 'card8) (pad-size 0) length
-		       &allow-other-keys)
-      slot-description
-    (flet ((type-reader (type)
-	     (sintern (format nil "BUFFER-READ-~a" (symbol-name type)))))
-      (let ((form `(,(type-reader type) input-byte-order buffer index
-		     ,@(when length `(,(intern (symbol-name length)))))))
-	`(setf ,(intern (symbol-name name)) ,(macroexpand form)
-	       ,@(unless (zerop pad-size) `(index (+ index ,pad-size))))))))
-
-(defun do-header-forms (slots &key form-maker)
-  (let ((length-reached-p nil)
-	(minor-slot (car (member 'MINOR-OPCODE slots :key #'car)))
-	(forms (list (funcall form-maker '(MAJOR-OPCODE :type card8))
-		     (funcall form-maker '(MINOR-OPCODE :type card8)))))
-    (setf slots (delete 'MAJOR-OPCODE slots :key #'car))
-    (setf slots (delete 'MINOR-OPCODE slots :key #'car))
-    (when minor-slot
-      (let ((pad-size (get-pad-size minor-slot)))
-	(unless (= 0 pad-size)
-	  (setf forms (append forms `((incf index ,pad-size)))))
-	(setf length-reached-p (= pad-size 2))))
-    (unless length-reached-p
-      (destructuring-slot-key-args ((pad-size 0) (type 'card8)) (car slots)
-	(setf forms
-	      `(,@forms
-		,(funcall form-maker (pop slots))
-		,@(when (and (= 0 pad-size) (not (eq type 'card16)))
-		    `(,(funcall form-maker (pop slots))))))))
-    (values forms slots)))
 
 (defun make-request-length (slots)
   (let ((minor-slot (car (member 'MINOR-OPCODE slots :key #'car))))
     (setf slots (delete 'MAJOR-OPCODE slots :key #'car))
     (setf slots (delete 'MINOR-OPCODE slots :key #'car))
-    `(+ 2 
+    `(+ 2 ; major-opcode + minor-opcode = 1 Byte + 1 Byte
        ,@(when minor-slot `(,(get-pad-size minor-slot)))
        ,@(loop for slot in slots 
 	       for fun = (sintern (format nil "~a-LENGTH" (get-type slot)))
 	       for pad = (get-pad-size slot)
 	       collect `(+ (,fun ,(intern (symbol-name (car slot)))) ,pad)))))
 
-(defun make-constructor-key-args (slots)
+(defun make-constructor-key-args (slots &key add-major-opcode)
+  (when (and add-major-opcode (not (member 'MAJOR-OPCODE slots :key #'car)))
+    (setf slots (cons (list 'MAJOR-OPCODE :initform +ice-proto-minor+) slots)))
   (loop for slot in slots
-	for initform = (destructuring-slot-key-args (initform) slot initform)
+	for initform = (with-slot-key-args (initform) slot initform)
 	if initform collect `(,(car slot) ,initform) else collect (car slot)))
 
 ;; Public.
@@ -110,9 +109,9 @@
   The syntax is the same than in defclass. The only difference is the four
   more keyword arguments that exist for slot description:
 
-  :prefix     symbol   (default class-name)
+  :prefix     symbol   (default: class-name)
     If given, then it will be use with the slots name to construct the 
-    accessor method name if the last wasa not given.
+    accessor method name if :accessor option was not given.
 
   :pad-size   fixnum   (default: 0)
     You may (or have to) indicate the number of padding bytes between two
@@ -162,17 +161,16 @@
 		       )))))
 	,@doc)
       ;; Generate make-ice-request method with eql-specializer on class-name.
-      ,(let ((args (make-constructor-key-args slots)))
-	 `(defmethod make-ice-request
-	      ((name (eql ,class-key-name))
-	       &key ,@(make-constructor-key-args slots) &allow-other-keys)
-	    (make-instance ',name
-	        ,@(loop for arg in args
-			for foo = (if (consp arg) (car arg) arg)
-			nconc (list (kintern (symbol-name foo)) foo)))))
+      (defmethod make-ice-request
+	  ((name (eql ,class-key-name))
+	   &key ,@(make-constructor-key-args slots) &allow-other-keys)
+	(make-instance ',name
+	  ,@(loop for arg in (make-constructor-key-args slots)
+		  for foo = (if (consp arg) (car arg) arg)
+		  collect (kintern (symbol-name foo)) collect foo)))
       ;; Generate <class-name>-p predicate function.
       (defun ,(sintern (format nil "~a-P" name)) (object)
-	,(format nil "return true if object is of type ~a; nil otherwise" name)
+	,(format nil "Return true if object is of type ~a; nil otherwise" name)
 	(typep object ',name))
       ;; Ensure we have {major,minor}-opcode in the slot-names.
       ,@(progn
@@ -186,49 +184,34 @@
 	    (declare (type fixnum length))
 	    (+ length (mod (- length) 8)))))
       ;; Generate post-request.
-      ,(let ((args (make-constructor-key-args slots)))	 
-	 ;; Add (major-opcode value) if needed into args.
-	 (flet ((key (arg) (if (consp arg) (car arg) arg)))
-	   (unless (member 'MAJOR-OPCODE args :key #'key)
-	     (push `(MAJOR-OPCODE +ice-proto-minor+) args)))
-	 `(defmethod post-request ((name (eql ,class-key-name)) ice-connection
-				    &key ,@args &allow-other-keys)
-	    (with-slots (output-byte-order stream) ice-connection
-	      ,(multiple-value-bind (header-forms rslots)
-		   (do-header-forms slots :form-maker #'make-form-writer)
-		 `(flet ((rlength ()
-			  (let ((length (+ 4 ,(make-request-length slots))))
-			    (declare (type fixnum length))
-			    (+ length (mod (- length) 8)))))
-		    (let* ((index 0)
-			   (request-length (rlength))
-			   (buffer (make-buffer request-length))
-			   (length (1- (/ request-length 8))))
-		      ,@header-forms
-		      ,(macroexpand '(buffer-write-card32
-				      length output-byte-order buffer index))
-		      ,@(loop for s in rslots collect (make-form-writer s))
-		      (setf (connection-output-buffer ice-connection) buffer)
-		      (write-sequence buffer stream)
-		      (finish-output stream)))))))
+      (defmethod post-request
+	  ((name (eql ,class-key-name)) ice-connection
+	   &key ,@(make-constructor-key-args slots :add-major-opcode t)
+	   &allow-other-keys)
+	(with-slots (output-byte-order stream) ice-connection
+	  (flet ((rlength ()
+		   (let ((length (+ 4 ,(make-request-length slots))))
+		     (declare (type fixnum length))
+		     (+ length (mod (- length) 8)))))
+	    (let* ((request-length (rlength))
+		   (buffer (make-buffer request-length))
+		   (length (1- (/ request-length 8))))
+	      (declare (type buffer buffer))
+	      (with-request-buffer (buffer output-byte-order length)
+		,@slots)
+	      (setf (connection-output-buffer ice-connection) buffer)
+	      (write-sequence buffer stream)
+	      (finish-output stream)))))
       ;; Generate request decoder.
       (defmethod decode-request
 	  ((name (eql ,class-key-name)) ice-connection buffer input-byte-order)
 	(declare (ignorable ice-connection))
-	(let ((index 0) ,@slot-names)
-	  ,@(multiple-value-bind (header-forms rslots)
-		(do-header-forms slots :form-maker #'make-form-reader)
-	      `(,@header-forms
-		;; read request length. we don't store it.
-		,(macroexpand '(buffer-read-card32 
-				input-byte-order 
-				buffer 
-				index))
-		,@(loop for slot in rslots collect (make-form-reader slot))))
-	  (make-ice-request ,class-key-name
-			    ,@(loop for s in slot-names 
-				    collect (kintern (symbol-name s)) 
-				    collect s)))))))
+	(declare (type buffer buffer))
+	(let ((request (make-instance ',name)))
+	  (with-slots (,@slot-names) request
+	    (with-reply-buffer (buffer input-byte-order)
+	      ,@slots))
+	  request)))))
 
 ;;;; Protocol class.
 

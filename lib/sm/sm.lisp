@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: SM-LIB; -*-
-;;; $Id: sm.lisp,v 1.2 2004/01/15 13:43:15 ihatchondo Exp $
+;;; $Id: sm.lisp,v 1.3 2004/03/02 19:14:26 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -114,19 +114,21 @@
 	(write (sintern (format nil "BUFFER-WRITE-~a" element-type))))
     `(define-accessor ,type
        ((byte-order buffer index)
-	(with-gensym (count _buff)
-	  `(let* ((,_buff ,buffer)
+	(with-gensym (count buff)
+	  `(let* ((,buff ,buffer)
 		  (,count (buffer-read-card32 ,byte-order ,buffer ,index)))
+	     (declare (type buffer ,buff))
 	     (incf ,index 4)
 	     (loop for i from 0 below ,count
-	           collect (,',read ,byte-order ,_buff ,index)))))
-       ((seq byte-order buffer index)
-	(with-gensym (_seq _buff)	
-	  `(let ((,_seq ,seq) (,_buff ,buffer))
-	     (buffer-write-card32 (length ,_seq) ,byte-order ,_buff ,index)
+	           collect (,',read ,byte-order ,buff ,index)))))
+       ((sequence byte-order buffer index)
+	(with-gensym (seq buff)	
+	  `(let ((,seq ,sequence) (,buff ,buffer))
+	     (declare (type buffer ,buff))
+	     (buffer-write-card32 (length ,seq) ,byte-order ,buff ,index)
 	     (incf ,index 4)
-	     (loop for e in ,_seq
-	           do (,',write e ,byte-order ,_buff ,index))))))))
+	     (loop for e in ,seq
+	           do (,',write e ,byte-order ,buff ,index))))))))
 
 ;; <type>-{writer,reader} macros
 
@@ -147,18 +149,20 @@
 
 (define-accessor array8
   ((byte-order buffer index)
-   (with-gensym (length array _buff)
-     `(let* ((,_buff ,buffer)
-	     (,length (buffer-read-card32 ,byte-order ,_buff ,index))
-	     (,array (buffer-read-data ,byte-order ,_buff ,index ,length)))
+   (with-gensym (length array buff)
+     `(let* ((,buff ,buffer)
+	     (,length (buffer-read-card32 ,byte-order ,buff ,index))
+	     (,array (buffer-read-data ,byte-order ,buff ,index ,length)))
+        (declare (type buffer ,buff))
 	(incf ,index (mod (- (+ 4 ,length)) 8))
 	,array)))
   ((array byte-order buffer index)
-   (with-gensym (length _buff)
+   (with-gensym (length buff)
      `(let ((,length (if (null ,array) 0 (length ,array)))
-	    (,_buff ,buffer))
-        (buffer-write-card32 ,length ,byte-order ,_buff ,index)
-        (buffer-write-data ,array ,byte-order ,_buff ,index)
+	    (,buff ,buffer))
+        (declare (type buffer ,buff))
+        (buffer-write-card32 ,length ,byte-order ,buff ,index)
+        (buffer-write-data ,array ,byte-order ,buff ,index)
         (incf ,index (mod (- (+ 4 ,length)) 8))))))
 
 (define-sequence-accessor array8s array8)
@@ -171,19 +175,21 @@
 
 (define-accessor property 
   ((byte-order buffer index)
-   (with-gensym (_buff)
-     `(let ((,_buff ,buffer))
+   (with-gensym (buff)
+     `(let ((,buff ,buffer))
+        (declare (type buffer ,buff))
         (make-property
-	 :name (buffer-read-string ,byte-order ,_buff ,index)
-	 :type (buffer-read-string ,byte-order ,_buff ,index)
-	 :values (buffer-read-array8s ,byte-order ,_buff ,index)))))
-  ((prop byte-order buffer index)
-   (with-gensym (_prop _buff)
-     `(multiple-value-bind (,_prop ,_buff) (values ,prop ,buffer)
-        (buffer-write-string (property-name ,_prop) ,byte-order ,_buff ,index)
-        (buffer-write-string (property-type ,_prop) ,byte-order ,_buff ,index)
+	 :name (buffer-read-string ,byte-order ,buff ,index)
+	 :type (buffer-read-string ,byte-order ,buff ,index)
+	 :values (buffer-read-array8s ,byte-order ,buff ,index)))))
+  ((property byte-order buffer index)
+   (with-gensym (prop buff)
+     `(multiple-value-bind (,prop ,buff) (values ,property ,buffer)
+        (declare (type buffer ,buff))
+        (buffer-write-string (property-name ,prop) ,byte-order ,buff ,index)
+        (buffer-write-string (property-type ,prop) ,byte-order ,buff ,index)
         (buffer-write-array8s
-	 (property-values ,_prop) ,byte-order ,_buff ,index)))))
+	 (property-values ,prop) ,byte-order ,buff ,index)))))
 
 (define-sequence-accessor properties property)
 
