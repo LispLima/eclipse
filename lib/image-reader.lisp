@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PPM -*-
-;;; $Id: image-reader.lisp,v 1.2 2002/12/18 10:50:49 hatchond Exp $
+;;; $Id: image-reader.lisp,v 1.3 2003/02/03 08:06:32 hatchond Exp $
 ;;;
 ;;; This a ppm image reader for CLX
 ;;; This file is part of Eclipse
@@ -150,10 +150,13 @@
 	((> depth 1) 4)
 	(t depth 1)))
 
+(defvar *ppm-readtable* (copy-readtable))
+
 (defun create-ppm-image-from-stream (stream)
+  (set-syntax-from-char #\# #\; *ppm-readtable*)
   (flet ((parse (stream)
-	   (loop while (and (eq (peek-char t stream) #\#) (read-line stream)))
-	   (read stream)))
+	   (let ((*readtable* *ppm-readtable*))
+	     (read stream))))
     (make-pnm (parse stream) (parse stream) (parse stream) (parse stream))))
 
 (defun load-ppm (filename)
