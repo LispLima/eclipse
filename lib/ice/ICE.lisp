@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE.lisp,v 1.2 2004/03/08 17:50:23 ihatchondo Exp $
+;;; $Id: ICE.lisp,v 1.3 2004/12/14 17:58:21 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -35,42 +35,52 @@
 (defvar *ice-minor-opcodes* (make-array 25 :initial-element nil))
 
 (defun register-protocol (protocol-opcode request-key-vector)
+  "Cache the protocol request keys according to its opcode."
   (setf (svref *ice-minor-opcodes* protocol-opcode) request-key-vector))
 
 (defmacro define-request (request-key-name code)
+  "Creates the association between the request key and its opcode."
   `(eval-when (:load-toplevel :compile-toplevel :execute)
      (setf (get ',request-key-name 'request-code) ,code)))
 
 (defun decode-ice-minor-opcode (index &optional (protocol-opcode 0))
+  "Returns the request key associated to this request index in the protocol
+   designed by its opcode (0, the default design the ICE protocol)."
   (declare (type card8 index))
   (aref (the (simple-array keyword (*))
 	  (svref *ice-minor-opcodes* protocol-opcode)) 
 	index))
   
 (defun encode-ice-minor-opcode (opcode-key)
+  "Returns the request opcode associated with this request key."
   (declare (type keyword opcode-key))
   (get opcode-key 'request-code))
 
-;;; Errors
+;;;; Errors
 
 (defvar *errors* (list) "association list: (error-code . error-key)")
 
 (defmacro define-error (error-key error-code)
+  "Creates the association between the error keyword and the error code."
   `(eval-when (:load-toplevel :compile-toplevel :execute)
      (push (cons ,error-code ,error-key) *errors*)
      (setf (get ',error-key 'error-code) ,error-code)))
 
 (defun decode-error (code)
+  "Returns the error key associated to this code."
   (declare (type card16 code))
   (cdr (assoc code *errors*)))
 
 (defun encode-error (key)
+  "Returns the error code associated to this error key."
   (declare (type keyword key))
   (get key 'error-code))
- 
-;;; Error severity
 
 ;;;; Types
+
+;; 
+         
+(deftype error-handler () `(or null function))
   
 ;; unsigned integer types.
 
@@ -82,18 +92,14 @@
 ;; complex types.
 
 (deftype ice-byte-order () `(member :LSBFirst :MSBFirst))
-(deftype error-severity ()
-  `(member :can-continue :fatal-to-protocol :fatal-to-connection))
 (deftype data () `(simple-array card8 (*)))
 (deftype version () `(simple-array card16 (2)))
 (deftype versions () `(simple-array version (*)))
 (deftype strings () `(or null (simple-array simple-string (*))))
+(deftype error-severity ()
+  `(member :can-continue :fatal-to-protocol :fatal-to-connection))
 
-;; 
-         
-(deftype error-handler () `(or null function))
-
-;; type length computation functions.
+;;;; <type>-length functions.
 
 (macrolet ((generate-integer-length-function (prefix bit-size)
 	     (let ((name (intern (format nil "~a~d-LENGTH" prefix bit-size))))
@@ -142,7 +148,7 @@
   (if (null strings) 
       0 (loop for string across strings sum (string-length string))))
 
-;; type constructor
+;;;; type constructor
 
 (defun make-data (length &rest args &key (initial-element 0) &allow-other-keys)
   "Creates and returns an array constructed of the most specialized type that

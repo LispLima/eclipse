@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-lib.lisp,v 1.8 2004/12/14 17:58:20 ihatchondo Exp $
+;;; $Id: ICE-lib.lisp,v 1.9 2005/01/05 00:24:00 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -112,7 +112,8 @@
     (setf (buffer-index input-buffer) 4)
     (let ((length (buffer-read-card32 input-buffer)))
       (declare (type fixnum length))
-      (buffer-read-sequence input-buffer stream :start 8 :end (* 8 (1+ length))))
+      (buffer-read-sequence
+          input-buffer stream :start 8 :end (* 8 (1+ length))))
     (decode-request
         (decode-ice-minor-opcode 
 	    (read-minor-opcode input-buffer)
