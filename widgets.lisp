@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.4 2003/03/19 09:52:38 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.5 2003/03/21 09:54:47 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -105,8 +105,8 @@
 	(ignore-errors (give-focus-to-next-widget-in-desktop *root*)))
       (when *change-desktop-message-active-p*
 	(timed-message-box *root-window*
-		     (or (nth new-screen (workspace-names *root-window*))
-			 (format nil "WORKSPACE ~a" new-screen)))))))
+			   (or (nth new-screen (workspace-names *root-window*))
+			       (format nil "WORKSPACE ~a" new-screen)))))))
 
 (defun get-visible-windows (vscreens)
   (loop for window across (vs:nth-vscreen vscreens)
@@ -285,7 +285,7 @@
   (let* ((hint (ignore-errors (xlib:get-property window :WM_HINTS)))
 	 (protocols (ignore-errors (xlib:wm-protocols window)))
 	 (input-p (and hint (logbitp 0 (first hint)) (= 1 (second hint))))
-	 (take-focus-p (member :wm_take_focus protocols)))
+	 (take-focus-p (ignore-errors (member :wm_take_focus protocols))))
     (cond ((and (not input-p) (not take-focus-p)) :no-input)
 	  ((and (not input-p) take-focus-p) :globally-active)
 	  ((and input-p (not take-focus-p)) :passive)
@@ -476,6 +476,7 @@
 
 (defclass icon (push-button)
   ((desiconify-p :initform nil :accessor icon-desiconify-p)
+   (creation-time :initform (get-universal-time) :accessor icon-creation-time)
    (application :initarg :application :reader icon-application)))
 
 (defun icon-p (widget)
@@ -485,7 +486,7 @@
 		    &optional (gcontext *gcontext*) (bg-color *black*))
   (with-slots (window icon) application
     (let ((background (clx-ext::wm-hints-icon-pixmap window))
-	  (width 45) (height 60))
+	  (width 45) (height 20))
       (if (typep background 'xlib:pixmap)
 	  (multiple-value-setq (width height) (drawable-sizes background))
 	  (setf background nil))
@@ -499,14 +500,82 @@
       (setf icon (create-button
 		    'icon
 		    :parent *root-window* :master master
-		    :x 750 :y 50 :width width :height height
+		    :x 0 :y 0 :width width :height height
 		    :gcontext gcontext
 		    :item (unless background (wm-icon-name window))
 		    :background (or background bg-color))
 	    (slot-value icon 'application) application)
       icon)))
 
+(defun icon-sort-creation-order (icon1 icon2)
+  (< (icon-creation-time icon1) (icon-creation-time icon2)))
+
+(defun icon-sort-name (icon1 icon2)
+  (string< (xlib:wm-name (widget-window (icon-application icon1)))
+	   (xlib:wm-name (widget-window (icon-application icon2)))))
+
+(defun icon-sort-type (icon1 icon2)
+  (let ((c1 (application-class (icon-application icon1)))
+	(c2 (application-class (icon-application icon2))))
+  (or (string< (cdr c1) (cdr c2))
+      (and (string= (cdr c1) (cdr c2))
+	   (string< (car c1) (car c2))))))
+
+(defun icon-box-update ()
+  (unless (eq *icon-box-fill* :top-right)
+    (timed-message-box (widget-window *root*)
+      "Only :top-right fill is currently supported"))
+  (let ((icons (stable-sort
+		(loop for val being each hash-value in *widget-table*
+		      when (icon-p val) collect val)
+		(or *icon-box-sort-function* #'icon-sort-creation-order))))
+    (flet ((absx (v) (if (< v 0) (+ (screen-width) v) v))
+	   (absy (v) (if (< v 0) (+ (screen-height) v) v)))
+      (let* ((box-tlx (absx (aref *icon-box* 0))) ;top left x
+	     (box-tly (absy (aref *icon-box* 1)))
+	     (box-brx (absx (aref *icon-box* 2))) ;bottom right y
+	     (box-bry (absy (aref *icon-box* 3)))
+	     (box-trx box-brx)
+	     (box-try box-tly)
+	     (box-blx box-tlx)
+	     (box-bly box-bry)
+	     (box-sizex (- box-trx box-tlx))
+	     (box-sizey (- box-bry box-try))
+	     (prev-icon-window nil)
+	     (maxedge 0)
+	     (basex 0)
+	     (basey nil))
+	(declare (ignore box-sizey box-sizex box-blx))
+	(dolist (icon icons)
+	  (let* ((icon-window (widget-window icon))
+		 (icon-x (xlib:drawable-x icon-window))
+		 (icon-y (xlib:drawable-y icon-window)))
+	    (setq maxedge (max (xlib:drawable-width icon-window) maxedge)
+		  basex (- box-trx maxedge *icon-box-sep*)
+		  basey (if (not basey)
+			    box-try
+			    (+ basey
+			       (xlib:drawable-height prev-icon-window)
+			       *icon-box-sep*)))
+	    (when (> basey box-bry)
+	      (setq basey box-try
+		    basex (- basex maxedge *icon-box-sep*)
+		    maxedge (xlib:drawable-width icon-window)))
+	    (when (< basex box-tlx)
+	      ;;if the box overflows, we put the icon into (0,0)
+	      (setq basex 0 basey 0))
+	    (cond
+	     ((and (= basex icon-x) (= basey icon-y)))
+	     ((or (< 0 basex box-tlx) (> basex box-trx)
+		  (< 0 basey box-tly) (> basey box-bly)))
+	     (t
+	      (xlib:with-state (icon-window)
+		(setf (xlib:drawable-x icon-window) basex
+		      (xlib:drawable-y icon-window) basey))))
+	    (setq prev-icon-window icon-window)))))))
+
 (defmethod iconify ((application application))
+  (icon-box-update)
   (with-slots (window iconic-p wants-focus-p icon) application
     (setf iconic-p t wants-focus-p t)
     (xlib:unmap-window window)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.3 2003/03/21 09:54:47 hatchond Exp $
+;;; $Id: misc.lisp,v 1.4 2003/04/07 13:35:32 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -94,7 +94,7 @@
 (defun wm-name (window)
   (or (ignore-errors (netwm:net-wm-name window))
       (ignore-errors (xlib:wm-name window))
-      (format nil "incognito")))
+      "incognito"))
 
 (defun wm-icon-name (window)
   (or (ignore-errors (netwm:net-wm-icon-name window))
@@ -161,3 +161,29 @@
 (defsetf geometry (geometry) (x y w h)
   `(setf (geometry-x ,geometry) ,x   (geometry-y ,geometry) ,y
          (geometry-w ,geometry) ,w   (geometry-h ,geometry) ,h))
+
+;;; application inspection functions
+
+(defun application-list ()
+  "Return the applications objects as a list."
+  (loop for val being each hash-value in *widget-table*
+	when (application-p val) collect val))
+
+(defun application-name (app)
+  (xlib:wm-name (widget-window app)))
+
+(defun application-find (name)
+  (car (member name (application-list) :test #'equal :key #'application-name)))
+
+(defun application-class (app)
+  (multiple-value-bind (name type)
+      (xlib:get-wm-class (widget-window app))
+    (cons name type)))
+
+(defun application-class-name (app)
+  (car (application-class app)))
+
+(defun application-class-type (app)
+  (cdr (application-class app)))
+
+;;;; misc.lisp ends here.

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.9 2003/03/19 10:15:23 hatchond Exp $
+;;; $Id: wm.lisp,v 1.10 2003/03/21 09:54:48 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -22,7 +22,7 @@
 ;;; along with this program; if not, write to the Free Software
 ;;; Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
-;; usefull for having a quick and short garbadge collection.
+;; usefull for having a quick and short garbage collection.
 #+:cmu (setf extensions:*bytes-consed-between-gcs* 400000
 	     extensions:*gc-verbose* nil)
 
@@ -634,8 +634,6 @@
 
     ;; Sets the root window pop-up menu
     (nconc *menu-1-items* (acons "Exit" (lambda () (setf exit 1)) '()))
-    ; I want to disable the exit part for the moment.
-    (setf *menu-1-items* (butlast *menu-1-items*)) 
     (with-slots (menu1 menu3) *root*
       (setf menu1 (apply #'make-pop-up *root* *menu-1-items*)
 	    menu3 (make-pop-up *root*
@@ -676,8 +674,9 @@
 		(event-process event (lookup-widget event-window)))))
 	  (when pt:preprogrammed-tasks (pt:execute-preprogrammed-tasks))
 	  (case exit
-	    (1 (loop for val being each hash-value in *widget-table*
-		     do (close-widget val))
+	    (1 (when *close-display-p*
+		 (loop for val being each hash-value in *widget-table*
+		       do (close-widget val)))
 	       (setf time 10 exit 2))
 	    (2 (return))))))
     (format t "Main loop exited~%")))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.4 2003/03/21 09:54:47 hatchond Exp $
+;;; $Id: input.lisp,v 1.5 2003/04/07 13:35:32 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -299,6 +299,14 @@
       (:WM_STATE
        (update-lists app (car (wm-state window)) *root*)))))
 
+(defun fullscreenable (application) 
+  (with-slots (window) application
+    (let ((hint (ignore-errors (xlib:wm-normal-hints window))))
+      (symbol-macrolet ((max-w (xlib:wm-size-hints-max-width hint))
+			(max-h (xlib:wm-size-hints-max-height hint)))
+	  (and (if max-w (= max-w (screen-width)) t)
+	       (if max-h (= max-h (screen-height)) t))))))
+
 (defmethod event-process ((event client-message) (application application))
   (with-slots (data type) event
     (with-slots (master window) application
@@ -341,7 +349,8 @@
 	     (if (= action 0) (uniconify application) (iconify application)))
 	   (when (or (eql prop1 :_net_wm_state_fullscreen)
 		     (eql prop2 :_net_wm_state_fullscreen))
-	     (setf (full-screen-mode application) (if (= action 0) :off :on)))
+	     (when (fullscreenable application)
+	       (setf (full-screen-mode application) (if (= action 0) :off :on))))
 	   (when master
 	     (when (or (eql prop1 :_net_wm_state_maximized_vert)
 		       (eql prop2 :_net_wm_state_maximized_vert))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.5 2003/03/19 10:54:33 hatchond Exp $
+;;; $Id: global.lisp,v 1.6 2003/04/07 13:35:32 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -59,7 +59,8 @@
 (defvar *gcontext* nil)
 (defvar *widget-table* (make-hash-table))
 
-;; Default value of all the "customisable" environement variables
+;; Default value of all the "customisable" environment variables
+(defparameter *close-display-p* t)
 (defparameter *menu-1-items* nil)
 (defparameter *nb-vscreen* 4)
 (defparameter *change-desktop-message-active-p* t)
@@ -73,6 +74,17 @@
 (defparameter *focus-type* :none "values are: :none :on-click")
 (defparameter *font-name* 
   "-misc-fixed-medium-r-normal--14-110-100-100-c-70-iso8859-1")
+
+(defparameter *icon-hints* nil)
+(defparameter *icon-box* '#(-75 5 -5 -5)
+  "top left and bottom right corner coordinates of the icon box area")
+(defparameter *icon-box-sep* 2)
+(defparameter *icon-box-fill* :top-right
+  "icon box fill strategy, one of :{top,bottom}-{left,right}")
+(defparameter *icon-box-sort-function* nil
+  "Function determining icon order within the box.
+NIL corresponds to the default which is to sort on order of creation
+\(aka `icon-sort-creation-order'\).")
 
 (defsetf font-name () (name)
   `(setf *font-name* ,name
