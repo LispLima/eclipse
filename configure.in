@@ -1,4 +1,4 @@
-# $Id: configure.in,v 1.6 2004/01/12 11:22:05 ihatchondo Exp $
+# $Id: configure.in,v 1.7 2004/03/16 18:20:35 ihatchondo Exp $
 
 AC_INIT()
 
@@ -107,7 +107,7 @@ AC_ARG_WITH(initcore,
 [  --with-initcore=FILE    the name of the core to use when compiling],
 if test -n "$withval" -a -r "$withval"
 then if test "$withval" = "yes" -o "$withval" = "no"; then :;
-     else INITCORE="${core_switch} $withval"; fi
+     else INITCORE="$withval"; fi
 fi)
 
 AC_ARG_WITH(gnome_entry_dir,
@@ -192,6 +192,8 @@ gnome_entry_dir=${clwm_cv_gnome_entry_dir}
 
 #
 # prepare the lisp arguments for the wm loader.
+if test -n "${INITCORE}"; then INITCORE="${core_switch} ${INITCORE}"; fi
+
 if test ${usecore} = yes
 then
  ARGS="${core_switch} ${COREDIR}/${CORENAME}\

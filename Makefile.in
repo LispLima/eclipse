@@ -1,5 +1,5 @@
 # -*- Mode: Makefile -*-
-# $Id: Makefile.in,v 1.9 2004/02/26 16:23:52 ihatchondo Exp $
+# $Id: Makefile.in,v 1.10 2004/03/16 18:20:35 ihatchondo Exp $
 #
 # Makefile for Eclipse window manager.
 
@@ -59,18 +59,18 @@ exit = \#+allegro (excl:exit)\
 all:	compile themes core
 
 compile:
-	$(LISP) $(INITCORE) ${load_switch} system.lisp			\
-		${eval_switch}  "(progn					\
+	$(LISP) $(INITCORE) ${load_switch} system.lisp			  \
+		${eval_switch}  "(progn					  \
 			           (eclipse-system:compile-eclipse-system)\
-			           ${exit})"\
+			           ${exit})"
 
 core:	
-	if test ! ${usecore} = no;					\
-        then $(LISP) $(INITCORE) ${load_switch} system.lisp		\
-                     ${eval_switch} '(setq $(setconfig))'		\
-                     ${eval_switch} "(progn				\
+	if test ${usecore} = yes;					   \
+        then $(LISP) $(INITCORE) ${load_switch} system.lisp		   \
+                     ${eval_switch} '(setq $(setconfig))'		   \
+                     ${eval_switch} "(progn				   \
 			               (eclipse-system:load-eclipse-system)\
-			               (${save_lisp} \"${CORENAME}\"))";\
+			               (${save_lisp} \"${CORENAME}\"))";   \
 	fi
 
 .PHONY: themes
@@ -79,7 +79,7 @@ themes:
 	@for theme in ${themes}; do tmp=$$tmp\"themes/$$theme/\"; done;	\
 	$(LISP) $(INITCORE) ${load_switch} system.lisp			\
 		${eval_switch} "(progn 					\
-				  (eclipse-system:compile-themes $$tmp)\
+				  (eclipse-system:compile-themes $$tmp) \
 				  ${exit})"
 
 clean: clean-fasl clean-core clean-themes
@@ -87,12 +87,12 @@ clean: clean-fasl clean-core clean-themes
 clean-fasl:
 	$(LISP) $(INITCORE) ${load_switch} system.lisp ${eval_switch}	\
 	 "(progn							\
-	    (eclipse-system:clean-eclipse-system)\
-	    ${exit})";\
+	    (eclipse-system:clean-eclipse-system)                       \
+	    ${exit})";                                                  \
 	/bin/rm -f *.err
 
 clean-core:
-	if test ! ${usecore} = no; then /bin/rm -f ${CORENAME}; fi
+	if test ${usecore} = yes; then /bin/rm -f ${CORENAME}; fi
 
 clean-themes:
 	for theme in themes/*; do /bin/rm -f $$theme/theme.o; done
@@ -104,7 +104,7 @@ realclean: clean
 	/bin/rm -f config.cache config.log config.status
 
 install:
-	if test ! ${usecore} = no ; then			\
+	if test ${usecore} = yes ; then				\
 	    $(install) -d ${COREDIR} ;				\
 	    $(install) ${CORENAME} ${COREDIR}/${CORENAME} ;	\
 	    for theme in ${themes} ; do				\
