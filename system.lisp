@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: system.lisp,v 1.12 2004/03/09 10:33:30 ihatchondo Exp $
+;;; $Id: system.lisp,v 1.13 2004/03/16 18:20:35 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -58,6 +58,7 @@
     #+mk-defsystem
     (mk:defsystem ,module
 	:source-pathname cl-user::*eclipse-src-directory*
+	:source-extension "lisp"
 	,@(and depends-on `(:depends-on ,depends-on))
 	:components (:serial ,@components))
     #+asdf
