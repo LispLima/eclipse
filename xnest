@@ -1,8 +1,7 @@
 #!/bin/sh
+# $Id: xnest,v 1.2 2002/06/22 03:19:16 james Exp $
 #
 # Script to start a nested X server (Xnest) session.  Good for WM hacking.
-#
-# $Id$
 #
 # Copyfnord (K) 3168, James A. Crippen <james@unlambda.com>
 # This file is in the public domain.  It's just a throwaway.  No

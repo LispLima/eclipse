@@ -1,4 +1,6 @@
 ;;; -*- Mode: Lisp; Package: User -*-
+;;; $Id$
+;;;
 ;;; @configure_input@
 ;;; watch out before modify it.
 ;;; It use the MK-DEFSYSTEM for loading the system.

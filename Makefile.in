@@ -1,4 +1,7 @@
-# Makefile for Eclipse window manager.
+# -*- Mode: Makefile -*-
+# $Id$
+#
+# Makefile for the Eclipse Common Lisp Window Manager.
 
 LISP = @LISP@
 CORE = @CORE@

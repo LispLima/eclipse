@@ -1,3 +1,5 @@
+-*- Mode: ChangeLog -*-
+$Id$
 0.01 => 0.02
 
      Eclipse should now compile on every ANSI-compliant Common Lisp
