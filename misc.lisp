@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.24 2004/02/12 23:30:22 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.25 2004/03/04 12:59:43 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -122,14 +122,12 @@
 	with width of-type ppm::card-16 = (aref property-vector 0)
 	with height of-type ppm::card-16 = (aref property-vector 1)
 	with size of-type ppm::card-32 = (* width height)
-	with data = (make-array (list height width) :element-type type)
+	with data = (make-array `(,height ,width) :element-type type)
 	with tmp = (make-array size :displaced-to data :element-type type)
 	for i of-type ppm::card-32 from 2 below (+ 2 size)
 	for argb of-type ppm::card-32 = (aref property-vector i)
-	for r of-type ppm::card-8 = (ldb (byte 8 16) argb)
-	for g of-type ppm::card-8 = (ldb (byte 8 8) argb)
-	for b of-type ppm::card-8 = (ldb (byte 8 0) argb)
-	do (setf (aref tmp (- i 2)) (ppm::get-color r g b))
+	do (setf (aref tmp (- i 2))
+		 (ppm::color->x-color (logand (ash argb -8) #xFFFFFF)))
 	finally (return
 		  (xlib:image-pixmap
 		      window

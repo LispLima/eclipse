@@ -27,21 +27,19 @@
   (:use common-lisp)
   (:size 50)
   (:export
-   #:picture #:gray-scale #:colored-24 #:p5 #:p6
-   #:internal-picture-width #:picture-width #:picture-height
-   #:picture-data
-   #:picture-max
-   #:make-clx-data
-   #:make-pnm
-   #:load-ppm
-   #:load-ppm-into-clx-image
    #:initialize
+   #:image #:gray-scale-image #:colored-24-image #:p5 #:p6
+   #:image-width #:image-height #:image-pixels #:image-max-level #:image-pixel
+   #:make-image-from-stream #:make-p5-image #:make-p6-image
+   #:with-pnm-header
+   #:load-ppm #:load-ppm-into-clx-image #:image->clx-image
    ))
 
 (in-package :PPM)
 
-(declaim (optimize (speed 3) (safety 1)
-		   (debug 0) (compilation-speed 0)))
+(declaim (optimize (speed 3) (safety 1) (debug 0) (compilation-speed 0)))
+
+;;;; some internal types.
 
 (deftype card-32 () `(unsigned-byte 32))
 (deftype card-29 () `(unsigned-byte 29))
@@ -50,9 +48,6 @@
 (deftype card-8 () `(unsigned-byte 8))
 (deftype card-6 () `(unsigned-byte 6))
 (deftype card-4 () `(unsigned-byte 4))
-
-(deftype picture-size () `(and (unsigned-byte 16) (satisfies plusp)))
-(deftype color-table () '(simple-array fixnum (256)))
 
 (deftype pixarray-1 () '(simple-array bit (* *)))
 (deftype pixarray-4 () '(simple-array card-4 (* *)))
@@ -63,135 +58,16 @@
 (deftype pixarray ()
   '(or pixarray-1 pixarray-4 pixarray-8 pixarray-16 pixarray-24 pixarray-32))
 
+(deftype color-table () '(simple-array fixnum (256)))
 
-;;; Protocol class
-(defclass picture ()
-  ((width :initarg :width :type picture-size :writer (setf picture-width))
-   (height :initarg :height :type picture-size :accessor picture-height)
-   (max :initarg :max :type card-8 :accessor picture-max)
-   (data :initarg :data :accessor picture-data)))
+;;;; x color utilities.
 
-(defmethod initialize-instance :after ((image picture) &rest rest)
-  (declare (ignore rest))
-  (with-slots (width height data) image
-    (declare (type picture-size width height))
-    (when (typep image 'colored-24)
-      (setf width (* (the picture-size width) 3)))
-    (setf data (make-array (list height width) :element-type 'card-8))))
-
-(defgeneric picture-width (picture))
-(defgeneric internal-picture-width (picture))
-(defgeneric make-clx-data (picture depth))
-
-(defmethod picture-width ((picture picture))
-  "Give the real width of the image"
-  (slot-value picture 'width))
-
-(defmethod internal-picture-width ((picture picture))
-  "Give the width of the internal image representation"
-  (slot-value picture 'width))
-
-;;; Gray scale image
-(defclass gray-scale (picture) ())
-
-(defmethod make-clx-data ((image gray-scale) depth)
-  (make-array (list (picture-height image) (picture-width image))
-	      :element-type `(unsigned-byte ,(find-bits-per-pixel depth))))
-
-(defmethod create-ppm-internal ((image gray-scale) clx-data)
-  (declare (type pixarray clx-data))
-  (with-slots (width height data) image
-    (loop for i of-type card-16 from 0 below height do
-	  (loop for j of-type card-16 from 0 below width
-		for gray = (get-gray (aref (the pixarray data) i j))
-		do (setf (aref clx-data i j) gray)))))
-	
-;;; Colored image
-(defclass colored-24 (picture) ())
-
-(defmethod picture-width ((picture colored-24))
-  "Give the real width of the image"
-  (/ (the picture-size (slot-value picture 'width)) 3))
-
-(defmethod make-clx-data ((image colored-24) depth)
-  (make-array (list (picture-height image) (picture-width image))
-	      :element-type `(unsigned-byte ,(find-bits-per-pixel depth))))
-
-(defmethod create-ppm-internal ((image colored-24) clx-data)
-  (declare (type pixarray clx-data))
-  (with-slots (width height data) image
-    (loop for i of-type card-16 from 0 below height do
-	  (loop for j of-type card-16 from 0 below width
-		for k of-type card-16 from 0
-		for color = (get-color
-			        (aref (the pixarray data) i j)
-				(aref (the pixarray data) i (incf j))
-				(aref (the pixarray data) i (incf j)))
-		do (setf (aref clx-data i k) color)))))
-
-;; PNM supported formats
-(defclass p5 (gray-scale) ())
-(defclass p6 (colored-24) ())
-
-(defun make-pnm (format width height max)
-  (make-instance (intern (format nil "~A" format) :ppm)
-		 :width width :height height :max max))
-
-;;; Main work
-
-(defun find-bits-per-pixel (depth)
-  (declare (type card-8 depth))
-  (cond ((>= depth 24) 32)
-	((> depth 16) 24)
-	((> depth 8) 16)
-	((> depth 4) 8)
-	((> depth 1) 4)
-	(t depth 1)))
-
-(defvar *ppm-readtable* (copy-readtable))
-
-(defun create-ppm-image-from-stream (stream)
-  (set-syntax-from-char #\# #\; *ppm-readtable*)
-  (flet ((parse (stream)
-	   (let ((*readtable* *ppm-readtable*))
-	     (read stream))))
-    (make-pnm (parse stream) (parse stream) (parse stream) (parse stream))))
-
-(defun load-ppm (filename)
-  (with-open-file (stream filename)
-    (let* ((image (create-ppm-image-from-stream stream))
-	   (size (* (the picture-size (picture-height image))
-		    (the picture-size (internal-picture-width image))))
-	   (tmp (make-array size
-			    :element-type 'card-8
-			    :displaced-to (picture-data image))))
-      (declare (type card-32 size))
-      (with-open-file (byte-stream filename :element-type '(unsigned-byte 8))
-	(unless (file-position byte-stream (file-position stream))
-	  (error "could not reposition image data stream"))
-	(loop with offset of-type card-32 = 0
-	    while (< offset size)
-	    do (setf offset (read-sequence tmp byte-stream :start offset)))
-      image))))
-
-(defun load-ppm-into-clx-image (filename drawable)
-  (let* ((depth (xlib:drawable-depth drawable))
-	 (image (load-ppm filename))
-	 (clx-data (make-clx-data image depth)))
-    (create-ppm-internal image clx-data)
-    (xlib:create-image :width (picture-width image)
-		       :height (picture-height image)
-		       :depth depth
-		       :bits-per-pixel (find-bits-per-pixel depth)
-		       :data clx-data)))
-
+(defvar *gray-table* (make-array 256 :element-type 'fixnum))
 (defvar *red-table* (make-array 256 :element-type 'fixnum))
 (defvar *green-table* (make-array 256 :element-type 'fixnum))
 (defvar *blue-table* (make-array 256 :element-type 'fixnum))
-(defvar *gray-table* (make-array 256 :element-type 'fixnum))
 
-(declaim 
- (type color-table *blue-table* *red-table* *green-table* *gray-table*))
+(declaim (type color-table *gray-table* *red-table* *green-table* *blue-table*))
 
 (defun initialize-color-tables (colormap r-table g-table b-table)
   (declare (type color-table r-table g-table b-table))
@@ -205,10 +81,13 @@
 
 (defun initialize-gray-table (colormap gray-table)
   (declare (type color-table gray-table))
-  (loop	for i of-type card-16 from 0 to 255
-	for rgb = (xlib:make-color :red (/ i 255) :green (/ i 255) :blue (/ i 255))
+  (loop	with m of-type card-8 = 255
+	for i of-type card-16 from 0 to m
+	for rgb = (xlib:make-color :red (/ i m) :green (/ i m) :blue (/ i m))
 	do (setf (aref gray-table i) (xlib:alloc-color colormap rgb))))
-			
+
+;; Public color utilities.
+
 (defun initialize (colormap)
   (initialize-gray-table colormap *gray-table*)
   (initialize-color-tables colormap *red-table* *green-table* *blue-table*))
@@ -222,3 +101,172 @@
   (logior (the fixnum (aref *red-table* r-index))
 	  (the fixnum (aref *green-table* g-index))
 	  (the fixnum (aref *blue-table* b-index))))
+
+;;;; Images
+;; Protocol class
+
+(defclass image ()
+  ((max-level :initarg :max-level :type card-8 :reader image-max-level)
+   (pixels :initarg :pixels :type pixarray :reader image-pixels)))
+
+(defgeneric image-width (image))
+(defgeneric image-height (image))
+(defgeneric image-pixel (image x y))
+(defgeneric (setf image-pixel) (x y pixel image))
+(defgeneric make-image-from-stream (type stream width height mlevel))
+
+(defmethod image-width ((image image))
+  (cadr (array-dimensions (image-pixels image))))
+
+(defmethod image-height ((image image))
+  (car (array-dimensions (image-pixels image))))
+
+(defmethod image-pixel ((image image) x y)
+  (aref (the pixarray (image-pixels image)) y x))
+
+(defmethod (setf image-pixel) (x y pixel image)
+  (setf (aref (the pixarray (image-pixels image)) y x) pixel))
+
+;; Gray scale image
+
+(defclass gray-scale-image (image)
+  ((pixels :type pixarray-8)))
+
+(defun gray->x-gray (pixel)
+  (declare (type card-8 pixel))
+  (get-gray pixel))
+  
+;; Colored image
+
+(defclass colored-24-image (image)
+  ((pixels :type pixarray-24)))
+
+(defmacro red-component (pixel)
+  `(the (unsigned-byte 8) (logand (ash ,pixel -16) 255)))
+
+(defmacro green-component (pixel)
+  `(the (unsigned-byte 8) (logand (ash ,pixel -8) 255)))
+
+(defmacro blue-component (pixel)
+  `(the (unsigned-byte 8) (logand ,pixel 255)))
+
+(defun color->x-color (pix)
+  (declare (type card-24 pix))
+  (get-color (red-component pix) (green-component pix) (blue-component pix)))
+
+;; PNM supported formats
+
+(defclass p5 (gray-scale-image) ())
+
+(defun make-p5-image (pixels &optional (max-level 255))
+  (make-instance 'p5 :pixels pixels :max-level max-level))
+
+(defmethod make-image-from-stream ((type (eql :P5)) stream width height mlevel)
+  (declare (type card-16 width height))
+  (declare (type card-8 mlevel))
+  (loop with size of-type fixnum = (* width height)
+        with pixels = (make-array `(,height ,width) :element-type 'card-8)
+	with vec = (make-array size :element-type 'card-8 :displaced-to pixels)
+	with offset of-type fixnum = 0
+	while (< offset size)
+	do (setf offset (read-sequence vec stream :start offset))
+	finally (return (make-p5-image pixels mlevel))))
+
+(defclass p6 (colored-24-image) ())
+
+(defun make-p6-image (pixels &optional (max-level 255))
+  (make-instance 'p6 :pixels pixels :max-level max-level))
+
+(defmethod make-image-from-stream ((type (eql :P6)) stream width height mlevel)
+  (declare (type card-16 width height))
+  (declare (type card-8 mlevel))
+  (loop with size of-type fixnum = (* width height)
+	with cache-size of-type fixnum = (the fixnum (min size 21000))
+	with aux = (make-array (* 3 cache-size) :element-type 'card-8)
+	for start of-type fixnum from 0 by cache-size below size
+	for end of-type fixnum = (min (+ start cache-size) size)
+	with data = (make-array `(,height ,width) :element-type 'card-24)
+	with vec = (make-array size :element-type 'card-24 :displaced-to data)
+	do (loop with offset = 0
+		 while (< offset (* 3 (the fixnum (- end start))))
+		 do (setf offset (read-sequence aux stream :start offset)))
+	   (loop for i of-type fixnum from start below end
+		 for j of-type fixnum from 0 by 3
+		 do (setf (aref vec i)
+			  (the card-24
+			    (+ (ash (the card-8 (aref aux j)) 16)
+			       (ash (the card-8 (aref aux (1+ j))) 8)
+			       (the card-8 (aref aux (+ 2 j)))))))
+	finally (return (make-p6-image data mlevel))))
+
+;;;; Macros.
+
+(defvar *ppm-readtable* (copy-readtable))
+
+(defmacro with-pnm-header
+    ((stream pnm-type &key width height max-level) &body body)
+  "The macro with-pnm-header establishes a lexical environment for referring to
+  the pnm image attirbutes: pnm-type, width, height, max-level."
+  (let ((var1 (gensym)) (var2 (gensym)) (var3 (gensym)))
+    `(progn
+       (set-syntax-from-char #\# #\; *ppm-readtable*)
+       (flet ((parse (stream)
+		(let ((*readtable* *ppm-readtable*))
+		  (read stream))))
+	 (let ((,pnm-type (intern (format nil "~a" (parse ,stream)) :keyword))
+	       (,(or width var1) (parse ,stream))
+	       (,(or height var2) (parse ,stream))
+	       (,(or max-level var3) (parse ,stream)))
+	   ,@(unless width `((declare (ignore ,var1))))
+	   ,@(unless height `((declare (ignore ,var2))))
+	   ,@(unless max-level `((declare (ignore ,var3))))
+	   ,@body)))))
+
+;;;; Load functions.
+
+(defun load-ppm (filename)
+  "Returns an image instance that contains a representation of a pnm image."  
+  (with-open-file (stream filename)
+    (with-pnm-header (stream type :width width :height height :max-level max)
+      (declare (type card-16 width height))
+      (declare (type card-8 max))
+      (with-open-file (byte-stream filename :element-type 'card-8)
+	(unless (file-position byte-stream (file-position stream))
+	  (error "could not reposition image data stream"))
+	(make-image-from-stream type byte-stream width height max)))))
+
+(defun image->clx-image (image drawable)
+  "Returns a clx image representation of an image."
+  (loop with getter = (typecase image
+			(gray-scale-image #'gray->x-gray)
+			(colored-24-image #'color->x-color))
+	with depth of-type card-8 = (xlib:drawable-depth drawable)
+	with bits-per-pixel = (find-bits-per-pixel depth)
+	with w = (image-width image) 
+	with h = (image-height image)
+	with type = `(unsigned-byte ,bits-per-pixel)
+	with res of-type pixarray = (make-array `(,h ,w) :element-type type)
+	for y of-type card-16 from 0 below h
+	do (loop for x of-type card-16 from 0 below w 
+		 for pixel = (image-pixel image x y)
+		 do (setf (aref res y x) (funcall getter pixel)))
+	finally (return (xlib:create-image
+			    :width w :height h :depth depth :data res
+			    :bits-per-pixel bits-per-pixel))))
+
+(defun load-ppm-into-clx-image (filename drawable)
+  "Returns a clx image representation of a pnm image readed in a pnm file."
+  (let ((image (load-ppm filename)))
+    (prog1 (image->clx-image image drawable)
+      (setf (slot-value image 'pixels) nil))))
+
+;;;; private routines.
+
+(defun find-bits-per-pixel (depth)
+  (declare (type card-8 depth))
+  (cond ((>= depth 24) 32)
+	((> depth 16) 24)
+	((> depth 8) 16)
+	((> depth 4) 8)
+	((> depth 1) 4)
+	(t depth 1)))
