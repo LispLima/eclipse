@@ -4,31 +4,7 @@
 # @configure_input@
 # This file starts the eclipse window manager
 
-usage () { 
-    printf "\nusage: eclipse [ --display=dpy ] [ --sm-client-id=id ]\n\n"; 
-    exit 1;
-}
-
-display_spec=""
-sm_client_id=""
-
-if [ $# -ne 0 -a $# -ne 2 -a $# -ne 4 ] ; then usage ; fi
-
-while [ $# -gt 0 ] ; do
-  case "$1" in
-      --display=)
-	  tmp=`echo $1 | cut -d'=' -f2`
-	  display_spec=":display \"$tmp\"" ;
-	  shift ;
-	  ;;
-      --sm-client-id=)
-	  tmp=`echo $1 | cut -d'=' -f2`
-	  sm_client_id=":sm-client-id \"$tmp\"";
-	  shift ;
-	  ;;
-      -* | *) usage ;;
-  esac
-done
+display_spec=`if [ -n "$1" ]; then echo \"$1\"; fi`
 
 if [ -d @SRC@ ] ; then
     cd @SRC@
