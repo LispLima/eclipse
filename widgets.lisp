@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.16 2003/10/06 17:57:26 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.17 2003/10/09 11:37:08 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -249,7 +249,8 @@
 	         (setf x 0 y 0 w (screen-width) h (screen-height)))
 	     (xlib:with-state (window)
 	       (setf (window-position window) (values x y)
-		     (drawable-sizes window) (values w h)))))
+		     (drawable-sizes window) (values w h))))
+	   (focus-widget application 0))
 	 (with-event-mask (*root-window*)
 	   (setf (window-position window) (geometry-coordinates fgeometry)
 		 (drawable-sizes window) (geometry-sizes fgeometry))
