@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.8 2003/09/30 12:18:36 hatchond Exp $
+;;; $Id: package.lisp,v 1.9 2003/10/06 17:57:26 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -185,6 +185,8 @@
    "REALIZE-MENU-ITEMS"			  ;function
    "REALIZE-POP-UP"			  ;function
    "RECOMPUTE-WM-NORMAL-HINTS"		  ;function
+   "REGION-INTERSECT-REGION-P"            ;function
+   "REGION-INTERSECT-WINDOW-IN-SCREEN"    ;function
    "REGISTER-ALL-KEYSTROKES"		  ;function
    "REGISTER-ALL-MOUSE-STROKES"		  ;function
    "RUN-APPLICATION"			  ;function
@@ -329,15 +331,14 @@
    "WITH-ROOT-CURSOR"			  ;macro
 
    "+ANY-DESKTOP+"			  ;constant
+   "+APPLICATION-MASK+"                   ;constant
    "+DECORATION-EVENT-MASK+"		  ;constant
    "+EDGE-EVENT-MASK+"			  ;constant
-   "+FOCUSABLE-MASK+"			  ;constant
    "+GNOME-PROTOCOLS+"			  ;constant
    "+NETWM-PROTOCOL+"			  ;constant
    "+POINTER-EVENT-MASK+"		  ;constant
    "+PUSH-BUTTON-MASK+"			  ;constant
    "+STD-BUTTON-MASK+"			  ;constant
-   "+UNFOCUSABLE-MASK+"			  ;constant
 
    "*WHITE*"                              ;variable
    "*BLACK*"                              ;variable

@@ -1,5 +1,5 @@
 .TH Eclipse 1 "(c) 2001 Iban HATCHONDO"
-.\"$Id: eclipse.1,v 1.7 2003/10/01 09:02:53 hatchond Exp $
+.\"$Id: eclipse.1,v 1.8 2003/10/06 17:57:27 ihatchondo Exp $
 
 .SH NAME
 eclipse - a window manager in Common Lisp
@@ -167,6 +167,15 @@ eclipse will display that pixmap in the icon window. Otherwise a part
 of the application iconic name will be displayed. If you don't want
 eclipse to display small window for icons just set it to
 \fInil\fP. Default value is \fIt\fP. 
+.TP
+.B\-*screen-edge-resistant-p*\ \fIboolean\fP
+Set it to \fInil\fP if you don't want to feel any resistance when
+attempting to move a window outside the screen boundaries. Default
+value is \fIt\fP.
+.TP
+.B\-*standard-window-edge-resistant-p*\ \fIboolean\fP
+Set it to \fInil\fP if you don't want to feel any resistance on edges
+of window(s) you are about to overlap. Default value is \fIt\fP.
 .TP
 .B\-*focus-when-window-cycle*\ \fIboolean\fP
 If set to \fIt\fP the next window will be focused. Otherwise nothing 
