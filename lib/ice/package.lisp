@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: COMMON-LISP; -*-
-;;; $Id: package.lisp,v 1.3 2004/03/05 16:18:27 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.4 2004/03/08 17:50:23 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -128,8 +128,8 @@
    #:make-ice-request 
    #:post-request 
    #:read-request 
+   #:request-error-handler
    #:request-length 
-   #:signal-request-error 
 
    ;; slots
    #:minor-opcode 
@@ -291,8 +291,9 @@
    #:read-major-opcode 
    #:read-minor-opcode 
    #:register-ice-authentication-protocol 
-   #:with-gensym 
    #:request-case 
+   #:with-gensym 
+   #:with-error-handler
 
    ;; types
    #:buffer

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-request.lisp,v 1.4 2004/03/08 17:50:23 ihatchondo Exp $
+;;; $Id: ICE-request.lisp,v 1.5 2004/03/16 16:56:54 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -281,7 +281,7 @@
   values, if any, and their types vary with the specific error class for the
   protocol."))
 
-(defgeneric signal-request-error (request-error)
+(defgeneric request-error-handler (request-error)
   (:documentation "Default ice error handler: signal an error: <error-CLASS>."))
 
 (defun report-ice-error (condition stream)
@@ -306,10 +306,8 @@
 	 (class (buffer-read-card16 byte-order buff index))
 	 (err (decode-request (decode-error class) ice-conn buff byte-order))
 	 (severity (request-error-severity err)))
-    (declare (type (or error-handler (simple-array error-handler (*))) handler))
+    (declare (type error-handler))
     (declare (type card16 class))
-    (when (arrayp handler)
-      (setf handler (aref handler class)))
     ;; Close the connection if one this condition is satisfied (cf: ICE 6.1):
     ;;   severity is :fatal-to-connection.
     ;;   severity is :fatal-to-protocol and major-opcode is ICE.

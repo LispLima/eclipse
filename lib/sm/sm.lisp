@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: SM-LIB; -*-
-;;; $Id: sm.lisp,v 1.5 2004/03/08 17:50:24 ihatchondo Exp $
+;;; $Id: sm.lisp,v 1.6 2004/03/16 16:56:54 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -550,8 +550,7 @@
     ;; Send protocol-setup request and wait for protocol-reply,then
     ;; send register-client and wait for register-client-reply.
     ;; Authentication will take place behind the scene.
-    (let ((error-handler (ice-error-handler sm-conn))
-	  (protocols 
+    (let ((protocols 
 	   (available-authentication-protocols
 	    "XSMP" (ice-connection-string sm-conn) (ice-auth-proto-names)))
 	  (versions (make-default-versions 
@@ -568,43 +567,42 @@
 	:authentication-protocol-names protocols
 	:version-list versions
 	:number-of-authentication-protocol-names-offered (length protocols))
-      (setf (ice-error-handler sm-conn) (lambda (x) x))
-      (request-case (sm-conn :timeout nil :place request :ice-flush-p nil)
-	(authentication-required ((index authentication-protocol-index))
-	  (let ((handler (get-protocol-handler (aref protocols index))))
-	    (declare (type function handler))
-	    (funcall handler sm-conn request))
-	  (values))
-	(protocol-reply (protocol-major-opcode vendor-name release-name)
-	  ;; internally register the protocol.
-	  (setf *xsmp* protocol-major-opcode)
-	  (register-xsmp-protocol protocol-major-opcode)
-	  ;; send the register-client request.
-	  (post-request :register-client sm-conn :previous-id previous-id)
-	  ;; collect some connection infos.
-	  (with-slots (version-index) request
-	    (let ((version (aref versions version-index)))
-	      (declare (type version version))
-	      (setf (sm-protocol-version sm-conn) (aref version 0))
-	      (setf (sm-protocol-revision sm-conn) (aref version 1))))
-	  (setf (sm-release sm-conn) release-name)
-	  (setf (sm-vendor sm-conn) vendor-name)
-	  (values))
-	(register-client-reply (client-id)
-	  (setf (sm-client-id sm-conn) client-id))
-	(request-error ((omo offending-minor-opcode) (mo major-opcode))
-	  (let ((offender (decode-ice-minor-opcode omo mo)))
-	    (if (and (bad-value-p request) (eq offender :register-client))
-		;; Could not register the client because the previous ID
-		;; was bad. So now we register the client with the
-		;; previous ID set to empy string.
-		(post-request :register-client sm-conn :previous-id "")
-		(signal-request-error request)))
-	  (values))
-	;; bad state signal an error.
-	(t (signal-sm-error "bad state during protocol setup: ~a." request)))
-      ;; Reset the error handler and Returns the sm-connection instance.
-      (setf (ice-error-handler sm-conn) error-handler) 
+      (with-error-handler (sm-conn #'(lambda (x) x))
+	(request-case (sm-conn :timeout nil :place request :ice-flush-p nil)
+	  (authentication-required ((index authentication-protocol-index))
+	    (let ((handler (get-protocol-handler (aref protocols index))))
+	      (declare (type function handler))
+	      (funcall handler sm-conn request))
+	    (values))
+	  (protocol-reply (protocol-major-opcode vendor-name release-name)
+	    ;; internally register the protocol.
+	    (setf *xsmp* protocol-major-opcode)
+	    (register-xsmp-protocol protocol-major-opcode)
+	    ;; send the register-client request.
+	    (post-request :register-client sm-conn :previous-id previous-id)
+	    ;; collect some connection infos.
+	    (with-slots (version-index) request
+	      (let ((version (aref versions version-index)))
+		(declare (type version version))
+		(setf (sm-protocol-version sm-conn) (aref version 0))
+		(setf (sm-protocol-revision sm-conn) (aref version 1))))
+	    (setf (sm-release sm-conn) release-name)
+	    (setf (sm-vendor sm-conn) vendor-name)
+	    (values))
+	  (register-client-reply (client-id)
+	    (setf (sm-client-id sm-conn) client-id))
+	  (request-error ((omo offending-minor-opcode) (mo major-opcode))
+	    (let ((offender (decode-ice-minor-opcode omo mo)))
+	      (if (and (bad-value-p request) (eq offender :register-client))
+		  ;; Could not register the client because the previous ID
+		  ;; was bad. So now we register the client with the
+		  ;; previous ID set to empy string.
+		  (post-request :register-client sm-conn :previous-id "")
+		  ;; signal an error.
+		  (request-error-handler request)))
+	    (values))
+	  ;; bad state signal an error.
+	  (t (signal-sm-error "bad state during protocol setup: ~a." request))))
       sm-conn)))
 
 (defun close-sm-connection (sm-conn &key reason)

@@ -1,5 +1,5 @@
 -*- Mode: Text; Syntax: ANSI-English; Package: CL-USER; Base: 10. -*-
-$Id: README,v 1.4 2003/04/07 13:59:49 hatchond Exp $
+$Id: README,v 1.5 2004/03/16 18:20:35 ihatchondo Exp $
 
 				    ECLIPSE
 
@@ -20,7 +20,7 @@ details.
 I would love to receive feedback/coments/idea/bugreports, so feel free
 to send me any comments you might have.
 
-Finally, I only compiled and tested Eclipse with CMUCL.  It should
+Finally, I only compiled and tested Eclipse with CMUCL/SBCL. It should
 work for other ANSI CL implementations, but the Makefile may have to
 be modified, I guess. 
 (I have test it under x86 and Sparc ultra 1 with solaris).

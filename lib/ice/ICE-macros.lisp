@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id:$
+;;; $Id: ICE-macros.lisp,v 1.1 2004/03/16 16:56:53 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -227,6 +227,6 @@
 	   (when doc `(,doc))))
      (define-condition ,(sintern (format nil "ICE-ERROR-~a" name))
        (ice-error) () ,@options)
-     (defmethod signal-request-error ((req ,(intern (symbol-name name))))
+     (defmethod request-error-handler ((req ,(intern (symbol-name name))))
        (error ',(sintern (format nil "ICE-ERROR-~a" name)) 
 	      :request-error req))))

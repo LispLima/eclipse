@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-lib.lisp,v 1.4 2004/03/10 17:17:29 ihatchondo Exp $
+;;; $Id: ICE-lib.lisp,v 1.5 2004/03/16 16:56:53 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -51,7 +51,7 @@
      :initform nil :initarg :protocol-revision :type card16
      :accessor ice-protocol-revision)
    (error-handler
-     :initform #'signal-request-error :initarg :error-handler
+     :initform #'request-error-handler :initarg :error-handler
      :type error-handler
      :accessor ice-error-handler)
    (stream 
@@ -283,6 +283,18 @@
 	    ;; Finally returns the ice-connection instance.
 	    connection))
 	(t (error "ICE: bad state during connection: ~a." request))))))
+
+(defmacro with-error-handler ((ice-connection handler) &body body)
+  "Changes the error handler of the ice-connection for the specified handler
+  only within the dynamic extent of the body."
+  (let ((old-handler (gensym)))
+    `(let ((,old-handler (ice-error-handler ,ice-connection)))
+       (declare (type error-handler ,old-handler))
+       (unwind-protect 
+	    (progn 
+	      (setf (ice-error-handler ,ice-connection) ,handler)
+	      ,@body)
+	 (setf (ice-error-handler ,ice-connection) ,old-handler)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;                                                                       ;;;;
