@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: menu.lisp,v 1.3 2002/11/07 14:54:27 hatchond Exp $
+;;; $Id: menu.lisp,v 1.4 2003/03/16 01:01:34 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO, Robert STRANDH
@@ -247,6 +247,7 @@
 		(remhash (slot-value item 'window) *widget-table*)
 		(setf (slot-value item 'window) nil))
 	    items)
+      (remhash item-container *widget-table*)
       (xlib:destroy-window item-container))
     (setf armed nil
 	  has-substructure nil
