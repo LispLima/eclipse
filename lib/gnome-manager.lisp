@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: GNOME -*-
-;;; $Id: gnome-manager.lisp,v 1.2 2003/11/13 00:03:50 ihatchondo Exp $
+;;; $Id: gnome-manager.lisp,v 1.3 2004/03/01 14:54:02 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -30,14 +30,7 @@
   (:use manager-commons)
   (:size 50)
   (:import-from :xlib #:get-property #:change-property)
-  (:import-from :manager-commons 
-		#:card-32 #:card-16 #:card-8 #:int-16
-		#:get-geometry-hint #:set-geometry-hint
-		#:encode-string-property #:get-text-property
-		#:set-workspace-names 
-		#:set-atoms-property #:get-atoms-property
-		#:get-window-property
-		#:define-window-list-property-accessor)
+  (:import-from :manager-commons #:card-32 #:card-16 #:card-8 #:int-16)
   (:export
    #:win-client-list           #:win-workspace-count
    #:win-workspace-names       #:win-workspace
@@ -49,11 +42,11 @@
 
    #:intern-gnome-atom)
   (:documentation
-   "This package implements :
-The Gnome Window Manager Complience specification.
-When you use it I recommend to call (intern-gnome-atom display),
-before anything else, to be sure that all the atoms you will use
-exist in the server."))
+   "This package implements:
+   The Gnome Window Manager Complience specification.
+   When you use it I recommend to call (intern-gnome-atom display), before
+   anything else, to be sure that all the atoms you will use exist in the
+   server."))
 
 (in-package :GNOME)
 
@@ -119,7 +112,8 @@ exist in the server."))
   (get-text-property window :_WIN_WORKSPACE_NAMES))
 
 (defsetf win-workspace-names (window &key (mode :replace)) (names)
-  `(set-workspace-names ,window ,names :STRING ,mode :_WIN_WORKSPACE_NAMES))
+  `(set-multiple-text-property
+       ,window ,names :STRING ,mode :_WIN_WORKSPACE_NAMES))
 
 ;; _WIN_AREA
 ;; point is a list : current-active-area-x , current-active-area-y
@@ -321,7 +315,6 @@ exist in the server."))
        :_WIN_APP_STATE
        (list (position ,state +win-app-state-vector+ :test #'eq))
        :CARDINAL 32))
-
 
 ;; _WIN_EXPANDED_SIZE
 

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.16 2004/03/09 19:26:28 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.17 2004/04/08 21:19:12 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -30,15 +30,7 @@
   (:nicknames netwm)
   (:size 50)
   (:import-from :xlib #:get-property #:change-property)
-  (:import-from :manager-commons 
-		#:card-32 #:card-16 #:card-8 #:int-16
-		#:make-geometry-hint
-		#:get-geometry-hint #:set-geometry-hint
-		#:encode-string-property #:get-text-property
-		#:set-workspace-names 
-		#:set-atoms-property #:get-atoms-property
-		#:get-window-property
-		#:define-window-list-property-accessor)
+  (:import-from :manager-commons #:card-32 #:card-16 #:card-8 #:int-16)
   (:export
    #:net-supported             #:net-client-list
    #:net-client-list-stacking  #:net-number-of-desktops
@@ -207,7 +199,8 @@
   (get-text-property window :_NET_DESKTOP_NAMES))
 
 (defsetf net-desktop-names (window &key (mode :replace)) (names)
-  `(set-workspace-names ,window ,names :UTF8_STRING ,mode :_NET_DESKTOP_NAMES))
+  `(set-multiple-text-property
+       ,window ,names :UTF8_STRING ,mode :_NET_DESKTOP_NAMES))
 
 ;; _NET_ACTIVE_WINDOW
 
@@ -324,17 +317,11 @@
 ;;;; All the following are clients properties.
 ;; _NET_WM_NAME
 
-(defun set-utf8-property (window property string)
-  (change-property window 
-		   property 
-		   (string->utf8 string :null-terminated nil) 
-		   :utf8_string 8))
-
 (defun net-wm-name (window)
   (car (get-text-property window :_net_wm_name)))
   
 (defsetf net-wm-name (window) (name)
-  `(set-utf8-property ,window :_NET_WM_NAME ,name))
+  `(set-simple-text-property ,window ,name :NET-WM-USER-TIME :utf8_string))
 
 ;; _NET_WM_VISIBLE_NAME
 
@@ -342,7 +329,7 @@
   (car (get-text-property window :_NET_WM_VISIBLE_NAME )))
 		
 (defsetf net-wm-visible-name (window) (name)
-  `(set-utf8-property ,window :_NET_WM_VISIBLE_NAME ,name))
+  `(set-simple-text-property ,window ,name :NET-WM-USER-TIME :utf8_string))
 
 ;; _NET_WM_ICON_NAME
 
@@ -350,7 +337,7 @@
   (car (get-text-property window :_NET_WM_ICON_NAME)))
 
 (defsetf net-wm-icon-name (window) (name)
-  `(set-utf8-property ,window :_NET_WM_ICON_NAME ,name))
+  `(set-simple-text-property ,window ,name :NET-WM-USER-TIME :utf8_string))
 
 ;; _NET_WM_VISIBLE_ICON_NAME
 
@@ -358,7 +345,7 @@
   (car (get-text-property window :_NET_WM_VISIBLE_ICON_NAME)))
 
 (defsetf net-wm-visible-icon-name (window) (name)
-  `(set-utf8-property ,window :_NET_WM_VISIBLE_ICON_NAME ,name))
+  `(set-simple-text-property ,window ,name :NET-WM-USER-TIME :utf8_string))
 
 ;; _NET_WM_DESKTOP
 
