@@ -1,52 +1,56 @@
-;;/***********************************************************
-;;Copyright 1987, 1994, 1998  The Open Group
-;;
-;;All Rights Reserved.
-;;
-;;The above copyright notice and this permission notice shall be included
-;;in all copies or substantial portions of the Software.
-;;
-;;THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-;;OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-;;MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-;;IN NO EVENT SHALL THE OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR
-;;OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-;;ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-;;OTHER DEALINGS IN THE SOFTWARE.
-;;
-;;Except as contained in this notice, the name of The Open Group shall
-;;not be used in advertising or otherwise to promote the sale, use or
-;;other dealings in this Software without prior written authorization
-;;from The Open Group.
-;;
-;;
-;;Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts
-;;
-;;                        All Rights Reserved
-;;
-;;Permission to use, copy, modify, and distribute this software and its
-;;documentation for any purpose and without fee is hereby granted,
-;;provided that the above copyright notice appear in all copies and that
-;;both that copyright notice and this permission notice appear in
-;;supporting documentation, and that the name of Digital not be
-;;used in advertising or publicity pertaining to distribution of the
-;;software without specific, written prior permission.
-;;
-;;DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
-;;ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
-;;DIGITAL BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
-;;ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
-;;WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
-;;ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
-;;SOFTWARE.
-;;
-;;******************************************************************/
+;;; -*- Mode: Lisp -*-
+;;; $Id$
+;;;
+;;; NOTE: All comments below are from the original, modified only for
+;;; readability.  Even the legal stuff, of which the text was unmodified.
+;;; Yes, the legal crap really was just as bad in the original.
+
+;;; Copyright 1987, 1994, 1998  The Open Group
+;;;
+;;; All Rights Reserved.
+;;;
+;;; The above copyright notice and this permission notice shall be included
+;;; in all copies or substantial portions of the Software.
+;;;
+;;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+;;; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+;;; IN NO EVENT SHALL THE OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR
+;;; OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+;;; ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+;;; OTHER DEALINGS IN THE SOFTWARE.
+;;;
+;;; Except as contained in this notice, the name of The Open Group shall
+;;; not be used in advertising or otherwise to promote the sale, use or
+;;; other dealings in this Software without prior written authorization
+;;; from The Open Group.
+;;;
+;;;
+;;; Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts
+;;;
+;;;                        All Rights Reserved
+;;;
+;;; Permission to use, copy, modify, and distribute this software and its
+;;; documentation for any purpose and without fee is hereby granted,
+;;; provided that the above copyright notice appear in all copies and that
+;;; both that copyright notice and this permission notice appear in
+;;; supporting documentation, and that the name of Digital not be
+;;; used in advertising or publicity pertaining to distribution of the
+;;; software without specific, written prior permission.
+;;;
+;;; DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
+;;; ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
+;;; DIGITAL BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
+;;; ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+;;; WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+;;; ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+;;; SOFTWARE.
+
 (keyboard:define-keysym :VOID-SYMBOL #xffffff)
-;;/*
-;; * TTY Functions, cleverly chosen to map to ascii, for convenience of
-;; * programming, but could have been arbitrary (at the cost of lookup
-;; * tables in client code.
-;; */
+
+;;; TTY Functions, cleverly chosen to map to ASCII, for convenience of
+;;; programming, but could have been arbitrary (at the cost of lookup tables
+;;; in client code.
 (keyboard:define-keysym :BACKSPACE #xff08)
 (keyboard:define-keysym :TAB #xff09)
 (keyboard:define-keysym :LINEFEED #xff0a)
@@ -144,12 +148,11 @@
 (keyboard:define-keysym :KP-7 #xffb7)
 (keyboard:define-keysym :KP-8 #xffb8)
 (keyboard:define-keysym :KP-9 #xffb9)
-;;/*
-;; * Auxilliary Functions; note the duplicate definitions for left and right
-;; * function keys;  Sun keyboards and a few other manufactures have such
-;; * function key groups on the left and/or right sides of the keyboard.
-;; * We've not found a keyboard with more than 35 function keys total.
-;; */
+
+;;; Auxilliary Functions; note the duplicate definitions for left and right
+;;; function keys; Sun keyboards and a few other manufactures have such
+;;; function key groups on the left and/or right sides of the keyboard.  We've
+;;; not found a keyboard with more than 35 function keys total.
 (keyboard:define-keysym :F1 #xffbe)
 (keyboard:define-keysym :F2 #xffbf)
 (keyboard:define-keysym :F3 #xffc0)
@@ -226,10 +229,8 @@
 (keyboard:define-keysym :HYPER-LEFT #xffed)
 (keyboard:define-keysym :HYPER-RIGHT #xffee)
 
-;;/*
-;; * ISO 9995 Function and Modifier Keys
-;; * Byte 3 = 0xFE
-;; */
+;;; ISO 9995 Function and Modifier Keys
+;;; Byte 3 = 0xFE
 (keyboard:define-keysym :ISO-LOCK #xfe01)
 (keyboard:define-keysym :ISO-LEVEL2-LATCH #xfe02)
 (keyboard:define-keysym :ISO-LEVEL3-SHIFT #xfe03)
@@ -330,10 +331,9 @@
 (keyboard:define-keysym :POINTER-ACCELERATE #xfefa)
 (keyboard:define-keysym :POINTER-DFLT-BTN-NEXT #xfefb)
 (keyboard:define-keysym :POINTER-DFLT-BTN-PREV #xfefc)
-;;/*
-;; * 3270 Terminal Keys
-;; * Byte 3 = 0xFD
-;; */
+
+;;; 3270 Terminal Keys
+;;; Byte 3 = 0xFD
 (keyboard:define-keysym :3270-DUPLICATE #xfd01)
 (keyboard:define-keysym :3270-FIELD-MARK #xfd02)
 (keyboard:define-keysym :3270-RIGHT2 #xfd03)
@@ -364,10 +364,9 @@
 (keyboard:define-keysym :3270-CURSOR-SELECT #xfd1c)
 (keyboard:define-keysym :3270-PRINT-SCREEN #xfd1d)
 (keyboard:define-keysym :3270-ENTER #xfd1e)
-;;/*
-;; *  Latin 1
-;; *  Byte 3 = 0
-;; */
+
+;;; Latin 1
+;;; Byte 3 = 0
 (keyboard:define-keysym :| | #x20)
 (keyboard:define-keysym :! #x21)
 (keyboard:define-keysym :|"| #x22)
@@ -559,10 +558,9 @@
 (keyboard:define-keysym :|y-ACUTE| #xfd)
 (keyboard:define-keysym :|thorn| #xfe)
 (keyboard:define-keysym :|y-DIAERESIS| #xff)
-;;/*
-;; *   Latin 2
-;; *   Byte 3 = 1
-;; */
+
+;;; Latin 2
+;;; Byte 3 = 1
 (keyboard:define-keysym :A-OGONEK #x1a1)
 (keyboard:define-keysym :-BREVE #x1a2)
 (keyboard:define-keysym :L-STROKE #x1a3)
@@ -620,10 +618,9 @@
 (keyboard:define-keysym :|u-RING| #x1f9)
 (keyboard:define-keysym :|t-CEDILLA| #x1fe)
 (keyboard:define-keysym :-ABOVEDOT #x1ff)
-;;/*
-;; *   Latin 3
-;; *   Byte 3 = 2
-;; */
+
+;;; Latin 3
+;;; Byte 3 = 2
 (keyboard:define-keysym :H-STROKE #x2a1)
 (keyboard:define-keysym :H-CIRCUMFLEX #x2a6)
 (keyboard:define-keysym :I-ABOVEDOT #x2a9)
@@ -646,10 +643,9 @@
 (keyboard:define-keysym :|g-CIRCUMFLEX| #x2f8)
 (keyboard:define-keysym :|u-BREVE| #x2fd)
 (keyboard:define-keysym :|s-CIRCUMFLEX| #x2fe)
-;;/*
-;; *   Latin 4
-;; *   Byte 3 = 3
-;; */
+
+;;; Latin 4
+;;; Byte 3 = 3
 (keyboard:define-keysym :KRA #x3a2)
 (keyboard:define-keysym :R-CEDILLA #x3a3)
 (keyboard:define-keysym :I-TILDE #x3a5)
@@ -685,17 +681,15 @@
 (keyboard:define-keysym :|u-OGONEK| #x3f9)
 (keyboard:define-keysym :|u-TILDE| #x3fd)
 (keyboard:define-keysym :|u-MACRON| #x3fe)
-;;/*
-;; * Latin-9 (a.k.a. Latin-0)
-;; * Byte 3 = 19
-;; */
+
+;;; Latin-9 (a.k.a. Latin-0)
+;;; Byte 3 = 19
 (keyboard:define-keysym :OE #x13bc)
 (keyboard:define-keysym :|oe| #x13bd)
 (keyboard:define-keysym :Y-DIAERESIS #x13be)
-;;/*
-;; * Katakana
-;; * Byte 3 = 4
-;; */
+
+;;; Katakana
+;;; Byte 3 = 4
 (keyboard:define-keysym :OVERLINE #x47e)
 (keyboard:define-keysym :KANA-FULLSTOP #x4a1)
 (keyboard:define-keysym :KANA-OPENINGBRACKET #x4a2)
@@ -761,10 +755,9 @@
 (keyboard:define-keysym :VOICEDSOUND #x4de)
 (keyboard:define-keysym :SEMIVOICEDSOUND #x4df)
 (keyboard:define-keysym :KANA-SWITCH #xff7e)
-;;/*
-;; *  Arabic
-;; *  Byte 3 = 5
-;; */
+
+;;; Arabic
+;;; Byte 3 = 5
 (keyboard:define-keysym :ARABIC-COMMA #x5ac)
 (keyboard:define-keysym :ARABIC-SEMICOLON #x5bb)
 (keyboard:define-keysym :ARABIC-QUESTION-MARK #x5bf)
@@ -814,10 +807,9 @@
 (keyboard:define-keysym :ARABIC-SHADDA #x5f1)
 (keyboard:define-keysym :ARABIC-SUKUN #x5f2)
 (keyboard:define-keysym :ARABIC-SWITCH #xff7e)
-;;/*
-;; * Cyrillic
-;; * Byte 3 = 6
-;; */
+
+;;; Cyrillic
+;;; Byte 3 = 6
 (keyboard:define-keysym :|SERBIAN-dje| #x6a1)
 (keyboard:define-keysym :|MACEDONIA-gje| #x6a2)
 (keyboard:define-keysym :|CYRILLIC-io| #x6a3)
@@ -911,10 +903,9 @@
 (keyboard:define-keysym :CYRILLIC-SHCHA #x6fd)
 (keyboard:define-keysym :CYRILLIC-CHE #x6fe)
 (keyboard:define-keysym :CYRILLIC-HARDSIGN #x6ff)
-;;/*
-;; * Greek
-;; * Byte 3 = 7
-;; */
+
+;;; Greek
+;;; Byte 3 = 7
 (keyboard:define-keysym :GREEK-ALPHA-ACCENT #x7a1)
 (keyboard:define-keysym :GREEK-EPSILON-ACCENT #x7a2)
 (keyboard:define-keysym :GREEK-ETA-ACCENT #x7a3)
@@ -989,10 +980,9 @@
 (keyboard:define-keysym :|GREEK-psi| #x7f8)
 (keyboard:define-keysym :|GREEK-omega| #x7f9)
 (keyboard:define-keysym :GREEK-SWITCH #xff7e)
-;;/*
-;; * Technical
-;; * Byte 3 = 8
-;; */
+
+;;; Technical
+;;; Byte 3 = 8
 (keyboard:define-keysym :LEFTRADICAL #x8a1)
 (keyboard:define-keysym :TOPLEFTRADICAL #x8a2)
 (keyboard:define-keysym :HORIZCONNECTOR #x8a3)
@@ -1042,10 +1032,9 @@
 (keyboard:define-keysym :UPARROW #x8fc)
 (keyboard:define-keysym :RIGHTARROW #x8fd)
 (keyboard:define-keysym :DOWNARROW #x8fe)
-;;/*
-;; *  Special
-;; *  Byte 3 = 9
-;; */
+
+;;; Special
+;;; Byte 3 = 9
 (keyboard:define-keysym :BLANK #x9df)
 (keyboard:define-keysym :SOLIDDIAMOND #x9e0)
 (keyboard:define-keysym :CHECKERBOARD #x9e1)
@@ -1070,10 +1059,9 @@
 (keyboard:define-keysym :BOTT #x9f6)
 (keyboard:define-keysym :TOPT #x9f7)
 (keyboard:define-keysym :VERTBAR #x9f8)
-;;/*
-;; *  Publishing
-;; *  Byte 3 = a
-;; */
+
+;;; Publishing
+;;; Byte 3 = a
 (keyboard:define-keysym :EMSPACE #xaa1)
 (keyboard:define-keysym :ENSPACE #xaa2)
 (keyboard:define-keysym :EM3SPACE #xaa3)
@@ -1157,10 +1145,9 @@
 (keyboard:define-keysym :SINGLELOWQUOTEMARK #xafd)
 (keyboard:define-keysym :DOUBLELOWQUOTEMARK #xafe)
 (keyboard:define-keysym :CURSOR #xaff)
-;;/*
-;; *  APL
-;; *  Byte 3 = b
-;; */
+
+;;; APL
+;;; Byte 3 = b
 (keyboard:define-keysym :LEFTCARET #xba3)
 (keyboard:define-keysym :RIGHTCARET #xba6)
 (keyboard:define-keysym :DOWNCARET #xba8)
@@ -1180,10 +1167,9 @@
 (keyboard:define-keysym :LEFTSHOE #xbda)
 (keyboard:define-keysym :LEFTTACK #xbdc)
 (keyboard:define-keysym :RIGHTTACK #xbfc)
-;;/*
-;; * Hebrew
-;; * Byte 3 = c
-;; */
+
+;;; Hebrew
+;;; Byte 3 = c
 (keyboard:define-keysym :HEBREW-DOUBLELOWLINE #xcdf)
 (keyboard:define-keysym :HEBREW-ALEPH #xce0)
 (keyboard:define-keysym :HEBREW-BET #xce1)
@@ -1213,10 +1199,9 @@
 (keyboard:define-keysym :HEBREW-SHIN #xcf9)
 (keyboard:define-keysym :HEBREW-TAW #xcfa)
 (keyboard:define-keysym :HEBREW-SWITCH #xff7e)
-;;/*
-;; * Thai
-;; * Byte 3 = d
-;; */
+
+;;; Thai
+;;; Byte 3 = d
 (keyboard:define-keysym :THAI-KOKAI #xda1)
 (keyboard:define-keysym :THAI-KHOKHAI #xda2)
 (keyboard:define-keysym :THAI-KHOKHUAT #xda3)
@@ -1301,10 +1286,9 @@
 (keyboard:define-keysym :THAI-LEKCHET #xdf7)
 (keyboard:define-keysym :THAI-LEKPAET #xdf8)
 (keyboard:define-keysym :THAI-LEKKAO #xdf9)
-;;/*
-;; *   Korean
-;; *   Byte 3 = e
-;; */
+
+;;; Korean
+;;; Byte 3 = e
 (keyboard:define-keysym :HANGUL #xff31)
 (keyboard:define-keysym :HANGUL-START #xff32)
 (keyboard:define-keysym :HANGUL-END #xff33)
@@ -1425,57 +1409,53 @@
 (keyboard:define-keysym :NEW-SHEQEL-SIGN #x20aa)
 (keyboard:define-keysym :DONG-SIGN #x20ab)
 (keyboard:define-keysym :EURO-SIGN #x20ac)
-;;/***********************************************************
-;;
-;;Copyright (c) 1988  X Consortium
-;;
-;;Permission is hereby granted, free of charge, to any person obtaining a copy
-;;of this software and associated documentation files (the "Software"), to deal
-;;in the Software without restriction, including without limitation the rights
-;;to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-;;copies of the Software, and to permit persons to whom the Software is
-;;furnished to do so, subject to the following conditions:
-;;
-;;The above copyright notice and this permission notice shall be included in
-;;all copies or substantial portions of the Software.
-;;
-;;THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-;;IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-;;FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-;;X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
-;;AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-;;CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-;;
-;;Except as contained in this notice, the name of the X Consortium shall not be
-;;used in advertising or otherwise to promote the sale, use or other dealings
-;;in this Software without prior written authorization from the X Consortium.
-;;
-;;
-;;Copyright 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
-;;
-;;                        All Rights Reserved
-;;
-;;Permission to use, copy, modify, and distribute this software and its 
-;;documentation for any purpose and without fee is hereby granted, 
-;;provided that the above copyright notice appear in all copies and that
-;;both that copyright notice and this permission notice appear in 
-;;supporting documentation, and that the name of Digital not be
-;;used in advertising or publicity pertaining to distribution of the
-;;software without specific, written prior permission.  
-;;
-;;DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
-;;ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
-;;DIGITAL BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
-;;ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
-;;WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
-;;ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
-;;SOFTWARE.
-;;
-;;******************************************************************/
-;;/*
-;; * DEC private keysyms
-;; * (29th bit set)
-;; */
+
+;;; Copyright (c) 1988  X Consortium
+;;;
+;;; Permission is hereby granted, free of charge, to any person obtaining a copy
+;;; of this software and associated documentation files (the "Software"), to deal
+;;; in the Software without restriction, including without limitation the rights
+;;; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+;;; copies of the Software, and to permit persons to whom the Software is
+;;; furnished to do so, subject to the following conditions:
+;;;
+;;; The above copyright notice and this permission notice shall be included in
+;;; all copies or substantial portions of the Software.
+;;;
+;;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+;;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+;;; X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+;;; AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+;;; CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+;;;
+;;; Except as contained in this notice, the name of the X Consortium shall not be
+;;; used in advertising or otherwise to promote the sale, use or other dealings
+;;; in this Software without prior written authorization from the X Consortium.
+;;;
+;;;
+;;; Copyright 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
+;;;
+;;;                         All Rights Reserved
+;;;
+;;; Permission to use, copy, modify, and distribute this software and its 
+;;; documentation for any purpose and without fee is hereby granted, 
+;;; provided that the above copyright notice appear in all copies and that
+;;; both that copyright notice and this permission notice appear in 
+;;; supporting documentation, and that the name of Digital not be
+;;; used in advertising or publicity pertaining to distribution of the
+;;; software without specific, written prior permission.  
+;;;
+;;; DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
+;;; ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
+;;; DIGITAL BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
+;;; ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+;;; WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+;;; ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+;;; SOFTWARE.
+
+;;; DEC private keysyms
+;;; (29th bit set)
 (keyboard:define-keysym :D-RING--ACCENT #x1000feb0)
 (keyboard:define-keysym :D-CIRCUMFLEX--ACCENT #x1000fe5e)
 (keyboard:define-keysym :D-CEDILLA--ACCENT #x1000fe2c)
@@ -1484,64 +1464,61 @@
 (keyboard:define-keysym :D--TILDE #x1000fe7e)
 (keyboard:define-keysym :D--DIAERESIS #x1000fe22)
 (keyboard:define-keysym :D-REMOVE #x1000ff00)
-;;/*
-;;
-;;Copyright (c) 1987  X Consortium
-;;
-;;Permission is hereby granted, free of charge, to any person obtaining
-;;a copy of this software and associated documentation files (the
-;;"Software"), to deal in the Software without restriction, including
-;;without limitation the rights to use, copy, modify, merge, publish,
-;;distribute, sublicense, and/or sell copies of the Software, and to
-;;permit persons to whom the Software is furnished to do so, subject to
-;;the following conditions:
-;;
-;;The above copyright notice and this permission notice shall be included
-;;in all copies or substantial portions of the Software.
-;;
-;;THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-;;OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-;;MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-;;IN NO EVENT SHALL THE X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR
-;;OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-;;ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-;;OTHER DEALINGS IN THE SOFTWARE.
-;;
-;;Except as contained in this notice, the name of the X Consortium shall
-;;not be used in advertising or otherwise to promote the sale, use or
-;;other dealings in this Software without prior written authorization
-;;from the X Consortium.
-;;
-;;Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts,
-;;
-;;                        All Rights Reserved
-;;
-;;Permission to use, copy, modify, and distribute this software and its
-;;documentation for any purpose and without fee is hereby granted,
-;;provided that the above copyright notice appear in all copies and that
-;;both that copyright notice and this permission notice appear in
-;;supporting documentation, and that the names of Hewlett Packard
-;;or Digital not be
-;;used in advertising or publicity pertaining to distribution of the
-;;software without specific, written prior permission.
-;;
-;;DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
-;;ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
-;;DIGITAL BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
-;;ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
-;;WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
-;;ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
-;;SOFTWARE.
-;;
-;;HEWLETT-PACKARD MAKES NO WARRANTY OF ANY KIND WITH REGARD
-;;TO THIS SOFWARE, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-;;WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-;;PURPOSE.  Hewlett-Packard shall not be liable for errors
-;;contained herein or direct, indirect, special, incidental or
-;;consequential damages in connection with the furnishing,
-;;performance, or use of this material.
-;;
-;;*/
+
+;;; Copyright (c) 1987  X Consortium
+;;;
+;;; Permission is hereby granted, free of charge, to any person obtaining
+;;; a copy of this software and associated documentation files (the
+;;; "Software"), to deal in the Software without restriction, including
+;;; without limitation the rights to use, copy, modify, merge, publish,
+;;; distribute, sublicense, and/or sell copies of the Software, and to
+;;; permit persons to whom the Software is furnished to do so, subject to
+;;; the following conditions:
+;;;
+;;; The above copyright notice and this permission notice shall be included
+;;; in all copies or substantial portions of the Software.
+;;;
+;;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+;;; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+;;; IN NO EVENT SHALL THE X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR
+;;; OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+;;; ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+;;; OTHER DEALINGS IN THE SOFTWARE.
+;;;
+;;; Except as contained in this notice, the name of the X Consortium shall
+;;; not be used in advertising or otherwise to promote the sale, use or
+;;; other dealings in this Software without prior written authorization
+;;; from the X Consortium.
+;;;
+;;; Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts,
+;;;
+;;;                         All Rights Reserved
+;;;
+;;; Permission to use, copy, modify, and distribute this software and its
+;;; documentation for any purpose and without fee is hereby granted,
+;;; provided that the above copyright notice appear in all copies and that
+;;; both that copyright notice and this permission notice appear in
+;;; supporting documentation, and that the names of Hewlett Packard
+;;; or Digital not be
+;;; used in advertising or publicity pertaining to distribution of the
+;;; software without specific, written prior permission.
+;;;
+;;; DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
+;;; ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
+;;; DIGITAL BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
+;;; ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+;;; WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+;;; ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+;;; SOFTWARE.
+;;;
+;;; HEWLETT-PACKARD MAKES NO WARRANTY OF ANY KIND WITH REGARD
+;;; TO THIS SOFWARE, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+;;; WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+;;; PURPOSE.  Hewlett-Packard shall not be liable for errors
+;;; contained herein or direct, indirect, special, incidental or
+;;; consequential damages in connection with the furnishing,
+;;; performance, or use of this material.
 (keyboard:define-keysym :HP-CLEAR-LINE #x1000ff6f)
 (keyboard:define-keysym :HP-INSERT-LINE #x1000ff70)
 (keyboard:define-keysym :HP-DELETE-LINE #x1000ff71)
@@ -1605,10 +1582,9 @@
 (keyboard:define-keysym :OSF-EXTEND #x1004ff74)
 (keyboard:define-keysym :OSF-RESTORE #x1004ff78)
 (keyboard:define-keysym :OSF-DELETE #x1004ffff)
-;;/**************************************************************
-;; * The use of the following macros is deprecated.
-;; * They are listed below only for backwards compatibility.
-;; */
+
+;;; The use of the following macros is deprecated.
+;;; They are listed below only for backwards compatibility.
 (keyboard:define-keysym :RESET #x1000ff6c)
 (keyboard:define-keysym :SYSTEM #x1000ff6d)
 (keyboard:define-keysym :USER #x1000ff6e)
@@ -1632,87 +1608,80 @@
 (keyboard:define-keysym :IO #x100000ee)
 (keyboard:define-keysym :LONGMINUS #x100000f6)
 (keyboard:define-keysym :BLOCK #x100000fc)
-;;/************************************************************
-;;
-;;Copyright (c) 1991  X Consortium
-;;
-;;Permission is hereby granted, free of charge, to any person obtaining a copy
-;;of this software and associated documentation files (the "Software"), to deal
-;;in the Software without restriction, including without limitation the rights
-;;to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-;;copies of the Software, and to permit persons to whom the Software is
-;;furnished to do so, subject to the following conditions:
-;;
-;;The above copyright notice and this permission notice shall be included in
-;;all copies or substantial portions of the Software.
-;;
-;;THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-;;IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-;;FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-;;X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
-;;AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-;;CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-;;
-;;Except as contained in this notice, the name of the X Consortium shall not be
-;;used in advertising or otherwise to promote the sale, use or other dealings
-;;in this Software without prior written authorization from the X Consortium.
-;;
-;;
-;;Copyright 1991 by Sun Microsystems, Inc. Mountain View, CA.
-;;
-;;                    All Rights Reserved
-;;
-;;Permission  to  use,  copy,  modify,  and  distribute   this
-;;software  and  its documentation for any purpose and without
-;;fee is hereby granted, provided that the above copyright no-
-;;tice  appear  in all copies and that both that copyright no-
-;;tice and this permission notice appear in  supporting  docu-
-;;mentation,  and  that the name of Sun not be used in
-;;advertising or publicity pertaining to distribution  of  the
-;;software  without specific prior written permission. Sun 
-;;makes  no  representations about the suitability  of this
-;;software for any purpose. It is provided "as is" without any
-;;express or implied warranty.
-;;
-;;SUN DISCLAIMS ALL WARRANTIES WITH REGARD TO  THIS  SOFTWARE,
-;;INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FIT-
-;;NESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SUN BE  LI-
-;;ABLE  FOR  ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
-;;ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,  DATA  OR
-;;PROFITS,  WHETHER  IN  AN  ACTION OF CONTRACT, NEGLIGENCE OR
-;;OTHER TORTUOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
-;;THE USE OR PERFORMANCE OF THIS SOFTWARE.
-;;
-;;***********************************************************/
-;;/*
-;; * Floating Accent
-;; */
+
+;;; Copyright (c) 1991  X Consortium
+;;;
+;;; Permission is hereby granted, free of charge, to any person obtaining a copy
+;;; of this software and associated documentation files (the "Software"), to deal
+;;; in the Software without restriction, including without limitation the rights
+;;; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+;;; copies of the Software, and to permit persons to whom the Software is
+;;; furnished to do so, subject to the following conditions:
+;;;
+;;; The above copyright notice and this permission notice shall be included in
+;;; all copies or substantial portions of the Software.
+;;;
+;;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+;;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+;;; X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+;;; AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+;;; CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+;;;
+;;; Except as contained in this notice, the name of the X Consortium shall not be
+;;; used in advertising or otherwise to promote the sale, use or other dealings
+;;; in this Software without prior written authorization from the X Consortium.
+;;;
+;;;
+;;; Copyright 1991 by Sun Microsystems, Inc. Mountain View, CA.
+;;;
+;;;                     All Rights Reserved
+;;;
+;;; Permission  to  use,  copy,  modify,  and  distribute   this
+;;; software  and  its documentation for any purpose and without
+;;; fee is hereby granted, provided that the above copyright no-
+;;; tice  appear  in all copies and that both that copyright no-
+;;; tice and this permission notice appear in  supporting  docu-
+;;; mentation,  and  that the name of Sun not be used in
+;;; advertising or publicity pertaining to distribution  of  the
+;;; software  without specific prior written permission. Sun 
+;;; makes  no  representations about the suitability  of this
+;;; software for any purpose. It is provided "as is" without any
+;;; express or implied warranty.
+;;;
+;;; SUN DISCLAIMS ALL WARRANTIES WITH REGARD TO  THIS  SOFTWARE,
+;;; INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FIT-
+;;; NESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SUN BE  LI-
+;;; ABLE  FOR  ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
+;;; ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,  DATA  OR
+;;; PROFITS,  WHETHER  IN  AN  ACTION OF CONTRACT, NEGLIGENCE OR
+;;; OTHER TORTUOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
+;;; THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+;;;
+;;; Floating Accent
 (keyboard:define-keysym :SUN-FA-GRAVE #x1005ff00)
 (keyboard:define-keysym :SUN-FA-CIRCUM #x1005ff01)
 (keyboard:define-keysym :SUN-FA-TILDE #x1005ff02)
 (keyboard:define-keysym :SUN-FA-ACUTE #x1005ff03)
 (keyboard:define-keysym :SUN-FA-DIAERESIS #x1005ff04)
 (keyboard:define-keysym :SUN-FA-CEDILLA #x1005ff05)
-;;/*
-;; * Miscellaneous Functions
-;; */
+
+;;; Miscellaneous Functions
 (keyboard:define-keysym :SUN-F36 #x1005ff10)
 (keyboard:define-keysym :SUN-F37 #x1005ff11)
 (keyboard:define-keysym :SUN-SYS-REQ #x1005ff60)
 (keyboard:define-keysym :SUN-PRINT-SCREEN #xff61)
-;;/*
-;; * International & Multi-Key Character Composition
-;; */
+
+;;; International & Multi-Key Character Composition
 (keyboard:define-keysym :SUN-COMPOSE #xff20)
 (keyboard:define-keysym :SUN-ALT-GRAPH #xff7e)
-;;/*
-;; * Cursor Control
-;; */
+
+;;; Cursor Control
 (keyboard:define-keysym :SUN-PAGE-UP #xff55)
 (keyboard:define-keysym :SUN-PAGE-DOWN #xff56)
-;;/*
-;; * Open Look Functions
-;; */
+
+;;; Open Look Functions
 (keyboard:define-keysym :SUN-UNDO #xff65)
 (keyboard:define-keysym :SUN-AGAIN #xff66)
 (keyboard:define-keysym :SUN-FIND #xff68)
@@ -1731,32 +1700,31 @@
 (keyboard:define-keysym :SUN-VIDEO-LOWER-BRIGHTNESS #x1005ff7b)
 (keyboard:define-keysym :SUN-VIDEO-RAISE-BRIGHTNESS #x1005ff7c)
 (keyboard:define-keysym :SUN-POWER-SWITCH-SHIFT #x1005ff7d)
-;;/******************************************************************
-;;Copyright 1987 by Apollo Computer Inc., Chelmsford, Massachusetts.
-;;Copyright 1989 by Hewlett-Packard Company.
-;;
-;;                        All Rights Reserved
-;;
-;;Permission to use, duplicate, change, and distribute this software and
-;;its documentation for any purpose and without fee is granted, provided
-;;that the above copyright notice appear in such copy and that this
-;;copyright notice appear in all supporting documentation, and that the
-;;names of Apollo Computer Inc., the Hewlett-Packard Company, or the X
-;;Consortium not be used in advertising or publicity pertaining to
-;;distribution of the software without written prior permission.
-;;
-;;HEWLETT-PACKARD MAKES NO WARRANTY OF ANY KIND WITH REGARD
-;;TO THIS SOFWARE, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-;;WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR 
-;;PURPOSE.  Hewlett-Packard shall not be liable for errors 
-;;contained herein or direct, indirect, special, incidental or 
-;;consequential damages in connection with the furnishing, 
-;;performance, or use of this material.
-;;
-;;This software is not subject to any license of the American
-;;Telephone and Telegraph Company or of the Regents of the
-;;University of California.
-;;******************************************************************/
+
+;;; Copyright 1987 by Apollo Computer Inc., Chelmsford, Massachusetts.
+;;; Copyright 1989 by Hewlett-Packard Company.
+;;;
+;;;                         All Rights Reserved
+;;;
+;;; Permission to use, duplicate, change, and distribute this software and
+;;; its documentation for any purpose and without fee is granted, provided
+;;; that the above copyright notice appear in such copy and that this
+;;; copyright notice appear in all supporting documentation, and that the
+;;; names of Apollo Computer Inc., the Hewlett-Packard Company, or the X
+;;; Consortium not be used in advertising or publicity pertaining to
+;;; distribution of the software without written prior permission.
+;;;
+;;; HEWLETT-PACKARD MAKES NO WARRANTY OF ANY KIND WITH REGARD
+;;; TO THIS SOFWARE, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+;;; WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR 
+;;; PURPOSE.  Hewlett-Packard shall not be liable for errors 
+;;; contained herein or direct, indirect, special, incidental or 
+;;; consequential damages in connection with the furnishing, 
+;;; performance, or use of this material.
+;;;
+;;; This software is not subject to any license of the American
+;;; Telephone and Telegraph Company or of the Regents of the
+;;; University of California.
 (keyboard:define-keysym :AP-LINE-DEL #x1000ff00)
 (keyboard:define-keysym :AP-CHAR-DEL #x1000ff01)
 (keyboard:define-keysym :AP-COPY #x1000ff02)
