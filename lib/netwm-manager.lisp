@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.10 2003/11/26 15:13:46 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.11 2003/12/04 11:15:40 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -32,6 +32,7 @@
   (:import-from :xlib get-property change-property)
   (:import-from :manager-commons 
 		card-32 card-16 card-8 int-16
+		make-geometry-hint
 		get-geometry-hint set-geometry-hint
 		encode-string-property get-text-property
 		set-workspace-names 
@@ -225,10 +226,21 @@ In order to use it, you should first call intern-atoms to be sure all
 ;; _NET_WORKAREA
 
 (defun net-workarea (window)
-  (get-geometry-hint window :_NET_WORKAREA))
+  "Returns a vector of the workareas geometry: [x y width height]* ."
+  (first (get-property window :_NET_WORKAREA :result-type 'vector)))
 
-(defsetf net-workarea (window) (workarea)
-  `(set-geometry-hint ,window ,workarea :_NET_WORKAREA))
+(defsetf net-workarea
+    (window &key (mode :replace) (start 0) end) (workareas)
+  "workareas must be a list of workareas geometry.
+   :mode One of :replace, :append, or :prepend (default is :replace).
+   :start valid index in the property
+   :end valid index in the property or NIL.
+   Specifies the subsequence of previous data replaced when mode is :replace."
+  `(change-property ,window :_NET_WORKAREA
+       (loop for e in ,workareas
+	     collect (geometry-hint-x e) collect (geometry-hint-y e)
+             collect (geometry-hint-width e) collect (geometry-hint-height e))
+       :CARDINAL 32 :mode ,mode :start ,start :end ,end))
 
 ;; _NET_SUPPORTING_WM_CHECK
 
@@ -273,31 +285,37 @@ In order to use it, you should first call intern-atoms to be sure all
 ;; _NET_DESKTOP_LAYOUT property of length 3 and use _NET_WM_TOPLEFT as
 ;; the starting corner in this case.
 
+(defconstant +desktop-layout-orientation+
+  '#(:horzontal :vertical))
+
+(defconstant +desktop-layout-starting-corner+
+  '#(:top-left :top-right :bottom-right :bottom-left))
+
 (defstruct desktop-layout
-  (orientation nil)
+  (orientation :veritcal)
   (x 0 :type card-16)
   (y 0 :type card-16)
-  (starting-corner nil))
+  (starting-corner :top-left))
 
 (defun net-desktop-layout (window)
   (let ((data (get-property window :_NET_DESKTOP_LAYOUT)))
     (make-desktop-layout 
-        :orientation (if (= (the card-32 (first data)) 0) 
-			 :_net_wm_orientation_horz
-			 :_net_wm_orientation_vert)
+        :orientation (svref +desktop-layout-orientation+ (first data))
 	:x (second data) :y (third data)
-	:starting-corner (case (the card-32 (fourth data))
-			   (1 :_net_wm_topright)
-			   (2 :_net_wm_bottomright)
-			   (3 :_net_wm_bottomleft)
-			   (t :_net_wm_topleft)))))
+	:starting-corner (let ((index (fourth data)))
+			   (declare (type card-32 index))
+			   (if (<= 0 index 4)
+			       (svref +desktop-layout-starting-corner+ index)
+			       :top-left)))))
 
-(defsetf net-desktop-layout (window) (layout)
-  `(with-slots (orientation x y starting-corner) ,layout
-     (change-property ,window 
-                      :_NET_DESKTOP_LAYOUT
-                      (list orientation x y starting-corner)
-                      :CARDINAL 32)))    
+(defsetf net-desktop-layout (window) (desktop-layout)
+  `(with-slots (orientation x y starting-corner) ,desktop-layout
+     (change-property 
+         ,window :_NET_DESKTOP_LAYOUT
+         (list (position orientation +desktop-layout-orientation+)
+	       x y 
+	       (position starting-corner +desktop-layout-starting-corner+))
+         :CARDINAL 32)))
     
 ;;;; Other root window messages. (those are messages not properties)
 ;; _NET_CLOSE_WINDOW
@@ -416,9 +434,9 @@ In order to use it, you should first call intern-atoms to be sure all
 ;; _NET_WM_ICON
 
 (defun net-wm-icon (window)
-  "Returnsa vector of possible icons for the client. This is an vector of
-  (unsigned-byte 32) ARGB with high byte being A, low byte being B. The
-  first two cardinals are width, height. Data is in rows, left to right
+  "Returns a vector of possible icons for the client. This is an vector
+  of (unsigned-byte 32) ARGB with high byte being A, low byte being B.
+  The first two cardinals are width, height. Data is in rows, left to right
   and top to bottom."
   (get-property window :_NET_WM_ICON :result-type 'vector))
 
