@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.18 2003/11/01 09:41:49 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.19 2003/11/08 19:54:13 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -664,6 +664,8 @@
     (when (shaded-p application)
       (shade application))
     (setf iconic-p t wants-focus-p t)
+    (when (eq (xlib:window-map-state window) :unmapped)
+      (setf (wm-state window) 3))
     (xlib:unmap-window window)
     (when master
       (xlib:unmap-window (widget-window master)))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: virtual-screen.lisp,v 1.11 2003/11/13 11:12:28 ihatchondo Exp $
+;;; $Id: virtual-screen.lisp,v 1.12 2003/11/19 10:29:08 ihatchondo Exp $
 ;;;
 ;;; Copyright (C) 2002 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
@@ -47,7 +47,11 @@
 	  (with-slots (window master) widget
 	    (when (and (eq (window-desktop-num window) scr-num)
 		       (eq (car (wm-state window)) 1))
-	      (funcall fun (if master (widget-window master) window))))))
+	      (let ((mwindow (when master (widget-window master))))
+		(funcall fun (or mwindow window))
+		(when mwindow
+		  (with-event-mask (mwindow)
+		    (funcall fun window))))))))
 
 ;;;; Public
 
@@ -106,8 +110,8 @@
 		(setf (application-wants-focus-p widget) t))))
 	  (xlib:set-input-focus *display* :pointer-root :pointer-root)
 	  (with-pointer-grabbed (window nil)
-	    (map-or-unmap-vscreen #'xlib:map-window new)
-	    (map-or-unmap-vscreen #'xlib:unmap-window cur)))
+	    (map-or-unmap-vscreen #'xlib:unmap-window cur)
+	    (map-or-unmap-vscreen #'xlib:map-window new)))
 	(setf (gnome:win-workspace window) new
 	      (netwm:net-current-desktop window) new)
 	(when *change-desktop-message-active-p*

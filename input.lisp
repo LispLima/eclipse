@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.20 2003/10/12 21:59:17 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.21 2003/11/13 11:12:27 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -377,10 +377,19 @@
 	   (unless (= cur-desk new-desk)
 	     (when (shaded-p application) (shade application))
 	     (setf (window-desktop-num window) new-desk)
-	     (if (or (= new-desk +any-desktop+) (= new-desk (current-desk)))
-		 (xlib:map-window (or master-window window))
-		 (with-event-mask (*root-window*)
-		   (xlib:unmap-window (or master-window window)))))))
+	     (if (/= new-desk +any-desktop+ (current-desk))
+		 (progn
+		   (with-event-mask (*root-window*)
+		     (xlib:unmap-window (or master-window window))
+		     (when master 
+		       (with-event-mask (master-window)
+			 (xlib:unmap-window window))))
+		   (xlib:set-input-focus *display* :pointer-root :pointer-root))
+		 (if master 
+		     (with-event-mask (master-window)
+		       (xlib:map-window window)
+		       (xlib:map-window master-window))
+		     (xlib:map-window window))))))
 	(:_NET_CLOSE_WINDOW (close-widget application))
 	(:_NET_ACTIVE_WINDOW
 	 (cond ((shaded-p application) (shade application))
