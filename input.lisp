@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: $
+;;; $Id: input.lisp,v 1.1 2002/11/07 14:54:27 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -28,6 +28,25 @@
   (declare (ignorable event widget))
   (values))
 
+(defmethod event-process ((event mapping-notify) null-widget)
+  (declare (ignorable null-widget))
+  (with-slots (request start count) event
+    (case request
+      (:keyboard 
+       (when (keycode-registered-p start count)
+	 (unregister-all-keystrokes)
+	 (xlib:mapping-notify *display* request start count)
+	 (register-all-keystrokes)))
+      (:modifier 
+       (when (kb:modifier-map-changed-p *display*)
+	 (kb:init-keyboard *display*)
+	 (unregister-all-keystrokes)
+	 (unregister-all-mouse-strokes)
+	 (xlib:mapping-notify *display* request start count)
+	 (register-all-keystrokes)
+	 (register-all-mouse-strokes)))
+      (:pointer nil))))
+
 (defmethod event-process ((event configure-request) (widget base-widget))
   (declare (ignorable widget)) ;; should only be root ?
   (with-slots (window x y width height stack-mode value-mask above-sibling)
@@ -50,8 +69,8 @@
 ;;; Events for the root window
 
 (defmethod event-process ((event map-request) (root root))
-  (if (gethash (event-window event) *widget-table*)
-      (with-slots (icon) (gethash (event-window event) *widget-table*)
+  (if (lookup-widget (event-window event))
+      (with-slots (icon) (lookup-widget (event-window event))
 	(when icon (uniconify icon))
 	(xlib:map-window (event-window event)))
       (xlib:with-server-grabbed (*display*)
@@ -60,21 +79,23 @@
 (defmethod event-process ((event unmap-notify) (root root))
   (declare (ignorable root))
   (with-slots (window send-event-p) event
-    (when (application-p (gethash window *widget-table*))
+    (when (application-p (lookup-widget window))
       (if (and send-event-p (eql (xlib:window-map-state window) :unmapped))
 	  ;; client withdraws its top-level (ICCCM 4.2.1)
-	  (undecore-application (gethash window *widget-table*) :state 0)
+	  (undecore-application (lookup-widget window) :state 0)
 	  (setf (wm-state window) 3)))))
 
 (defmethod event-process ((event destroy-notify) (root root))
   (xlib:with-server-grabbed (*display*)
-    (let ((app (gethash (event-window event) *widget-table*)))
+    (let ((app (lookup-widget (event-window event))))
       (when (and (application-p app) (not (application-master app)))
 	(ignore-errors (update-lists app 0 root))
 	(mapc #'remove-widget (list app (application-icon app)))
 	(xlib:destroy-window (widget-window (application-icon app)))
 	(when (eql app (get-root-desktop root))
-	  (remove-desktop-application root app))))))
+	  (remove-desktop-application root app)))))
+  (when (eq *focus-type* :on-click)
+    (give-focus-to-next-widget-in-desktop root)))
 
 (defmethod event-process ((event enter-notify) (root root))
   (with-slots (kind mode) event
@@ -85,15 +106,9 @@
 	(xlib:set-input-focus *display* :pointer-root :pointer-root)))))
 
 (defmethod event-process ((event focus-in) (root root))
-  (when (or (eql (event-kind event) :pointer))
+  (when (eql (event-kind event) :pointer)
     (if (eql *focus-type* :on-click)
-	(with-slots (vscreens) root
-          (let ((w (find-if
-		       #'(lambda (w) (eql :viewable (xlib:window-map-state w)))
-		       (virtual-screen:nth-vscreen vscreens))))
-	    (when (gethash w *widget-table*)
-	      (with-slots (window input-model) (gethash w *widget-table*)
-		(set-focus input-model window 0)))))
+	(give-focus-to-next-widget-in-desktop root)
         (setf (netwm:net-active-window *root-window*) :none))))
 
 (defmethod event-process ((event client-message) (root root))
@@ -104,19 +119,24 @@
 	 (unless (= (vs:current-screen vscreens) (aref data 0))
 	   (change-vscreen vscreens nil (aref data 0)))))
       (:_NET_NUMBER_OF_DESKTOPS (setf *nb-vscreen* (aref data 0)))
-      (:_NET_CLOSE_WINDOW (close-widget (gethash event-window *widget-table*)))
+      (:_NET_CLOSE_WINDOW (close-widget (lookup-widget event-window)))
       (:WM_PROTOCOLS
        (when (eq :wm_delete_window (id->atom-name (aref data 0)))
-	 (close-widget (gethash event-window *widget-table*)))))))
+	 (close-widget (lookup-widget event-window)))))))
 
-(defmethod event-process ((event keyboard-pointer-event) (root root))
+(defmethod event-process ((event keyboard-event) (root root))
   (with-slots (code state) event
-    (let ((callback (gethash (cons code state) *keystrock-table*)))
+    (let ((callback (lookup-keystroke code state)))
       (when callback (funcall callback event)))))
 
 (defmethod event-process ((event button-press) (root root))
   (with-slots (menu1 menu2 menu3 vscreens resize-status move-status) root
-    (with-slots (code x y) event
+    (with-slots (code state x y) event
+      (let ((callback (lookup-mouse-stroke code state)))
+	(when callback 
+	  (funcall callback event)
+  	  (xlib:allow-events *display* :async-pointer)
+	  (return-from event-process nil)))
       (when (and (eql resize-status move-status) (< 0 code 4)) ; nil nil 1|2|3
 	(when (= 2 (event-code event))
 	  (when menu2 (destroy-substructure menu2))
@@ -171,7 +191,7 @@
 ;;; Events for master (type: decoration)
 
 (defmethod event-process ((event configure-notify) (master decoration))
-  (when (application-p (gethash (event-window event) *widget-table*))
+  (when (application-p (lookup-widget (event-window event)))
     (with-slots (event-window window x y) event
       (with-slots (left-margin top-margin) (decoration-frame-style master)
 	(multiple-value-bind (old-x old-y) (window-position window)
@@ -196,7 +216,7 @@
 
 (defmethod event-process ((event map-notify) (master decoration))
   (with-slots (window event-window) event
-    (when (application-p (gethash window *widget-table*))
+    (when (application-p (lookup-widget window))
       (unmap-icon-window (get-child master :icon))
       (xlib:map-window event-window)
       (setf (xlib:window-priority event-window) :above
@@ -210,12 +230,13 @@
       (xlib:destroy-window (widget-window master))
       (ignore-errors (update-lists (get-child master :application) 0 *root*))
       (mapc #'remove-widget (cons master (decoration-children master)))
-      (xlib:destroy-window (get-child master :icon :window t))
-      (dismiss-move *root*))))
+      (xlib:destroy-window (get-child master :icon :window t))      
+      (dismiss-move *root*)))
+  (when (eq *focus-type* :on-click)
+    (give-focus-to-next-widget-in-desktop *root*)))
 
 (defmethod event-process ((event visibility-notify) (master decoration))
-  (setf (application-unobscured-p (get-child master :application))
-	(eq (event-state event) :unobscured)))
+  (event-process event (get-child master :application)))
 
 ;; Focus management
 
@@ -225,9 +246,11 @@
 ;;; Events for an application
 
 (defmethod event-process ((event visibility-notify) (application application))
-  (unless (application-master application)
-    (setf (application-unobscured-p application)
-	  (eq (event-state event) :unobscured))))
+  (with-slots (wants-focus-p unobscured-p input-model window) application
+    (setf unobscured-p (eq (event-state event) :unobscured))
+    (when (and unobscured-p wants-focus-p)
+      (set-focus input-model window 0)
+      (setf wants-focus-p nil))))
 
 (defmethod event-process ((event enter-notify) (application application))
   (with-slots (window input-model) application
@@ -249,6 +272,10 @@
 (defmethod event-process ((event focus-in) (application application))
   (with-slots (master window) application
     (unless (eql (event-mode event) :ungrab)
+      ;; Put the focused window in first position in its screen
+      ;; if focus policy is on-click.
+      (when (eq *focus-type* :on-click)
+	(vs:restack-window window (vs:nth-vscreen (root-vscreens *root*))))
       (when master (draw-focused-decoration master))
       (setf (netwm:net-active-window *root-window*) window))))
 
@@ -296,17 +323,24 @@
 	     ;; win_state_maximized_horiz
 	     (when (logbitp 3 to-change) (maximize-window master 3)))))
 	(:_NET_WM_STATE
-         (let ((prop (netwm:net-wm-state window))
+         (let ((action (aref data 0))
+	       (prop (netwm:net-wm-state window))
 	       (prop1 (id->atom-name (aref data 1)))
 	       (prop2 (unless (zerop (aref data 2))
 			(id->atom-name (aref data 2)))))
-	   (case (aref data 0)
+	   (case action
 	     (0 (setf prop (remove prop1 prop))
 		(when prop2 (setf prop (remove prop2 prop))))
 	     (1 (push prop1 prop)
 		(when prop2 (push prop2 prop))))
 	   (setf (netwm:net-wm-state window) prop)
+	   (when (or (eq prop1 :_net_wm_state_hidden)
+		     (eq prop2 :_net_wm_state_hidden))
+	     (if (= action 0) (uniconify application) (iconify application)))
 	   (when master
+	     (when (or (eql prop1 :_net_wm_state_fullscreen)
+		       (eql prop2 :_net_wm_state_fullscreen))
+	       (setf (full-screen-mode master) (if (= action 0) :off :on)))
 	     (when (or (eql prop1 :_net_wm_state_maximized_vert)
 		       (eql prop2 :_net_wm_state_maximized_vert))
 	       (maximize-window master 2))
