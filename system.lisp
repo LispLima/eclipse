@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: system.lisp,v 1.10 2004/02/26 16:23:52 ihatchondo Exp $
+;;; $Id: system.lisp,v 1.11 2004/03/01 14:53:57 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -61,8 +61,8 @@
   "lib/clx-ext/xvidmode.lisp"
   "lib/clx-ext/package.lisp"
   "lib/clx-ext/clx-extensions"
-  "lib/clx-ext/cursor"
   "lib/clx-ext/cursordef"
+  "lib/clx-ext/cursor"
   "lib/clx-ext/keysyms"
   "lib/clx-ext/keysymdef"
   "lib/clx-ext/event"
