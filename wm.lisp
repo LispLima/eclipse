@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.39 2004/02/23 15:57:58 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.40 2004/03/01 14:53:57 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -108,9 +108,9 @@
       (setf (netwm:net-wm-state app-win) netwm-prop
 	    (gnome:win-state app-win) gnome-prop))))
 
-(defmethod (setf decoration-frame-style) :after (frame-style (master decoration))
+(defmethod (setf decoration-frame-style) :after (astyle (master decoration))
   (with-slots (window children wm-size-hints) master
-    (with-slots (left-margin top-margin (hm hmargin) (vm vmargin)) frame-style
+    (with-slots (left-margin top-margin (hm hmargin) (vm vmargin)) astyle
       (with-event-mask (window)
 	(let* ((application (getf children :application))
 	       (icon (slot-value application 'icon))
@@ -124,7 +124,7 @@
 		wm-size-hints (recompute-wm-normal-hints app-win hm vm))
 	  (let ((width (+ (xlib:drawable-width app-win) hm))
 		(height (+ (xlib:drawable-height app-win) vm)))
-	    (setf (xlib:window-background window) (style-background frame-style)
+	    (setf (xlib:window-background window) (style-background astyle)
 		  (window-position app-win) (values left-margin top-margin)
 		  (drawable-sizes window) (values width height))
 	    (make-frame-parts master)
@@ -306,19 +306,18 @@
     (multiple-value-bind (width height) (drawable-sizes window)
       (loop for child in *frame-parts*
 	    for pixmaps = (frame-item-pixmaps frame-style child)
-	    for background = (aref pixmaps 0)
 	    for hilighted = (aref pixmaps 1)
 	    for event-mask = (if hilighted +std-button-mask+ +edge-event-mask+)
-	    when (frame-item-exist-p frame-style child)
-	    do (multiple-value-bind (x y)
-		   (edge-position frame-style child width height)
-		 (multiple-value-bind (w h) (frame-item-sizes frame-style child)
-		   (setf (getf children child)
-			 (create-button (intern (symbol-name child) :eclipse)
-			   :parent window :master master
-			   :background background :item hilighted
-			   :event-mask event-mask
-			   :x x :y y :width w :height h))))))))
+	    when (frame-item-exist-p frame-style child) do
+	     (multiple-value-bind (x y)
+		 (edge-position frame-style child width height)
+	       (multiple-value-bind (w h) (frame-item-sizes frame-style child)
+		 (setf (getf children child)
+		       (create-button (intern (symbol-name child) :eclipse)
+			 :parent window :master master
+			 :background (aref pixmaps 0) :item hilighted
+			 :event-mask event-mask
+			 :x x :y y :width w :height h))))))))
 
 ;; Public.
 
