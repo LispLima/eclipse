@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
+;;; $Id: global.lisp,v 1.3 2002/11/07 14:54:26 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -60,9 +60,12 @@
 (defparameter *change-desktop-message-active-p* t)
 (defparameter *verbose-move* t)
 (defparameter *verbose-resize* t)
+(defparameter *wrap-pointer-when-cycle* t)
+(defparameter *focus-new-mapped-window* t)
+(defparameter *focus-when-window-cycle* t)
 (defparameter *move-mode* :opaque "values are: :box :opaque")
 (defparameter *resize-mode* :opaque "values are: :box :opaque")
-(defparameter *focus-type* :none "values are: :none :when-switch :on-click")
+(defparameter *focus-type* :none "values are: :none :on-click")
 (defparameter *font-name* 
   "-misc-fixed-medium-r-normal--14-110-100-100-c-70-iso8859-1")
 
@@ -138,7 +141,7 @@
 	  err resource-id keys)
   (when (and resource-id (not asynchronous))
     (let* ((resource (xlib::lookup-window dpy resource-id))
-	   (widget (gethash resource *widget-table*)))
+	   (widget (lookup-widget resource)))
       (when (and widget (application-p widget))
 	(event-process (make-event :destroy-notify :window resource)
 		       (or (application-master widget) *root*))
