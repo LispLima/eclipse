@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.33 2004/02/17 12:48:38 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.34 2004/02/17 16:30:54 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -65,8 +65,12 @@
 	    (dismiss-move-resize *root*)
 	    (return-from event-process nil))))
     (when (or (decoration-p widget) (application-p (lookup-widget window)))
-      (when (eq *focus-type* :on-click)
-	(give-focus-to-next-widget-in-desktop)))))
+      (if (eq *focus-type* :on-click)
+	  (give-focus-to-next-widget-in-desktop) 
+	  (multiple-value-bind (x y s child) (xlib:query-pointer *root-window*)
+	    (declare (ignore x y s))
+	    (let ((e (make-event :enter-notify :kind :inferior :mode :normal)))
+	      (event-process e (or (lookup-widget child) *root*))))))))
 
 ;; Specialized ones.
 
@@ -231,7 +235,8 @@
   (event-process event (get-child master :application)))
 
 (defmethod event-process ((event enter-notify) (master decoration))
-  (event-process event (get-child master :application)))
+  (unless (eq (event-kind event) :inferior)
+    (event-process event (get-child master :application))))
 
 ;;; Events for an application
 
