@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: system.lisp,v 1.2 2002/06/24 07:33:44 james Exp $
+;;; $Id: system.lisp,v 1.3 2002/11/07 14:54:27 hatchond Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -78,7 +78,8 @@
 
 (defun compile-theme (directory-name)
   (let ((i-filespec (concatenate 'string directory-name "/theme.lisp"))
-	(o-filespec (concatenate 'string directory-name "/theme.o")))
+	(o-filespec #+cmu "theme.o"
+		    #-cmu (concatenate 'string directory-name "/theme.o")))
     (operate-on-system :eclipse :load)
     (load i-filespec)
     (compile-file i-filespec :output-file o-filespec)))

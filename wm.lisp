@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.4 2002/07/04 14:48:53 hatchond Exp $
+;;; $Id: wm.lisp,v 1.5 2002/11/07 14:54:27 hatchond Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -454,7 +454,7 @@
 ;;  to perform this action.
 
 ;; protocol for treating events
-(defgeneric menu-3-prcess (event widget &rest rest &allow-other-keys))
+(defgeneric menu-3-prcess (event widget &rest rest))
 
 (defmethod menu-3-process (event widget &rest rest)
   (declare (ignorable event widget rest)))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PPM -*-
-;;; $Id: image-reader.lisp,v 1.1 2002/11/07 14:23:31 hatchond Exp $
+;;; $Id: image-reader.lisp,v 1.2 2002/12/18 10:50:49 hatchond Exp $
 ;;;
 ;;; This a ppm image reader for CLX
 ;;; This file is part of Eclipse
@@ -157,7 +157,7 @@
     (make-pnm (parse stream) (parse stream) (parse stream) (parse stream))))
 
 (defun load-ppm (filename)
-  (with-open-file (stream filename :element-type '(unsigned-byte 8))
+  (with-open-file (stream filename)
     (let* ((image (create-ppm-image-from-stream stream))
 	   (size (* (the picture-size (picture-height image))
 		    (the picture-size (internal-picture-width image))))
@@ -165,10 +165,13 @@
 			    :element-type 'card-8
 			    :displaced-to (picture-data image))))
       (declare (type card-32 size))
-      (loop with offset of-type card-32 = 0
+      (with-open-file (byte-stream filename :element-type '(unsigned-byte 8))
+	(unless (file-position byte-stream (file-position stream))
+	  (error "could not reposition image data stream"))
+	(loop with offset of-type card-32 = 0
 	    while (< offset size)
-	    do (setf offset (read-sequence tmp stream :start offset)))
-      image)))
+	    do (setf offset (read-sequence tmp byte-stream :start offset)))
+      image))))
 
 (defun load-ppm-into-clx-image (filename drawable)
   (let* ((depth (xlib:drawable-depth drawable))
