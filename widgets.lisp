@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.37 2004/03/02 19:15:29 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.38 2004/03/08 23:40:34 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -714,7 +714,7 @@
 	   (string< (car c1) (car c2))))))
 
 (defun icon-box-update ()
-  (declare (type (simple-array (signed-byte 16) (4)) *icon-box*))
+  (declare (type (simple-array integer (4)) *icon-box*))
   (unless (eq *icon-box-fill* :top-right)
     (timed-message-box (widget-window *root*)
       "Only :top-right fill is currently supported"))
