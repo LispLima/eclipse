@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.25 2004/03/04 12:59:43 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.26 2004/03/04 15:37:49 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -127,7 +127,7 @@
 	for i of-type ppm::card-32 from 2 below (+ 2 size)
 	for argb of-type ppm::card-32 = (aref property-vector i)
 	do (setf (aref tmp (- i 2))
-		 (ppm::color->x-color (logand (ash argb -8) #xFFFFFF)))
+		 (ppm::color->x-color (logand argb #xFFFFFF)))
 	finally (return
 		  (xlib:image-pixmap
 		      window
