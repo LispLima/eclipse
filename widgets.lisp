@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.15 2003/09/30 12:18:36 hatchond Exp $
+;;; $Id: widgets.lisp,v 1.16 2003/10/06 17:57:26 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -162,9 +162,8 @@
 
 ;;;; Application
 
-(defconstant +unfocusable-mask+
-  '(:property-change :enter-window :visibility-change))
-(defconstant +focusable-mask+ '(:focus-change . #.+unfocusable-mask+))
+(defconstant +application-mask+
+  '(:property-change :enter-window :visibility-change :focus-change))
 
 (defconstant +properties-to-delete-on-withdrawn+
   '(:_net_wm_state :_net_wm_desktop :_win_workspace))
@@ -233,18 +232,12 @@
 	 (with-event-mask (*root-window*)
 	   (multiple-value-bind (x y w h) (window-geometry window)
 	     (when master
-	       (with-slots (children (master-win window)) master
+	       (with-slots (children (master-win window) frame-style) master
 		 (multiple-value-setq (x y)
 		   (xlib:translate-coordinates master-win x y *root-window*))
-		 (with-event-mask (master-win)
-		   (xlib:reparent-window window *root-window* 0 0))
-		 (xlib:destroy-window master-win)
-		 (loop for (key widget) on children by #'cddr
-		       unless (or (eql key :application) (eql key :icon))
-		       do (remove-widget widget))
-		 (remove-widget master))
-	       (setf master nil
-		     (slot-value icon 'master) *root*))
+		 (setf (slot-value master 'old-frame-style) frame-style)
+		 (setf (decoration-frame-style master)
+		       (theme-default-style (lookup-theme "no-decoration")))))
 	     (setf (geometry fgeometry) (values x y w h))
 	     (if (xlib:query-extension *display* "XFree86-VidModeExtension")
 		 (let* ((scr (first (xlib:display-roots *display*)))
@@ -261,7 +254,8 @@
 	   (setf (window-position window) (geometry-coordinates fgeometry)
 		 (drawable-sizes window) (geometry-sizes fgeometry))
 	   (unless (window-not-decorable-p window)
-	     (decore-application window application))))
+	     (setf (decoration-frame-style master)
+		   (slot-value master 'old-frame-style)))))
      (let ((prop (netwm:net-wm-state window)))
        (if (eq ,mode :on)
 	   (pushnew :_net_wm_state_fullscreen prop)
@@ -271,11 +265,9 @@
 (defun undecore-application (application &key state)
   (with-slots (window master icon) application
     (if master
-	(with-slots (frame-style (master-win window)) master
-	  (multiple-value-bind (x y) (window-position master-win)
-	    (incf x (style-left-margin frame-style)) 
-	    (incf y (style-top-margin frame-style))
-	    (xlib:reparent-window window *root-window* x y)))
+	(multiple-value-bind (x y)
+	    (xlib:translate-coordinates window 0 0 *root-window*)
+	  (xlib:reparent-window window *root-window* x y))
         (event-process (make-event :destroy-notify :window window) *root*))
     (when state
       (setf (wm-state window) state)
@@ -317,8 +309,7 @@
 	  (grab-button window :any '(:button-press) :sync-pointer-p t))
       (with-slots (initial-geometry) app
 	(setf (geometry initial-geometry) (window-geometry window)))
-      (setf (xlib:window-event-mask window) 
-	    (if (eq input :no-input) +unfocusable-mask+ +focusable-mask+)))
+      (setf (xlib:window-event-mask window) +application-mask+))
     app))
 
 (defun kill-client-window (window)

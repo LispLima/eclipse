@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.20 2003/10/01 01:53:05 hatchond Exp $
+;;; $Id: wm.lisp,v 1.21 2003/10/06 17:57:26 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -36,6 +36,7 @@
    (time :initform 0 :accessor decoration-precedent-time :allocation :class)
    (wm-size-hints :initarg :wm-size-hints :reader decoration-wm-size-hints)
    (frame-style :initarg :frame-style :accessor decoration-frame-style)
+   (old-frame-style :initform nil)
    (application-gravity 
      :initarg :application-gravity
      :initform :north-west
@@ -506,7 +507,6 @@
 
 (defmethod set-focus ((input-model (eql :no-input)) window timestamp)
   (declare (ignorable window timestamp))
-  (xlib:set-input-focus *display* :pointer-root :pointer-root)
   (values))
 
 ;; Next is methods for menu-3 who permit to manage any window :
