@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.27 2004/01/13 13:50:37 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.28 2004/01/13 13:52:15 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -169,14 +169,11 @@
 	    current-active-decoration nil)
       (xlib:ungrab-pointer *display*))))
 
-(defun close-sm-connection (root)
+(defun close-sm-connection (root &key (exit-p t))
   (with-slots (sm-conn) root
-    (ice-lib:post-request :connection-closed sm-conn)
-    (ice-lib:ice-flush sm-conn)
-    (close (ice-lib:connection-stream sm-conn))
+    (sm-lib:close-sm-connection sm-conn)
     (setf sm-conn nil)
-    (setf *close-display-p* nil)
-    (error 'exit-eclipse)))
+    (when exit-p (error 'exit-eclipse))))
 
 ;;;; Application
 
@@ -251,8 +248,7 @@
 	   (multiple-value-bind (x y w h) (window-geometry window)
 	     (when master
 	       (with-slots (children (master-win window) frame-style) master
-		 (multiple-value-setq (x y)
-		   (xlib:translate-coordinates master-win x y *root-window*))
+		 (multiple-value-setq (x y) (window-position master-win))
 		 (setf (slot-value master 'old-frame-style) frame-style)
 		 (setf (decoration-frame-style master)
 		       (theme-default-style (lookup-theme "no-decoration")))))
@@ -266,15 +262,18 @@
 			 h (xlib:mode-info-vdisplay ml)))
 	         (setf x 0 y 0 w (screen-width) h (screen-height)))
 	     (xlib:with-state (window)
-	       (setf (window-position window) (values x y)
-		     (drawable-sizes window) (values w h))))
+	       (with-slots (window) (or master application)
+		 (setf (window-position window) (values x y)))
+	       (setf (drawable-sizes window) (values w h))))
 	   (focus-widget application 0))
 	 (with-event-mask (*root-window*)
-	   (setf (window-position window) (geometry-coordinates fgeometry)
-		 (drawable-sizes window) (geometry-sizes fgeometry))
+	   (setf (drawable-sizes window) (geometry-sizes fgeometry))
 	   (unless (window-not-decorable-p window)
 	     (setf (decoration-frame-style master)
-		   (slot-value master 'old-frame-style)))))
+		   (slot-value master 'old-frame-style)))
+	   (with-slots ((win window)) (or master application)
+	     (setf (window-position win) (geometry-coordinates fgeometry)))))
+     (send-configuration-notify window)
      (let ((prop (netwm:net-wm-state window)))
        (if (eq ,mode :on)
 	   (pushnew :_net_wm_state_fullscreen prop)
@@ -563,7 +562,7 @@
     :xc_bottom_left_corner :xc_bottom_right_corner))
 (defconstant +side-cursors+ 
   '(:xc_right_side :xc_left_side :xc_top_side :xc_bottom_side))
-(defconstant +edge-event-mask+ 
+(defconstant +edge-event-mask+
   '(:button-press :button-release :button-motion :owner-grab-button))
 
 ;;;; Icon
@@ -596,6 +595,7 @@
 	    (setf bkgrd pix))))
       (setf icon (create-button
 		    'icon
+		    :event-mask '(:pointer-motion-hint . #.+std-button-mask+)
 		    :parent *root-window* :master master
 		    :x 0 :y 0 :width width :height height
 		    :item (unless bkgrd (wm-icon-name window))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.15 2003/12/02 19:07:06 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.16 2004/01/07 11:21:41 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -46,8 +46,14 @@
     :_net_wm_state_sticky :_net_wm_state_fullscreen :_net_wm_state_hidden
     :_net_wm_state_above :_net_wm_state_below))
 
+(defconstant +root-event-mask+
+  '(:substructure-redirect :substructure-notify :button-press :button-release
+    :owner-grab-button :key-press :key-release :enter-window :leave-window
+    :focus-change))
+
 (defconstant +pointer-event-mask+
-  '(:button-press :button-release :button-motion :enter-window :leave-window))
+  '(:button-press :button-release :button-motion :pointer-motion-hint
+    :enter-window :leave-window))
 
 (defconstant +any-desktop+ #xFFFFFFFF)
 
@@ -148,7 +154,7 @@
 
 (defgeneric event-process (event widget))
 
-;;;; System dependant functions.
+;;;; System dependent functions.
 
 (defun %quit% (&optional code)
   #+allegro (excl:exit code)
@@ -173,6 +179,13 @@
 		(format nil "~A~@[ ~{~A~^ ~}~]" program arguments))
   #+clisp (lisp:run-program program :arguments arguments)
   )
+
+(defun get-username ()
+  "Returns the real user name (a string) associated with the current process."
+  #+sbcl (sb-unix:uid-username (sb-unix:unix-getuid))
+  #+cmu (unix:user-info-name (unix:unix-getpwuid (unix:unix-getuid)))
+  #+allegro-v6.2 (excl.osi:pwent-name (excl.osi:getpwent (excl.osi:getuid)))
+  #-(or sbcl cmu allegro-v6.2) "nobody")
 
 ;;;; Error handler.
 ;; The X errors handler.

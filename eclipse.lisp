@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.15 2004/01/12 11:22:05 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.16 2004/01/12 12:56:11 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -28,27 +28,19 @@
 ;;; Initializations and Main.
 
 ;; ICE & SM.
-
-(defun get-username ()
-  "Returns the real user name (a string) associated with the current process."
-  #+sbcl (sb-unix:uid-username (sb-unix:unix-getuid))
-  #+cmu (unix:user-info-name (unix:unix-getpwuid (unix:unix-getuid)))
-  #+allegro-v6.2 (excl.osi:pwent-name (excl.osi:getpwent (excl.osi:getuid)))
-  #-(or sbcl cmu allegro-v6.2) "nobody")
-
 (defun sm-init (sm-conn dpy)
   "Sets the xsmp properties that are required by the protocols."
   (declare (type (or null string) dpy))
   (flet ((encode (&rest rest)
 	   (loop for s in rest collect (map 'sm-lib:array8 #'char-code s))))
-    (let ((sm-client-id (sm-lib:sm-client-id sm-conn)))
+    (let ((id (format nil "--sm-client-id=~a" (sm-lib:sm-client-id sm-conn)))
+	  (display (format nil "--display=~a" dpy)))
       (ice-lib:post-request :set-properties sm-conn
 	:properties
 	(list (sm-lib:make-property
 	       :name "CloneCommand"
 	       :type "LISTofARRAY8"
-	       :values
-	       (if dpy (encode "eclipse" "--display=" dpy) (encode "eclipse")))
+	       :values (if dpy (encode "eclipse" display) (encode "eclipse")))
 	      (sm-lib:make-property
 	       :name "Program"
 	       :type "ARRAY8"
@@ -56,7 +48,7 @@
 	      (sm-lib:make-property
 	       :name "RestartCommand"
 	       :type "LISTofARRAY8"
-	       :values (encode "eclipse" "--sm-client-id=" sm-client-id))
+	       :values (encode "eclipse" id))
 	      (sm-lib:make-property
 	       :name "UserID"
 	       :type "ARRAY8"
@@ -114,33 +106,23 @@
 
     ;; Are we the selection owner after all ?
     (unless (xlib:window-equal manager (xlib:selection-owner display +xa-wm+))
-      (format *error-output* 
-	      "ICCCM Error : failed to aquire selection ownership~%")
-      (%quit%))
+      (error "ICCCM Error: failed to aquire selection ownership~%"))
 
     ;; Check if a non ICCCM complient window manager is not running.
-    (flet ((handle-redirect-error (condition)
-	     (declare (ignorable condition))
-	     (format *error-output* "Redirect error - another WM is running~%")
-	     (xlib:close-display display)
-	     (%quit%)))
-      (handler-bind ((error #'handle-redirect-error)) ; xlib:access-error
-	(setf (xlib:window-event-mask root-window)
-	      '(:substructure-redirect :button-press :button-release
-		:focus-change :key-release :substructure-notify
-		:owner-grab-button :key-press :enter-window :leave-window))
-	(xlib:display-finish-output display)))
+    (handler-case
+	(progn
+	  (setf (xlib:window-event-mask root-window) +root-event-mask+)
+	  (xlib:display-finish-output display))
+      (error () (error "Redirect error: another WM is running~%")))
 
     ;; Notify all the other X clients of the new manager.
-    (xlib:send-event root-window
-		     :client-message
-		     '(:structure-notify)
-		     :window root-window
-		     :type :MANAGER
-		     :format 32
-		     :data (list managing-since 
-				 (xlib:find-atom display +xa-wm+)
-				 (xlib:window-id manager)))
+    (xlib:send-event root-window :client-message '(:structure-notify)
+      :window root-window
+      :type :MANAGER
+      :format 32
+      :data (list managing-since 
+		  (xlib:find-atom display +xa-wm+)
+		  (xlib:window-id manager)))
     manager))
 
 (defun init-gnome-compliance (display window manager)
@@ -202,8 +184,7 @@
       ;; load personal configuration file, or the default one.
       (or (load-config-file (home-subdirectory cl-user::*eclipse-initfile*))
 	  (load-config-file (eclipse-path "eclipserc"))
-	  (format *error-output* "Unable to read a configuration file.~%")
-	  (%quit%))
+	  (error "Unable to read a configuration file.~%"))
       (setf (xlib:window-cursor root-window) (root-default-cursor *root*))
       (setf (slot-value *root* 'gcontext) *gcontext*)
       (unless (xlib:gcontext-font *gcontext*)
@@ -213,7 +194,11 @@
 
 (defun eclipse (&key display sm-client-id)
   (declare (type (or null string) display sm-client-id))
-  (initialize display sm-client-id)
+  (handler-case (initialize display sm-client-id)
+    (error (condition)
+      (format t "~a~%" condition)
+      (when *display* (xlib:close-display *display*))
+      (%quit%)))
   ;(init-log-file)
 
   ;; Create a socket connection to communicate with the window manager.
@@ -225,9 +210,8 @@
   (unwind-protect
       (catch 'end
 	(handler-bind ((end-of-file #'handle-end-of-file-condition))
-	  (eclipse-internal-loop)
-	  (ignore-errors (xlib:close-display *display*))))
+	  (eclipse-internal-loop)))
     (progn
+      (ignore-errors (xlib:close-display *display*))
       (format t "Eclipse exited. Bye.~%")
-      (%QUIT%)
-      )))
+      (%quit%))))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.26 2004/01/07 11:21:41 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.27 2004/01/12 10:57:58 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -46,38 +46,13 @@
 	 (register-all-mouse-strokes)))
       (:pointer nil))))
 
-;; handle the selection clear, to be able to stop window managing when needed.
 (defmethod event-process ((event selection-clear) null-widget)
+  ;; handle the selection clear to stop window managing (see ICCCM 2.8).
   (declare (ignorable null-widget))
   (with-slots (event-window selection) event
-    (when (and (xlib:window-equal event-window (root-manager *root*))
-	       (string= selection +xa-wm+))
-      (loop for val being each hash-value in *widget-table*
-	    when (application-p val) do (undecore-application val))
-      (xlib:display-finish-output *display*)
-      (setf (xlib:window-event-mask *root-window*) '())
-      (xlib:destroy-window (root-manager *root*))
-      (xlib:display-finish-output *display*)
-      (xlib:close-display *display*)
-      (%quit%))))
-
-(defmethod event-process ((event configure-request) (widget base-widget))
-  (declare (ignorable widget)) ;; should only be root ?
-  (with-slots (window x y width height stack-mode value-mask above-sibling)
-      event
-    (xlib:with-state (window)
-      (when (logbitp 0 value-mask) (setf (xlib:drawable-x window) x))
-      (when (logbitp 1 value-mask) (setf (xlib:drawable-y window) y))
-      (when (logbitp 2 value-mask) (setf (xlib:drawable-width window) width))
-      (when (logbitp 3 value-mask) (setf (xlib:drawable-height window) height))
-      (when (logbitp 6 value-mask)
-	(setf (window-priority window above-sibling) stack-mode)))
-    ;; Acording to the ICCCM we should send a synthetic configure-notify,
-    ;; when we move a window but without resizing it.
-    (unless (or (logbitp 2 value-mask) (logbitp 3 value-mask))
-      (when (application-p (lookup-widget window))
-	(send-configuration-notify window)))
-    ))
+    (and (xlib:window-equal event-window (root-manager *root*))
+	 (string= selection +xa-wm+)
+	 (error 'exit-eclipse))))
 
 (defmethod event-process :after ((event destroy-notify) (widget base-widget))
   (with-slots (window) event
@@ -92,6 +67,22 @@
 ;; Specialized ones.
 
 ;;; Events for the root window
+
+(defmethod event-process ((ev configure-request) (root root))
+  (declare (ignorable root))
+  (with-slots (window x y width height stack-mode value-mask above-sibling) ev
+    (xlib:with-state (window)
+      (when (logbitp 0 value-mask) (setf (xlib:drawable-x window) x))
+      (when (logbitp 1 value-mask) (setf (xlib:drawable-y window) y))
+      (when (logbitp 2 value-mask) (setf (xlib:drawable-width window) width))
+      (when (logbitp 3 value-mask) (setf (xlib:drawable-height window) height))
+      (when (logbitp 6 value-mask)
+	(setf (window-priority window above-sibling) stack-mode)))
+    (when (< 0 (logand value-mask #x0F) 4)
+      ;; Acording to the ICCCM: send a synthetic configure-notify,
+      ;; when we moved a application window without resizing it.
+      (when (application-p (lookup-widget window))
+	(send-configuration-notify window)))))
 
 (defmethod event-process ((event map-request) (root root))
   (if (lookup-widget (event-window event))
@@ -157,14 +148,17 @@
 	(xlib:allow-events *display* :async-keyboard)
 	(funcall callback event)))))
 
+(defmethod event-process :around ((event pointer-event) (root root))
+  (with-slots (code state) event
+    (let ((callback (lookup-mouse-stroke code state)))
+      (if callback 
+	  (unwind-protect (funcall callback event)
+	    (xlib:allow-events *display* :async-pointer))
+	  (and (next-method-p) (call-next-method))))))
+
 (defmethod event-process ((event button-press) (root root))
   (with-slots (menu1 menu2 menu3 resize-status move-status) root
-    (with-slots (code state x y) event
-      (let ((callback (lookup-mouse-stroke code state)))
-	(when callback 
-	  (funcall callback event)
-  	  (xlib:allow-events *display* :async-pointer)
-	  (return-from event-process nil)))
+    (with-slots (code x y) event
       (when (and (eql resize-status move-status) (< 0 code 4)) ; nil nil 1|2|3
 	(when (= 2 (event-code event))
 	  (when menu2 (destroy-substructure menu2))
@@ -176,21 +170,17 @@
   (with-slots
 	(move-status resize-status (master current-active-decoration)) root
     (when (or move-status resize-status)
-      (let ((timestamp (event-time event))
-	    (precedent-timestamp (decoration-precedent-time master)))
-	(declare (type (unsigned-byte 32) timestamp precedent-timestamp))
-	(if (decoration-active-p master)
-	    (when (or (< timestamp precedent-timestamp)
-		      (> (- timestamp precedent-timestamp) 15))
-	      (setf (decoration-precedent-time master) timestamp)
-	      (cond (move-status
-		     (move-widget master event *verbose-move* *move-mode*))
-		    (resize-status
-		     (resize master event *verbose-resize* *resize-mode*))))
-	    (progn
-	      (format t "The pointer has been frozen !!~%")
-	      (setf (decoration-active-p master) t)
-	      (event-process (make-event :button-release) root)))))))
+      (if (decoration-active-p master)
+	  (when (event-hint-p event)
+	    (cond (move-status
+		   (move-widget master event *verbose-move* *move-mode*))
+		  (resize-status
+		   (resize master event *verbose-resize* *resize-mode*)))
+	    (xlib:query-pointer (widget-window root)))
+	  (progn
+	    (format t "The pointer has been frozen !!~%")
+	    (setf (decoration-active-p master) t)
+	    (event-process (make-event :button-release) root))))))
 
 (defmethod event-process ((event button-release) (root root))
   (with-slots (move-status resize-status (master current-active-decoration)
@@ -218,21 +208,38 @@
 
 ;;; Events for master (type: decoration)
 
+(defmethod event-process ((event configure-request) (master decoration))
+  (with-slots (window (parent event-window) (mask value-mask)
+	       x y width height above-sibling stack-mode) event
+    (when (application-p (lookup-widget window))
+      (xlib:with-state (parent)
+	;; update coordinates.
+	(with-slots (left-margin top-margin) (decoration-frame-style master)
+	  (let ((static (eq (decoration-application-gravity master) :static)))
+	    (when (logbitp 0 mask)
+	      (setf (xlib:drawable-x parent) (if static (- x left-margin) x)))
+	    (when (logbitp 1 mask)
+	      (setf (xlib:drawable-y parent) (if static (- y top-margin) y)))))
+	;; update sizes.
+	(xlib:with-state (window)
+	  (when (logbitp 2 mask) (setf (xlib:drawable-width window) width))
+	  (when (logbitp 3 mask) (setf (xlib:drawable-height window) height)))
+	;; restack.
+	(when (logbitp 6 mask)
+	  (let ((tmp (lookup-widget above-sibling)))
+	    (when (and (application-p tmp) (application-master tmp))
+	      (setf above-sibling (widget-window (application-master tmp)))))
+	  (setf (window-priority parent above-sibling) stack-mode)))
+      ;; Acording to the ICCCM: send a synthetic configure-notify,
+      ;; when we moved a applicaiton window without resizing it.
+      (when (< 0 (logand mask #x0F) 4) (send-configuration-notify window)))))
+
 (defmethod event-process ((event configure-notify) (master decoration))
-  (when (application-p (lookup-widget (event-window event)))
-    (with-slots ((master-win event-window) (app-window window) x y) event
-      (with-slots (left-margin top-margin) (decoration-frame-style master)
-	(if (eql (decoration-application-gravity master) :static)
-	    (setf (window-position master-win) (values (- x left-margin)
-						       (- y top-margin)))
-	    (multiple-value-bind (ax ay) (window-position app-window)
-	      (unless (= ax left-margin) (setf (xlib:drawable-x master-win) x))
-	      (unless (= ay top-margin) (setf (xlib:drawable-y master-win) y))))
-	(resize-from (lookup-widget app-window))
-	(with-event-mask (master-win)
-	  (update-edges-geometry master)
-	  (setf (window-position app-window) (values left-margin top-margin))
-	  (send-configuration-notify app-window))))))
+  (with-slots ((master-window event-window) (app-window window)) event
+    (when (application-p (lookup-widget app-window))   
+      (resize-from (lookup-widget app-window))
+      (with-event-mask (master-window)
+	(update-edges-geometry master)))))
 
 (defmethod event-process ((event reparent-notify) (master decoration))
   (unless (xlib:window-equal (event-event-window event) (event-parent event))
@@ -242,16 +249,19 @@
   (with-slots (window) master
     (xlib:unmap-window window)))
 
+(defmethod event-process ((event map-request) (master decoration))
+  (xlib:map-window (event-window event)))
+
 (defmethod event-process ((event map-notify) (master decoration))
   (with-slots ((app-window window) (master-window event-window)) event
     (when (application-p (lookup-widget app-window))
       (unless (eq (xlib:window-map-state app-window) :unmapped)
 	(unmap-icon-window (get-child master :icon))
 	(xlib:map-window master-window)
-	(setf (window-priority master-window) :above
-	      (wm-state app-window) 1)
 	(setf (window-desktop-num app-window)
-	      (if (stick-p app-window) +any-desktop+ (current-desk)))))))
+	      (if (stick-p app-window) +any-desktop+ (current-desk)))
+	(setf (window-priority master-window) :above
+	      (wm-state app-window) 1)))))
 
 (defmethod event-process ((event destroy-notify) (master decoration))
   (with-event-mask (*root-window*)
@@ -486,8 +496,11 @@
   (initialize-move icon event))
 
 (defmethod event-process ((event motion-notify) (icon icon))
-  (move-widget icon event)
-  (setf (icon-desiconify-p icon) nil))
+  (declare (optimize (speed 3)))
+  (when (event-hint-p event)
+    (move-widget icon event)
+    (xlib:query-pointer (event-event-window event))
+    (setf (icon-desiconify-p icon) nil)))
 
 (defmethod event-process ((event button-release) (icon icon))
   (if (icon-desiconify-p icon)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.12 2003/11/28 10:13:47 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.13 2004/01/07 12:48:28 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -239,7 +239,6 @@
    "DECORATION-APPLICATION-GRAVITY"	  ;generic function
    "DECORATION-CHILDREN"		  ;generic function
    "DECORATION-FRAME-STYLE"		  ;generic function
-   "DECORATION-PRECEDENT-TIME"		  ;generic function
    "DECORATION-WM-HINTS"		  ;generic function
    "DECORATION-WM-SIZE-HINTS"		  ;generic function
    "DEFAULT-MODIFIERS-P"		  ;generic function

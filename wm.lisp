@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.29 2004/01/12 11:22:05 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.30 2004/01/13 13:50:38 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -33,7 +33,6 @@
 (defclass decoration (base-widget)
   ((children :initarg :children :accessor decoration-children)
    (active-p :initform nil :accessor decoration-active-p)
-   (time :initform 0 :accessor decoration-precedent-time :allocation :class)
    (wm-size-hints :initarg :wm-size-hints :reader decoration-wm-size-hints)
    (frame-style :initarg :frame-style :accessor decoration-frame-style)
    (old-frame-style :initform nil)
@@ -47,7 +46,8 @@
   (typep widget 'decoration))
 
 (defconstant +decoration-event-mask+
-  '(:substructure-notify :visibility-change :enter-window :owner-grab-button))
+  '(:substructure-redirect :substructure-notify
+    :visibility-change :enter-window :owner-grab-button))
 
 (defmethod get-child ((master decoration) label &key window)
   "Return the child widget/window labeled `label' or nil if no such
@@ -86,6 +86,7 @@
 	  (with-event-mask (window) 
 	    ;; unshade.
 	    (xlib:map-window app-win)
+	    (xlib:map-window window)
 	    (resize-from (get-child master :application))
 	    (setf netwm-prop (remove :_net_wm_state_shaded netwm-prop))
 	    (setf netwm-prop (remove :_net_wm_state_hidden netwm-prop))
@@ -702,6 +703,7 @@
 	  ((or (= win-workspace scr-num) stick-p)
 	   (decore-application window application))
 	  (t (with-event-mask (*root-window*)
+	       (xlib:unmap-window window)
 	       (decore-application window application :map nil)	       
 	       (setf (wm-state window) 1)
 	       (update-lists application 1 *root*))))
@@ -712,11 +714,13 @@
 
 ;;;; The main loop.
 
-(define-condition exit-eclipse (error) ())
+(define-condition exit-eclipse (error)
+  ((close-application-p
+     :initform nil :initarg :close-application-p
+     :type boolean :reader close-application-p)))
 
 (defun eclipse-internal-loop ()
-  (let* ((exit 0)
-	 (time))
+  (let* ((exit 0) time)
 
     ;; Sets the root window pop-up menu
     (when *menu-1-exit-p*
@@ -763,12 +767,20 @@
 	      (with-slots (sm-conn) *root*
 		(when sm-conn (handle-session-manager-request sm-conn *root*)))
 	      (case exit
-		(1 (when *close-display-p*
-		     (loop for val being each hash-value in *widget-table*
-			   do (close-widget val)))
+		(1 (loop for val being each hash-value in *widget-table*
+			 when (application-p val) 
+			   if *close-display-p* do (close-widget val)
+			   else do (undecore-application val))
 		   (setf time 10 exit 2))
-		(2 (return))))
-	  (exit-eclipse () (setf exit 1))
+		(2 (when (root-sm-conn *root*)
+		     (close-sm-connection *root* :exit-p nil))
+		   (xlib:display-finish-output *display*)
+		   (setf (xlib:window-event-mask *root-window*) '())
+		   (xlib:destroy-window (root-manager *root*))
+		   (xlib:display-finish-output *display*)
+		   (return))))
+	  (exit-eclipse (c)
+	    (setf *close-display-p* (close-application-p c) exit 1))
 	  (end-of-file (c) (handle-end-of-file-condition c))
 	  (already-handled-xerror () nil)
 	  (error (c) (handle-error-condition c)))))

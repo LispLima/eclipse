@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.13 2003/11/28 11:02:39 ihatchondo Exp $
+;;; $Id: gestures.lisp,v 1.14 2004/01/06 16:52:48 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -27,6 +27,13 @@
 (defvar *registered-keycodes* (make-array 256 :element-type 'bit))
 (defvar *keystrokes* (make-hash-table :test #'eq))
 (defvar *mousestrokes* (make-hash-table :test #'eq))
+
+(defun register-callback (action-keyword callback)
+  (setf (get action-keyword 'callback) callback))
+
+(defun action-key->lambda (action-keyword)
+  "Returns the associated callback for the given action keyword."
+  (get action-keyword 'callback))
 
 (defun lookup-keystroke (code state)
   "Find the associated callback if any for this pair code modifier state."
@@ -63,7 +70,7 @@
   "Register, at the X server level, all declared mouse strokes."
   (loop for mouse-stroke being each hash-value in *mousestrokes*
 	do (define-combo-internal mouse-stroke *root-window* :mouse-p t)))
-    
+
 ;;;; stroke
 
 (defclass stroke ()
@@ -88,11 +95,9 @@
   nil)
 
 (defmethod stroke-equal :around ((s1 stroke) (s2 stroke))
-  (with-slots (name1 default-modifiers-p1 modifiers1) s1
-    (with-slots (name2 default-modifiers-p2 modifiers2) s2
-      (and (eq name1 name2)
-	   (and default-modifiers-p1 default-modifiers-p2)
-	   (equal modifiers1 modifiers2)
+  (with-slots ((name1 name) (dmp1 default-modifiers-p) (mods1 modifiers)) s1
+    (with-slots ((name2 name) (dmp2 default-modifiers-p) (mods2 modifiers)) s2
+      (and (eq name1 name2) (and dmp1 dmp2) (equal mods1 mods2)
 	   (if (next-method-p) (call-next-method) t)))))
 
 ;;;; keystroke
@@ -117,7 +122,7 @@
 
 (defmethod stroke-equal ((s1 keystroke) (s2 keystroke))
   (equal (slot-value s1 'keysyms)  (slot-value s2 'keysyms)))
-  
+
 ;;;; mouse stroke
 
 (defclass mouse-stroke (stroke)
@@ -148,9 +153,8 @@
   (when (or (eq (car f1) :release) (eq (car f2) :press)) (rotatef f1 f2))
   `(lambda (event)
      (typecase event
-       (button-press ,@(cdr f1))
-       (key-press ,@(cdr f1))
-       (key-release ,@(cdr f2)))))
+       (button-press ,@(cdr f1)) (button-release ,@(cdr f2))
+       (key-press ,@(cdr f1)) (key-release ,@(cdr f2)))))
 
 (defmacro unrealize ((window &key mouse-p) code mask)
   `(progn
@@ -225,35 +229,9 @@
 	(t 
 	 (mapcar #'(lambda (m) (kb:modifier->modifier-mask dpy m)) modifiers))))
 
-(defun action-key->lambda (action-keyword)
-  "Returns the associated predefined callback for the given action keyword."
-  (case action-keyword
-    (:switch-win-up #'(lambda (e) (circulate-window-up-and-down e :above)))
-    (:switch-win-down #'(lambda (e) (circulate-window-up-and-down e :below)))
-    (:switch-screen-left
-     (action (:press (change-vscreen *root* :direction #'-)) ()))
-    (:switch-screen-right
-     (action (:press (change-vscreen *root* :direction #'+)) ()))
-    (:move-right (action (:press (move-cursor-right)) ()))
-    (:move-left (action (:press (move-cursor-left)) ()))
-    (:move-up (action (:press (move-cursor-up)) ()))
-    (:move-down (action (:press (move-cursor-down)) ()))
-    (:left-click #'(lambda (event) (perform-click 1 event)))
-    (:middle-click #'(lambda (event) (perform-click 2 event)))
-    (:right-click #'(lambda (event) (perform-click 3 event)))
-    (:scroll-up #'(lambda (event) (perform-click 4 event)))
-    (:scroll-down #'(lambda (event) (perform-click 5 event)))
-    (:move-window 
-     #'(lambda (event)
-	 (mouse-stroke-for-move-and-resize event :action :move)))
-    (:resize-window 
-     #'(lambda (event)
-	 (mouse-stroke-for-move-and-resize event :action :resize)))
-    ))
-
 (defun define-key-combo (name &key keys
 			          (default-modifiers-p t)
-				  (modifiers :any)
+				  (modifiers '(:any))
 				  fun)
   " modifiers can be:
   - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
@@ -271,7 +249,7 @@
 
 (defun define-mouse-combo (name &key button
 				     (default-modifiers-p t)
-				     (modifiers :any)
+				     (modifiers '(:any))
 				     fun)
   " modifiers can be:
   - composition of modifiers as '(:and :ALT-LEFT :CONTROL-RIGHT)
@@ -389,3 +367,27 @@
 	(xlib:map-window window)
 	(setf (xlib:window-priority window) :above)
 	(repaint *current-widget-info* nil nil)))))
+
+;;;; register predefined callbacks.
+
+(register-callback :move-right (action (:press (move-cursor-right)) ()))
+(register-callback :move-left (action (:press (move-cursor-left)) ()))
+(register-callback :move-up (action (:press (move-cursor-up)) ()))
+(register-callback :move-down (action (:press (move-cursor-down)) ()))
+(register-callback :left-click #'(lambda (event) (perform-click 1 event)))
+(register-callback :middle-click #'(lambda (event) (perform-click 2 event)))
+(register-callback :right-click #'(lambda (event) (perform-click 3 event)))
+(register-callback :scroll-up #'(lambda (event) (perform-click 4 event)))
+(register-callback :scroll-down #'(lambda (event) (perform-click 5 event)))
+(register-callback :move-window 
+  #'(lambda (event) (mouse-stroke-for-move-and-resize event :action :move)))
+(register-callback :resize-window 
+  #'(lambda (event) (mouse-stroke-for-move-and-resize event :action :resize)))
+(register-callback :switch-win-up
+  #'(lambda (e) (circulate-window-up-and-down e :above)))
+(register-callback :switch-win-down
+  #'(lambda (e) (circulate-window-up-and-down e :below)))
+(register-callback :switch-screen-left
+  (action (:press (change-vscreen *root* :direction #'-)) ()))
+(register-callback :switch-screen-right
+  (action (:press (change-vscreen *root* :direction #'+)) ()))
