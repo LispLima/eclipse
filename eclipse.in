@@ -1,10 +1,34 @@
 @interp@ @SHELL@
-# $Id: eclipse.in,v 1.3 2002/11/07 14:54:26 hatchond Exp $
+# $Id: eclipse.in,v 1.4 2003/04/07 13:35:32 hatchond Exp $
 #
 # @configure_input@
 # This file starts the eclipse window manager
 
-display_spec=`if [ -n "$1" ]; then echo \"$1\"; fi`
+usage () { 
+    printf "\nusage: eclipse [ --display=dpy ] [ --sm-client-id=id ]\n\n"; 
+    exit 1;
+}
+
+display_spec=""
+sm_client_id=""
+
+if [ $# -ne 0 -a $# -ne 2 -a $# -ne 4 ] ; then usage ; fi
+
+while [ $# -gt 0 ] ; do
+  case "$1" in
+      --display=)
+	  tmp=`echo $1 | cut -d'=' -f2`
+	  display_spec=":display \"$tmp\"" ;
+	  shift ;
+	  ;;
+      --sm-client-id=)
+	  tmp=`echo $1 | cut -d'=' -f2`
+	  sm_client_id=":sm-client-id \"$tmp\"";
+	  shift ;
+	  ;;
+      -* | *) usage ;;
+  esac
+done
 
 if [ -d @SRC@ ] ; then
     cd @SRC@
