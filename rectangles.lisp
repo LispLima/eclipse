@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: rectangles.lisp,v 1.1 2003/11/24 16:57:46 ihatchondo Exp $
+;;; $Id: rectangles.lisp,v 1.2 2004/01/17 04:20:45 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2003 Iban HATCHONDO
@@ -133,10 +133,10 @@
   (multiple-value-bind (x y w h) (window-geometry window)
     (make-rectangle :ulx x :uly y :lrx (+ x w) :lry (+ y h))))
 
-(defun compute-screen-rectangles (application)
+(defun compute-screen-rectangles (application &optional filter-overlap-p)
   "Get screen content according to desktop number and filter all windows that 
-  are overlaped by the given one. Return a list of rectangles that represent
-  all the founded windows."
+  are overlaped by the given one except if filter-overlap-p is NIL. Returns a
+  list of rectangles that represent all the founded windows."
   (with-slots (window master) application
     (multiple-value-bind (xx yy ww hh) 
 	(window-geometry (if master (widget-window master) window))
@@ -144,11 +144,12 @@
 	       (cond 
 		 ((xlib:window-equal window win) nil)
 		 ((window-belongs-to-vscreen-p win n icon taskbar desktop dock)
-		  (multiple-value-bind (x y w h)
-		      (with-slots ((m master)) (lookup-widget win)
-			(window-geometry (if m (widget-window m) win)))
-		    (not (and (< xx (+ x w)) (< x (+ xx ww))
-			      (< yy (+ y h)) (< y (+ yy hh))))))
+		  (not (and filter-overlap-p
+			    (multiple-value-bind (x y w h)
+				(with-slots ((m master)) (lookup-widget win)
+				  (window-geometry (if m (widget-window m) win)))
+			      (and (< xx (+ x w)) (< x (+ xx ww))
+				   (< yy (+ y h)) (< y (+ yy hh)))))))
 		 (t (window-panel-p win n icon)))))
 	(mapcar 
 	    (lambda (win)
@@ -194,15 +195,18 @@
 	       (member :_net_wm_window_type_dock
 		       (netwm:net-wm-window-type window)))))))
 
-(defun find-largest-empty-area
-    (application &key area-include-me-p (panels-only-p t) direction)
+(defun find-largest-empty-area (application &key area-include-me-p
+				                 (panels-only-p t) direction
+				                 (filter-overlap-p t))
   "Return as a multiple values the coordinates of the largest empty area on
-  the desktop of the application. 
+  the desktop of the application and a bolean indicating that such area exists.
   - If :area-include-me-p is T then the searched area WILL contain the
    application (default is NIL).
   - If :panels-only-p is T (the default), the research will not includes any
    other windows of the desktop. Otherwise all mapped windows on the desktop
    will be taken in account.
+  - If :filter-overlap-p is T (the default) then overlapped applications will
+   be ignored as obstacles. Otherwise They will be kept as obstacles. 
   - :direction (or :vertical :horizontal :both) to indicate wat kind of 
    region the search should be looking for."
   (with-slots (window (m master)) application
@@ -213,7 +217,8 @@
 			    (if panels-only-p
 				(find-all-panel-rectangles 
 				 (window-desktop-num window))
-				(compute-screen-rectangles application))
+				(compute-screen-rectangles 
+				    application filter-overlap-p))
 			    (case direction
 			      (:horizontal #'rectangle-width>=)
 			      (:vertical #'rectangle-height>=)
@@ -224,8 +229,12 @@
 	(when (> (rectangle-lrx app-rect) w) (setf (rectangle-lrx app-rect) w))
 	(when (> (rectangle-lry app-rect) h) (setf (rectangle-lry app-rect) h))
 	;; returns the appropriated area.
-	(rectangle-coordinates
-	    (if area-include-me-p
-		(loop for r in rectangles until (include-p r app-rect)
-		      finally (return r))
-		(car rectangles)))))))
+	(multiple-value-call #'values
+	  (if rectangles
+	      (rectangle-coordinates
+	       (if area-include-me-p
+		   (loop for r in rectangles until (include-p r app-rect)
+			 finally (return r))
+		   (car rectangles)))
+	      (values 0 0 w h))
+	  (if rectangles T NIL))))))
