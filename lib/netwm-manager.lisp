@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.17 2004/04/08 21:19:12 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.18 2004/05/10 22:20:56 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -38,6 +38,7 @@
    #:net-desktop-viewport      #:net-desktop-names
    #:net-active-window         #:net-workarea
    #:net-supporting-wm-check   #:net-virtual-roots
+   #:net-frame-extents
    #:net-wm-name               #:net-wm-visible-name
    #:net-wm-icon-name          #:net-wm-visible-icon-name
    #:net-wm-desktop            #:net-wm-window-type
@@ -45,7 +46,7 @@
    #:net-wm-icon-geometry      #:net-wm-icon
    #:net-wm-pid                #:net-wm-handled-icons
    #:net-wm-allowed-actions    #:net-wm-strut-partial
-   #:net-wm-user-time
+   #:net-wm-user-time          
 
    #:intern-atoms)
   (:documentation
@@ -68,8 +69,13 @@
 	"_NET_DESKTOP_VIEWPORT"       "_NET_DESKTOP_NAMES"
 	"_NET_ACTIVE_WINDOW"          "_NET_WORKAREA"
 	"_NET_SUPPORTING_WM_CHECK"    "_NET_VIRTUAL_ROOTS"
-	"_NET_CLOSE_WINDOW"	      "_NET_WM_MOVERESIZE"
-	"_NET_DESKTOP_LAYOUT"         "_NET_MOVERESIZE_WINDOW"
+	"_NET_DESKTOP_LAYOUT"         
+
+        "_NET_RESTACK_WINDOW"         "_NET_REQUEST_FRAME_EXTENTS"
+        "_NET_MOVERESIZE_WINDOW"      "_NET_CLOSE_WINDOW"
+        "_NET_WM_MOVERESIZE"
+
+	"_NET_WM_SYNC_REQUEST"        "_NET_WM_PING"    
 
 	"_NET_WM_NAME"                "_NET_WM_VISIBLE_NAME"
 	"_NET_WM_ICON_NAME"           "_NET_WM_VISIBLE_ICON_NAME"
@@ -77,8 +83,8 @@
 	"_NET_WM_STATE"               "_NET_WM_STRUT"
 	"_NET_WM_ICON_GEOMETRY"       "_NET_WM_ICON"
 	"_NET_WM_PID"                 "_NET_WM_HANDLED_ICONS"
-	"_NET_WM_PING"                ; "_NET_WM_MOVE_ACTIONS"
-	"_NET_WM_USER_TIME"
+	"_NET_WM_USER_TIME"           "_NET_FRAME_EXTENTS"
+        ;; "_NET_WM_MOVE_ACTIONS"
 
 	"_NET_WM_WINDOW_TYPE_DESKTOP" "_NET_WM_STATE_MODAL"
 	"_NET_WM_WINDOW_TYPE_DOCK"    "_NET_WM_STATE_STICKY"
@@ -91,6 +97,7 @@
 	                              "_NET_WM_STATE_FULLSCREEN"
 				      "_NET_WM_STATE_ABOVE"
 				      "_NET_WM_STATE_BELOW"
+				      "_NET_WM_STATE_DEMANDS_ATTENTION"
 			
 	"_NET_WM_ALLOWED_ACTIONS"
 	"_NET_WM_ACTION_MOVE"
@@ -145,16 +152,16 @@
 ;; _NET_CLIENT_LIST_STACKING
 
 (define-window-list-property-accessor (net-client-list-stacking)
-    :property-atom :_NET_CLIENT_LIST_STACKING
-    :reader-documentation
-    "Returns the _net_client_list_stacking property. 
+  :property-atom :_NET_CLIENT_LIST_STACKING
+  :reader-documentation
+  "Returns the _net_client_list_stacking property. 
     - window: a window
     - window-list: if true the returned list is a list of window. Otherwise 
       the returned list is the list of window-id."
-    :writer-documentation 
-    "To set this property give a single window or a list of window.
-     You can add/remove one window from the property or
-     simply replace the actual value by a new list.")
+  :writer-documentation 
+  "To set this property give a single window or a list of window.
+   You can add/remove one window from the property or
+   simply replace the actual value by a new list.")
 
 ;; _NET_NUMBER_OF_DESKTOPS
 
@@ -314,6 +321,10 @@
 
 ;; _NET_MOVERESIZE_WINDOW
 
+;; _NET_RESTACK_WINDOW
+
+;; _NET_REQUEST_FRAME_EXTENTS
+
 ;;;; All the following are clients properties.
 ;; _NET_WM_NAME
 
@@ -464,4 +475,13 @@
   (first (get-property window :_NET_WM_USER_TIME)))
 
 (defsetf net-wm-user-time (window) (time)
-  `(change-property ,window :_NET_WM_USER_TIME (list ,time) :CARDINAL 32))
+  `(change-property ,window :_NET_WM_USER_TIME (list ,time) :cardinal 32))
+
+;; _NET_FRAME_EXTENTS
+
+(defun net-frame-extents (window)
+  (values-list (get-property window :_NET_FRAME_EXTENTS)))
+
+(defsetf net-frame-extents (window) (left right top bottom)
+  `(change-property ,window :_NET_FRAME_EXTENTS
+       (list ,left ,right ,top ,bottom) :cardinal 32))
