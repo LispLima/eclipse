@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.7 2003/11/20 23:39:50 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.8 2003/11/20 23:48:54 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -375,7 +375,7 @@ In order to use it, you should first call intern-atoms to be sure all
   "return the strut property as a multiple value (left right top bottom)."
   (let ((v (get-property window :_NET_WM_STRUT :result-type 'vector)))
     (declare (type (or null (simple-array integer (4))) v))
-    (when v (values (aref v 1) (aref v 2) (aref v 3) (aref v 4)))))
+    (when v (values (aref v 0) (aref v 1) (aref v 2) (aref v 3)))))
 
 (defsetf net-wm-strut (window) (strut)
   "set the strut property. The given strut is expected to be a list or a
@@ -393,9 +393,9 @@ In order to use it, you should first call intern-atoms to be sure all
   (let ((v (get-property window :_NET_WM_STRUT_PARTIAL :result-type 'vector)))
     (declare (type (or null (simple-array integer (12))) v))
     (when v
-      (values (aref v 1) (aref v 2) (aref v 3) (aref v 4)
-	      (aref v 5) (aref v 6) (aref v 7) (aref v 8)
-	      (aref v 9) (aref v 10) (aref v 11) (aref v 12)))))
+      (values (aref v 0) (aref v 1) (aref v 2) (aref v 3)
+	      (aref v 4) (aref v 5) (aref v 6) (aref v 7)
+	      (aref v 8) (aref v 9) (aref v 10) (aref v 11)))))
 
 (defsetf net-wm-strut-partial (window) (strut)
   "set the strut partial property. The given strut is expected to be a 
