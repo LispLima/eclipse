@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.4 2003/11/13 00:03:50 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.5 2003/11/13 00:10:04 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -258,7 +258,7 @@ In order to use it, you should first call intern-atoms to be sure all
 ;; _NET_SHOWING_DESKTOP
 
 (defun net-showing-desktop (window)
-  (zerop (the card-32 (first (get-property window :_NET_SHOWING_DESKTOP)))))
+  (= 1 (the card-32 (first (get-property window :_NET_SHOWING_DESKTOP)))))
 
 (defsetf net-showing-desktop (window) (mode-p)
   `(change-property ,window 
@@ -356,11 +356,7 @@ In order to use it, you should first call intern-atoms to be sure all
 ;; _NET_WM_WINDOW_TYPE
 
 (defun net-wm-window-type (window)
-  (get-property
-      window
-      :_NET_WM_WINDOW_TYPE
-      :transform #'(lambda (id)
-		     (xlib:atom-name (xlib:drawable-display window) id))))
+  (get-atoms-property window :_NET_WM_WINDOW_TYPE t))
 
 (defsetf net-wm-window-type (window &key (mode :replace)) (types)
   `(set-atoms-property ,window ,types :_NET_WM_WINDOW_TYPE :mode ,mode))
@@ -368,11 +364,7 @@ In order to use it, you should first call intern-atoms to be sure all
 ;; _NET_WM_STATE
 
 (defun net-wm-state (window)
-  (get-property
-      window
-      :_NET_WM_STATE
-      :transform #'(lambda (id)
-		     (xlib:atom-name (xlib:drawable-display window) id))))
+  (get-atoms-property window :_NET_WM_STATE t))
 
 (defsetf net-wm-state (window &key (mode :replace)) (states)
   `(set-atoms-property ,window ,states :_NET_WM_STATE :mode ,mode))
