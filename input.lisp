@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.23 2003/11/24 13:44:50 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.24 2003/11/28 10:13:47 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -127,12 +127,11 @@
 	  (remove-desktop-application root app))))))
 
 (defmethod event-process ((event enter-notify) (root root))
-  (with-slots (kind mode) event
-    (with-slots (resize-status move-status) root
-      (when (and (not (eq *focus-type* :on-click))
-		 (not (or resize-status move-status))
-		 (eq kind :inferior) (or (eq mode :normal) (eq mode :ungrab)))
-	(xlib:set-input-focus *display* :pointer-root :pointer-root)))))
+  (with-slots (resize-status move-status) root
+    (with-slots (kind mode) event
+      (when (and (eq kind :inferior) (or (eq mode :normal) (eq mode :ungrab)))
+	(unless (or (eq *focus-type* :on-click) resize-status move-status)
+	  (focus-widget root nil))))))
 
 (defmethod event-process ((event focus-in) (root root))
   (when (eql (event-kind event) :pointer)
@@ -275,7 +274,7 @@
 
 (defmethod event-process ((event visibility-notify) (application application))
   (with-slots (wants-focus-p input-model window) application
-    (when (and (eq (event-state event) :unobscured) wants-focus-p)
+    (when (and (not (eq (event-state event) :fully-obscured)) wants-focus-p)
       (set-focus input-model window 0)
       (setf wants-focus-p nil))))
 
@@ -375,7 +374,8 @@
 		(new-desk (aref data 0))
 		(master-window (and master (widget-window master)))
 		(unmap-p (/= new-desk +any-desktop+ (current-desk)))
-		(operation (if unmap-p #'xlib:unmap-window #'xlib:map-window)))
+		(operation (if unmap-p #'xlib:unmap-window #'xlib:map-window))
+		(focused-p (focused-p application)))
 	   (unless (= cur-desk new-desk)
 	     (when (shaded-p application) (shade application))
 	     (setf (window-desktop-num window) new-desk)
@@ -385,7 +385,9 @@
 		 (with-event-mask (master-window)
 		   (funcall operation window))))
 	     (when unmap-p
-	       (xlib:set-input-focus *display* :pointer-root :pointer-root)))))
+	       (when (and focused-p (eq *focus-type* :on-click))
+		 (give-focus-to-next-widget-in-desktop))
+	       (setf (application-wants-focus-p application) nil)))))
 	(:_NET_CLOSE_WINDOW (close-widget application))
 	(:_NET_ACTIVE_WINDOW
 	 (cond ((shaded-p application) (shade application))
