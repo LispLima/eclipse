@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-macros.lisp,v 1.3 2004/12/14 17:58:20 ihatchondo Exp $
+;;; $Id: ICE-macros.lisp,v 1.4 2005/01/06 23:11:08 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -215,17 +215,17 @@
    The defined class will be a request-error subclass if no parent classes
   are supplied.
    The condition will be a sub condition of ice-error if no parent classes
-  are supplied. In that case the generated condition has only one slot
-  inherited from the ice-error condition: request-error with a reader
-  named `ice-error-request-error'. If parent classes are supplied, then the
-  correct parent conditions will be retrieved by the addition of the prefix
-  `ice-error-' (keeping package prefix if supplied).
+  are supplied. The generated condition has only one slot inherited from
+  the ice-error condition: request-error with a reader named
+  `ice-error-request-error'. If parent classes are supplied, then the correct
+  parent conditions will be computed by concatenation of prefix `ice-error-'
+  to the parents, keeping package prefix if any.
   The interpretation of the slots declaration is as for declare-request. Plus
   you can pass options, such as in define-condition, that will be pass to the
   define-condition form."
   (let ((condition (sintern (format nil "ICE-ERROR-~a" name)))
 	(cparents (loop for parent in parents collect
-			(intern (symbol-name parent)
+			(intern (format nil "ICE-ERROR-~a" parent)
 				(package-name (symbol-package parent))))))
     `(progn
        (declare-request ,name ,(or parents `(request-error))
