@@ -1,4 +1,4 @@
-# $Id: configure.in,v 1.7 2004/03/16 18:20:35 ihatchondo Exp $
+# $Id: configure.in,v 1.8 2004/03/18 12:29:46 ihatchondo Exp $
 
 AC_INIT()
 
@@ -141,6 +141,7 @@ then ### a lisp system was found or specified try to decide which one it is.
    then case `basename $LISP` in
           lisp) lisp_system=:cmu;;
           sbcl) lisp_system=:sbcl;;
+	  clisp) lisp_system=:clisp;;
 	esac
    fi
    # Now checks lisp machine args in case we know them.
@@ -156,6 +157,12 @@ then ### a lisp system was found or specified try to decide which one it is.
        if test -z "$core_switch"; then core_switch="--core"; fi
        if test -z "$eval_switch"; then eval_switch="--eval"; fi
        if test -z "$save_lisp"; then save_lisp="sb-ext:save-lisp-and-die"; fi
+       ;;
+     :clisp)
+       if test -z "$load_switch"; then load_switch="-i"; fi
+       if test -z "$core_switch"; then core_switch="-M"; fi
+       if test -z "$eval_switch"; then eval_switch="-x"; fi
+       if test -z "$save_lisp"; then save_lisp="saveinitmem"; fi
        ;;
    esac
    # Verify we have all the infos we need.
