@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PPM -*-
-;;; $Id: image-reader.lisp,v 1.11 2004/07/12 21:24:39 ihatchondo Exp $
+;;; $Id: image-reader.lisp,v 1.12 2004/11/30 23:48:13 ihatchondo Exp $
 ;;;
 ;;; This a ppm image reader for CLX
 ;;; This file is part of Eclipse
@@ -238,11 +238,15 @@
 
 (defun load-ppm (filename)
   "Returns an image instance that contains a representation of a pnm image."  
-  (with-open-file (stream filename)
+  (with-open-file (stream filename
+		   #+SB-UNICODE :external-format
+		   #+SB-UNICODE :latin-1)
     (with-pnm-header (stream type :width width :height height :max-level max)
       (declare (type card-16 width height))
       (declare (type card-8 max))
-      (with-open-file (byte-stream filename :element-type 'card-8)
+      (with-open-file (byte-stream filename :element-type 'card-8 
+		       #+SB-UNICODE :external-format
+		       #+SB-UNICODE :latin-1)
 	(unless (file-position byte-stream (file-position stream))
 	  (error "could not reposition image data stream"))
 	(make-image-from-stream type byte-stream width height max)))))

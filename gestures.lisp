@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: gestures.lisp,v 1.19 2005/01/18 18:14:06 ihatchondo Exp $
+;;; $Id: gestures.lisp,v 1.20 2005/01/18 23:22:44 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -21,36 +21,6 @@
 ;;;; This file contain the Key gestion and the cursor gestion via the keyboard.
 
 (in-package :ECLIPSE-INTERNALS)
-
-(defmacro with-combo-realizer((mode) stroke &key destination type)
-  (let* ((prefix (ecase mode (:undefine 'unrealize) (:define 'realize)))
-	 (macro (intern (format nil "~a-~a" prefix type))))
-    `(with-slots (name modifiers default-modifiers-p action) ,stroke
-       (remhash name ,(if (eq type :keystroke) '*keystrokes* '*mousestrokes*))
-       (loop with dpy = (xlib:drawable-display ,destination)
-	     with num-l = (kb:modifier->modifier-mask dpy :NUM-LOCK)
-	     with caps-l = (kb:modifier->modifier-mask dpy :CAPS-LOCK)
-	     for mask in (translate-modifiers dpy modifiers) do
-	     (loop for key in (stroke-keys ,stroke) do
-		   (,macro ,destination key mask action)
-	           (when (and default-modifiers-p (not (eql mask #x8000)))
-		     (when caps-l 
-		       (,macro ,destination key (+ mask caps-l) action))
-		     (when num-l 
-		       (,macro ,destination key (+ mask num-l) action))
-		     (when (and num-l caps-l)
-		       (,macro ,destination key
-			       (+ mask num-l caps-l) action))))))))
-
-(defmacro undefine-combo-internal (stroke dest-window &key mouse-p)
-  `(with-combo-realizer (:undefine) ,stroke
-     :type ,(if mouse-p :mousestroke :keystroke)
-     :destination ,dest-window))
-
-(defmacro define-combo-internal (stroke dest-window &key mouse-p)
-  `(with-combo-realizer (:define) ,stroke
-     :type ,(if mouse-p :mousestroke :keystroke)
-     :destination ,dest-window))
 
 ;;;; Internal machinery for stroke management.
 
@@ -82,6 +52,36 @@
   (declare (ignore action))
   (remhash (cons code mask) *mouse-stroke-map*)
   (xlib:ungrab-button window code :modifiers mask))
+
+(defmacro with-combo-realizer((mode) stroke &key destination type)
+  (let* ((prefix (ecase mode (:undefine 'unrealize) (:define 'realize)))
+	 (macro (intern (format nil "~a-~a" prefix type))))
+    `(with-slots (name modifiers default-modifiers-p action) ,stroke
+       (remhash name ,(if (eq type :keystroke) '*keystrokes* '*mousestrokes*))
+       (loop with dpy = (xlib:drawable-display ,destination)
+	     with num-l = (kb:modifier->modifier-mask dpy :NUM-LOCK)
+	     with caps-l = (kb:modifier->modifier-mask dpy :CAPS-LOCK)
+	     for mask in (translate-modifiers dpy modifiers) do
+	     (loop for key in (stroke-keys ,stroke) do
+		   (,macro ,destination key mask action)
+	           (when (and default-modifiers-p (not (eql mask #x8000)))
+		     (when caps-l 
+		       (,macro ,destination key (+ mask caps-l) action))
+		     (when num-l 
+		       (,macro ,destination key (+ mask num-l) action))
+		     (when (and num-l caps-l)
+		       (,macro ,destination key
+			       (+ mask num-l caps-l) action))))))))
+
+(defmacro undefine-combo-internal (stroke dest-window &key mouse-p)
+  `(with-combo-realizer (:undefine) ,stroke
+     :type ,(if mouse-p :mousestroke :keystroke)
+     :destination ,dest-window))
+
+(defmacro define-combo-internal (stroke dest-window &key mouse-p)
+  `(with-combo-realizer (:define) ,stroke
+     :type ,(if mouse-p :mousestroke :keystroke)
+     :destination ,dest-window))
 
 ;; Public.
 
