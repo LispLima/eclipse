@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.23 2003/12/04 14:28:36 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.24 2003/12/04 16:12:42 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -660,6 +660,15 @@
 		(setf (window-position icon-window) (values basex basey)))))
 	    (setq prev-icon-window icon-window)))))))
 
+(defsetf icon-priority (icon) (priority)
+  "restack the window of the given icon according the given priority."
+  (with-gensym (p sibling)
+    `(let ((,p ,priority) ,sibling)
+       (when (eq ,priority :below)
+	 (setf ,sibling (get-root-desktop *root* t)
+	       ,p (if ,sibling :above :below)))
+       (setf (xlib:window-priority (widget-window ,icon) ,sibling) ,p))))
+
 (defmethod remove-widget :after ((widget icon))
   (with-slots (pixmap-to-free) widget
     (when pixmap-to-free
@@ -685,7 +694,8 @@
     (when (stringp (slot-value icon 'item-to-draw))
       (setf (slot-value icon 'item-to-draw) (wm-icon-name window)))
     (when *icon-hints*
-      (xlib:map-window (widget-window icon)))
+      (xlib:map-window (widget-window icon))
+      (setf (icon-priority icon) :below))
     (when (eq *focus-type* :on-click)
       (give-focus-to-next-widget-in-desktop))))
 

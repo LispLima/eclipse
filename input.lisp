@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.25 2003/12/08 15:02:41 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.26 2004/01/07 11:21:41 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -481,8 +481,8 @@
 ;;; Events for an icon
 
 (defmethod event-process ((event button-press) (icon icon))
-  (setf (icon-desiconify-p icon) t
-	(xlib:window-priority (widget-window icon)) :above)
+  (setf (icon-desiconify-p icon) t)
+  (setf (icon-priority icon) :above)
   (initialize-move icon event))
 
 (defmethod event-process ((event motion-notify) (icon icon))
@@ -490,9 +490,10 @@
   (setf (icon-desiconify-p icon) nil))
 
 (defmethod event-process ((event button-release) (icon icon))
-  (when (icon-desiconify-p icon)
-    (uniconify icon)))
-
+  (if (icon-desiconify-p icon)
+      (uniconify icon)
+      (setf (icon-priority icon) :below)))
+      
 ;;; Events for Message Box
 
 (defmethod event-process ((event visibility-notify) (box box-button))
