@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.17 2004/01/15 15:35:34 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.18 2004/01/20 16:09:59 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -52,7 +52,7 @@
     :focus-change))
 
 (defconstant +pointer-event-mask+
-  '(:button-press :button-release :button-motion :pointer-motion-hint
+  '(:button-press :button-release :pointer-motion :pointer-motion-hint
     :enter-window :leave-window))
 
 (defconstant +any-desktop+ #xFFFFFFFF)

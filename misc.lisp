@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.21 2004/01/20 15:27:42 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.22 2004/01/22 22:02:54 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -151,6 +151,8 @@
     (or (and prop (logbitp 1 (first prop)) (zerop (third prop)) :OFF) :ON)))
 
 (defun stick-p (window)
+  "Returns T if the window has a desktop-number equal to +any-desktop+ or
+  if it has win_state_sticky on."
   (or (= (or (window-desktop-num window) -1) +any-desktop+)
       (logbitp 0 (or (gnome:win-state window :result-type t) 0))))
 
@@ -195,30 +197,33 @@
 	    (:center (values (ash w -1) (ash h -1)))
 	    (:static (values left-margin top-margin))
 	    (t (values 0 0))))
-      (xlib:with-server-grabbed ((xlib:drawable-display win))
-	;; update coordinates.
-	(xlib:with-state ((or parent win))
-	  (when x (setf (xlib:drawable-x (or parent win)) (- x delta-x)))
-	  (when y (setf (xlib:drawable-y (or parent win)) (- y delta-y))))
-	;; update sizes.
-	(when (or width height)
-	  (with-event-mask ((or parent win))
-	    (xlib:with-state (win)
-	      (when width (setf (xlib:drawable-width win) width))
-	      (when height (setf (xlib:drawable-height win) height)))
-	    (when parent
-	      (with-window-gravity (parent g)
-		(resize-from application))
-	      (update-edges-geometry master))))
-	;; restack.
-	(when stack-mode
-	  (let ((tmp (lookup-widget sibling)))
-	    (when (and (application-p tmp) (application-master tmp))
-	      (setf sibling (widget-window (application-master tmp)))))
-	  (setf (window-priority (or parent win) sibling) stack-mode)))))
-  ;; Acording to the ICCCM: send a synthetic configure-notify,
-  ;; when we moved a application window without resizing it.
-  (when (and (or x y) (not (or width height))) (send-configuration-notify win)))
+      ;; update coordinates.
+      (xlib:with-state ((or parent win))
+	(when x (setf (xlib:drawable-x (or parent win)) (- x delta-x)))
+	(when y (setf (xlib:drawable-y (or parent win)) (- y delta-y))))
+      ;; update sizes.
+      (when (or width height)
+	(with-event-mask ((or parent win))
+	  (xlib:with-state (win)
+	    (when width (setf (xlib:drawable-width win) width))
+	    (when height (setf (xlib:drawable-height win) height)))
+	  (when parent
+	    (with-window-gravity (parent g)
+	      (resize-from application))
+	    (update-edges-geometry master))))
+      ;; restack.
+      (when stack-mode
+	(let ((tmp (lookup-widget sibling)))
+	  (when (and (application-p tmp) (application-master tmp))
+	    (setf sibling (widget-window (application-master tmp)))))
+	(setf (window-priority (or parent win) sibling) stack-mode)))
+    ;; Acording to the ICCCM: send a synthetic configure-notify,
+    ;; when we moved a application window without resizing it.
+    (when (and (or x y) (not (or width height)))
+      (if (decoration-p widget)
+	  (setf win (get-child widget :application :window t))
+	  (unless (application-p widget) (setf win nil)))
+      (and win (send-configuration-notify win)))))
 
 (defun screen-windows-layers (window &aux (i (window-desktop-num window)))
   "Returns, as multiple value, three window lists that corresponds to the
@@ -239,13 +244,13 @@
   guaranty that stacking order constraints described in the extended window
   manager protocol will be respected. Then invokes update-client-list-stacking
   to reflect the new order in all the root properties that are involved in."
-  (with-gensym (above-p wnwm-state snwm-state win sib b m a %priority)
+  (with-gensym (above-p wnwm-state snwm-state win sib b m a stack-mode)
     `(flet ((lookup-app-w (widget)
 	      (when (decoration-p widget)
 		(get-child widget :application :window t)))
 	    (first (windows &optional above-p)
 	      (car (if above-p (last windows) windows))))
-       (let* ((,%priority ,priority)
+       (let* ((,stack-mode ,priority)
 	      (,win (or (lookup-app-w (lookup-widget ,window)) ,window))
 	      (,sib (or (lookup-app-w (lookup-widget ,sibling)) ,sibling))
 	      (,above-p (eq ,priority :above))
@@ -255,26 +260,26 @@
 	     (setf (xlib:window-priority ,window ,sibling) ,priority)
 	     (multiple-value-bind (,b ,m ,a) (screen-windows-layers ,win)
 	       (cond ((member :_net_wm_state_below ,wnwm-state)
-		      (unless (member ,sib ,b)
+		      (unless (member ,sib ,b :test #'xlib:window-equal)
 			(setf ,sib (first (or ,b ,m ,a) (and ,b ,above-p)))
-			(unless ,b (setf ,%priority :below))))
+			(unless ,b (setf ,stack-mode :below))))
 		     ((member :_net_wm_state_above ,wnwm-state)
-		      (unless (member ,sib ,a)
+		      (unless (member ,sib ,a :test #'xlib:window-equal)
 			(unless (member :_net_wm_state_fullscreen ,snwm-state)
 			  (setf ,sib (first ,a ,above-p))
-			  (unless ,a (setf ,%priority :above)))))
+			  (unless ,a (setf ,stack-mode :above)))))
 		     ((member :_net_wm_state_fullscreen ,wnwm-state)
-		      (when (member ,sib ,b)
+		      (when (member ,sib ,b :test #'xlib:window-equal)
 			(setf ,sib (first (or ,m ,a)))
-			(setf ,%priority :below)))
-		     ((not (member ,sib ,m))
+			(setf ,stack-mode :below)))
+		     ((not (member ,sib ,m :test #'xlib:window-equal))
 		      (setf ,sib (first (or ,m ,b ,a) (if ,m ,above-p ,b)))
-		      (unless ,m (setf ,%priority (if ,b :above :below)))))
+		      (unless ,m (setf ,stack-mode (if ,b :above :below)))))
 	       (when (and ,sib (application-master (lookup-widget ,sib)))
 		 (with-slots (master) (lookup-widget ,sib)
 		   (setf ,sib (widget-window master))))
 	       (when (or ,b ,m ,a)
-		 (setf (xlib:window-priority ,window ,sib) ,%priority)
+		 (setf (xlib:window-priority ,window ,sib) ,stack-mode)
 		 (update-client-list-stacking *root*))))))))
 
 (defun grab-root-pointer (&key cursor owner-p confine-to)
