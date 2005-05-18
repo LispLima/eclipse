@@ -8,7 +8,7 @@
 
 (in-package "MICROGUI-ECLIPSE-THEME")
 
-(defconstant +microGUI+ "microGUI")
+(defvar +microGUI+ "microGUI")
 
 (eclipse:define-theme (+microGUI+)
   ((:default-style

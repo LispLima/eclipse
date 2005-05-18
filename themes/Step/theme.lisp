@@ -8,7 +8,7 @@
 
 (in-package "STEP-ECLIPSE-THEME")
 
-(defconstant +Step+ "Step")
+(defvar +Step+ "Step")
 
 (define-theme (+Step+)
   ((:default-style

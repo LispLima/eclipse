@@ -8,7 +8,7 @@
 
 (in-package "BRUSHED-METAL-ECLIPSE-THEME")
 
-(defconstant +brushed-metal+ "brushed-metal")
+(defvar +brushed-metal+ "brushed-metal")
 
 (define-theme (+brushed-metal+)
   ((:default-style

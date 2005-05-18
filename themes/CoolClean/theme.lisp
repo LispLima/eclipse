@@ -8,7 +8,7 @@
 
 (in-package "COOLCLEAN-ECLIPSE-THEME")
 
-(defconstant +CoolClean+ "CoolClean")
+(defvar +CoolClean+ "CoolClean")
 
 (define-theme (+CoolClean+)
   ((:default-style
