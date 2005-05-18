@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: clx-extensions.lisp,v 1.11 2005/03/01 22:35:10 ihatchondo Exp $
+;;; $Id: clx-extensions.lisp,v 1.12 2005/03/02 14:27:39 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -130,7 +130,7 @@
 		     (parse-integer string :start (1+ dot) :end dot-2))))))
     (if (or (equal host-name "unix") (equal host-name ""))
 	(multiple-value-setq (auth-host protocol)
-	  (values (machine-instance) :unix))
+	  (values (machine-instance) #+sbcl :local #-sbcl :unix))
 	(setf protocol :tcp))
     (multiple-value-setq (auth-name auth-data)
       (xlib::get-best-authorization (or auth-host host-name) dpy-num protocol))
