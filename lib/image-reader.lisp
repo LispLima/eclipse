@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PPM -*-
-;;; $Id: image-reader.lisp,v 1.12 2004/11/30 23:48:13 ihatchondo Exp $
+;;; $Id: image-reader.lisp,v 1.13 2005/02/03 22:47:05 ihatchondo Exp $
 ;;;
 ;;; This a ppm image reader for CLX
 ;;; This file is part of Eclipse
@@ -58,12 +58,11 @@
 (deftype pixarray ()
   '(or pixarray-1 pixarray-4 pixarray-8 pixarray-16 pixarray-24 pixarray-32))
 
+(deftype clx-array () 'pixarray)
+
 (deftype color-table () '(simple-array fixnum (256)))
 
 ;;;; x color utilities.
-
-(deftype clx-array ()
-  '(simple-array (or bit card-4 card-8 card-16 card-24 card-32) (* *)))
 
 (defvar *gray-table* (make-array 256 :element-type 'fixnum))
 (defvar *red-table* (make-array 256 :element-type 'fixnum))
