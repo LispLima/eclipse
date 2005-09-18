@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-lib.lisp,v 1.10 2005/01/08 00:02:51 ihatchondo Exp $
+;;; $Id: ICE-lib.lisp,v 1.11 2005/01/20 22:39:51 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -165,12 +165,12 @@
   non-nil. The non-nil clause value is then returned. Each of the clauses is a
   list of the form (request-type-match [request-slots] &rest forms), where:
 
-    * request-type-match -- Either a request type, a list of request-types,
+    - request-type-match -- Either a request type, a list of request-types,
       otherwise, or t. It is an error for the same key to appear in more than
       one clause.
-    * request-slots -- If given, a list of (non-keyword) request slot symbols
+    - request-slots -- If given, a list of (non-keyword) request slot symbols
       defined for the specified request type(s).
-    * forms -- A list of forms that process the specified request type(s). The
+    - forms -- A list of forms that process the specified request type(s). The
       value of the last form is the value returned by the clause. 
 
   A clause matches a request if the request-type is equal to or a member of the
@@ -223,9 +223,9 @@
   The network-ids must be a list of network-id. An attempt will be made to use
   the first network-id. If this fails an attempt will be made to use the second
   one, and so on. Each network-id has the following format:
-    local/<HOST-NAME>:<PATH>
-    tcp/<HOST-NAME>:<PORT-NUMBER>
-    decnet/<HOST-NAME>::<OBJ>
+    - local/<HOST-NAME>:<PATH>
+    - tcp/<HOST-NAME>:<PORT-NUMBER>
+    - decnet/<HOST-NAME>::<OBJ>
 
   Any authentication requirements are handled internally by the ICE Library.
   The method by which authentication data is obtained is implementation
@@ -305,13 +305,15 @@
 
 (defun parse-network-id (network-id)
   "Returns as a multiple values: 
-    connection-type  keyword (or :local :tcp :decnet)
-    host name        string
-    connection obj   (or string fixnum t). 
+    - connection-type  keyword (or :local :tcp :decnet)
+    - host name        string
+    - connection obj   (or string fixnum t). 
+
   The network-id string has the following format:
-    local/<HOST-NAME>:<PATH>
-    tcp/<HOST-NAME>:<PORT-NUMBER>
-    decnet/<HOST-NAME>::<OBJ>
+    - local/<HOST-NAME>:<PATH>
+    - tcp/<HOST-NAME>:<PORT-NUMBER>
+    - decnet/<HOST-NAME>::<OBJ>
+
   If none of those format is founded an error will be signaled."  
   (declare (type string network-id))
   (let* ((slash (or (position #\/ network-id :test #'char=) 0))

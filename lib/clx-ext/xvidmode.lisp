@@ -183,7 +183,7 @@
 
 (defun xfree86-vidmode-query-version (display)
   "Determine the version of the extension built into the server.
-  Return two values major-version and minor-version in that order."
+   Return two values major-version and minor-version in that order."
   (declare (type display display))
   (with-buffer-request-and-reply
       (display (vidmode-opcode display) nil :sizes 16)
@@ -215,8 +215,8 @@
 
 (defun xfree86-vidmode-mod-mode-line (display screen mode-line)
   "Change the settings of the current video mode provided the 
-  requested settings are valid (e.g. they don't exceed the 
-  capabilities of the monitor)."
+   requested settings are valid (e.g. they don't exceed the 
+   capabilities of the monitor)."
   (declare (type display display))
   (declare (type screen screen))
   (let* ((major (xfree86-vidmode-query-version display))
@@ -230,10 +230,10 @@
 
 (defun xfree86-vidmode-get-mode-line (display screen)
   "Query the settings for the currently selected video mode.
-  return a mode-info structure fields with the server answer.
-  If there are any server  private  values (currently  only 
-  applicable  to  the S3 server) the function will store it 
-  into the returned structure."
+   return a mode-info structure fields with the server answer.
+   If there are any server  private  values (currently  only 
+   applicable  to  the S3 server) the function will store it 
+   into the returned structure."
   (declare (clx-values mode-info))
   (declare (type display display))
   (declare (type screen screen))
@@ -270,7 +270,7 @@
 
 (defun xfree86-vidmode-get-all-mode-lines (dpy screen)
   "Returns a list containing all video modes (as mode-info structure). 
-  The first element of the list corresponds to the current video mode."
+   The first element of the list corresponds to the current video mode."
   (declare (type display dpy))
   (declare (type screen screen))
   (multiple-value-bind (major minor) (xfree86-vidmode-query-version dpy)
@@ -340,10 +340,10 @@
 
 (defun xfree86-vidmode-delete-mode-line (dpy scr mode-info)
   "Delete mode argument. The specified mode must match an existing mode. 
-  To be considered a match, all of the fields of the given mode-info 
-  structure must match, except the privsize and private fields. 
-  If the mode to be deleted is the current mode, a mode switch to the next 
-  mode will occur first. The last remaining mode can not be deleted."
+   To be considered a match, all of the fields of the given mode-info 
+   structure must match, except the privsize and private fields. 
+   If the mode to be deleted is the current mode, a mode switch to the next 
+   mode will occur first. The last remaining mode can not be deleted."
   (declare (type display dpy))
   (declare (type screen scr))
   (let* ((major (xfree86-vidmode-query-version dpy))
@@ -399,11 +399,11 @@
   (svref +mode-status+ (+ status 2)))
 
 (defun xfree86-vidmode-validate-mode-line (dpy scr mode-info)
-  "Checked the validity of a mode-info argument. If the specified mode can be 
-  used by the server (i.e. meets all the constraints placed upon a mode by the 
-  combination of the server, card, and monitor) the function returns :mode_ok
-  otherwise it returns a keyword indicating  the  reason why the mode is 
-  invalid."
+  "Checked the validity of a mode-info argument. If the specified mode can be
+   used by the server (i.e. meets all the constraints placed upon a mode by the
+   combination of the server, card, and monitor) the function returns :mode_ok
+   otherwise it returns a keyword indicating  the  reason why the mode is
+   invalid."
   (declare (type display dpy))
   (declare (type screen scr))
   (let* ((major (xfree86-vidmode-query-version dpy))
@@ -498,8 +498,8 @@
 
 (defun xfree86-vidmode-lock-mode-switch (display screen lock-p)
   "Allow or disallow mode switching whether the request to switch
-  modes comes from a call to the mode switching functions or from one 
-  of the mode switch key sequences (e.g. Ctrl-Alt-+ Ctrl-Alt--)."
+   modes comes from a call to the mode switching functions or from one 
+   of the mode switch key sequences (e.g. Ctrl-Alt-+ Ctrl-Alt--)."
   (declare (type display display))
   (declare (type screen screen))
   (declare (type boolean lock-p))
@@ -510,8 +510,8 @@
 
 (defun xfree86-vidmode-switch-to-mode (display screen mode-info)
   "Switch directly to the specified mode. The specified mode must match 
-  an existing mode. Matching is as specified in the description of the 
-  xf86-vidmode-delete-mode-line function."
+   an existing mode. Matching is as specified in the description of the 
+   xf86-vidmode-delete-mode-line function."
   (declare (type display display))
   (declare (type screen screen))
   (multiple-value-bind (major minor) (xfree86-vidmode-query-version display)
@@ -533,7 +533,7 @@
 
 (defun xfree86-vidmode-switch-mode (display screen zoom)
   "Change the video mode to next (or previous) video mode, depending 
-  of zoom sign. If positive, switch to next mode, else switch to prev mode."
+   of zoom sign. If positive, switch to next mode, else switch to prev mode."
   (declare (type display display))
   (declare (type screen screen))
   (declare (type card16 zoom))
@@ -562,14 +562,14 @@
 
 (defun xfree86-vidmode-get-monitor (dpy screen)
   "Information known to the server about the monitor is returned. 
-  Multiple value return:
+   Multiple value return:
     hsync (list of hi, low, ...)
     vsync (list of hi, low, ...)
     vendor name
     model name 
 
-  The hi and low values will be equal if a discreate value was given 
-  in the XF86Config file."
+   The hi and low values will be equal if a discreate value was given 
+   in the XF86Config file."
   (declare (type display dpy))
   (declare (type screen screen))
   (with-buffer-request-and-reply
@@ -601,8 +601,8 @@
 
 (defun xfree86-vidmode-get-viewport (dpy screen)
   "Query the location of the upper left corner of the viewport into 
-  the virtual screen. The upper left coordinates will be returned as 
-  a multiple value."
+   the virtual screen. The upper left coordinates will be returned as 
+   a multiple value."
   (declare (type display dpy))
   (declare (type screen screen))
   (multiple-value-bind (major minor) (xfree86-vidmode-query-version dpy)
@@ -627,7 +627,7 @@
        
 (defun xfree86-vidmode-set-viewport (dpy screen &key (x 0) (y 0))
   "Set upper left corner of the viewport into the virtual screen to the 
-  x and y keyword parameters value (zero will be theire default value)."
+   x and y keyword parameters value (zero will be theire default value)."
   (declare (type display dpy))
   (declare (type screen screen))
   (declare (type card32 x y))
