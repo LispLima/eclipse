@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.32 2005/01/06 16:24:18 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.33 2005/01/17 22:53:39 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -269,13 +269,11 @@
    manager protocol will be respected. Then invokes update-client-list-stacking
    to reflect the new order in all the root properties that are involved in.
 
-   window
-     A window. 
-   sibling
-     An optional argument specifying that window is to be restacked
-     relative to this sibling window. 
-   priority
-     One of :above, :below, :bottom-if, :opposite, or :top-if. 
+   - window (xlib:window): The window to be restacked.
+   - sibling (or null xlib:window): An optional argument specifying that
+      window is to be restacked relative to the given sibling window. 
+   - priority (member :below :bottom-if :opposite :top-if): The new priority
+      of the window. 
 
    Changes the stacking priority element of the window to the specified value.
    It is an error if the sibling argument is specified and is not actually a
@@ -293,18 +291,16 @@
    have occurred). The coordinates will be updated according to the given
    gravity position hint, or to the most recently requested by the client.
 
-   win
-     A window. 
-   sibling
-     An optional argument specifying that window is to be restacked
-     relative to this sibling window. 
-   stack-mode
-     If given, one of :above or :below. See (setf window-priority) for 
-     further details about the stacking order.
-   x y 
-     If given, an xlib:int16.
-   width height
-     If given, an xlib:card16. The size of the window in pixels."  
+   - win (xlib:window): The window to be reconfigured. 
+   - sibling (or null xlib:window): An optional argument specifying that
+      window is to be restacked relative to the given sibling window. 
+   - stack-mode (or null (member :above :below)): If given, then window
+      will be restacked. See (setf window-priority) for further details
+      about the stacking order.
+   - x, y (or null xlib:int16): The new coordinates of the given window.
+   - width, height (or null xlib:card16): The new size of the window in
+      pixels. Note that the given sizes might be reajust according to the
+      window constraints."
   (let* ((widget (lookup-widget win))
 	 (application (when (application-p widget) widget))
 	 (master (when application (application-master application)))
@@ -403,8 +399,8 @@
 
 (defun run-application (program &rest arguments)
   "Returns a lambda of zero arguments which when funcalled will try to 
-  run the program named `program' with arguments `arguments'. If the 
-  invocation failed a pop-up window will appear reporting the error."
+   run the program named `program' with arguments `arguments'. If the 
+   invocation failed a pop-up window will appear reporting the error."
   (lambda ()
     (handler-case (%run-program% program arguments)
       (error () (timed-message-box *root-window* "Wrong application name")))))
