@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: COMMON-LISP; -*-
-;;; $Id: package.lisp,v 1.6 2004/12/14 17:58:18 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.7 2005/03/25 14:43:52 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
