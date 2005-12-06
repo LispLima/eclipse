@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-lib.lisp,v 1.11 2005/01/20 22:39:51 ihatchondo Exp $
+;;; $Id: ICE-lib.lisp,v 1.12 2005/09/18 17:48:15 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -122,25 +122,24 @@
 
 (defun process-request (ice-connection &key timeout handler (ice-flush-p t))
   "Invokes handler on each queued request until handler returns non-nil. If
-  such a request is found, the non-nil handler value is returned by
-  process-request. If handler returns nil for each request in the queue,
-  process-request waits for another request to arrive. If timeout is non-nil
-  and no request arrives within the specified timeout interval (given in
-  seconds), process-request returns nil; if timeout is nil, process-request
-  will not return until handler returns non-nil. process-request may wait only
-  once on network data, and therefore timeout prematurely.
+   such a request is found, the non-nil handler value is returned by
+   process-request. If handler returns nil for each request in the queue,
+   process-request waits for another request to arrive. If timeout is non-nil
+   and no request arrives within the specified timeout interval (given in
+   seconds), process-request returns nil; if timeout is nil, process-request
+   will not return until handler returns non-nil. process-request may wait only
+   once on network data, and therefore timeout prematurely.
+    If ice-flush-p is true, process-request first invokes ice-flush-p to send
+   any buffered requests. (default is TRUE)
+    If handler is an array, it is expected to be a two dimensional array
+   containing handler functions for each request type of all active protocols.
+   The vector index of the handler function for a particular request type is
+   given by:
+    ;;; (aref (aref handler (request-major-opcode request))
+    ;;;       (request-minor-opcode request))
 
-  If ice-flush-p is true, process-request first invokes ice-flush-p to send
-  any buffered requests. (default is TRUE)
-
-  If handler is an array, it is expected to be a two dimensional array
-  containing handler functions for each request type of all active protocols.
-  The vector index of the handler function for a particular request type is
-  given by (aref (aref handler (request-major-opcode request))
-                 (request-minor-opcode request)).
-
-  A handler is always invoked with two arguments: ice-connection (an instance
-  of ice-connection) and request (an instance of request)."
+    A handler is always invoked with two arguments: ice-connection (an instance
+   of ice-connection) and request (an instance of request)."
   (declare (type ice-connection ice-connection))
   (declare (type (or null fixnum) timeout))
   (declare (type (or null handlers function) handler))
@@ -162,38 +161,37 @@
 (defmacro request-case
     ((ice-conn &key ice-flush-p timeout (place (gensym))) &body clauses)
   "Executes the matching clause for each queued request until a clause returns
-  non-nil. The non-nil clause value is then returned. Each of the clauses is a
-  list of the form (request-type-match [request-slots] &rest forms), where:
+   non-nil. The non-nil clause value is then returned. Each of the clauses is a
+   list of the form (request-type-match [request-slots] &rest forms), where:
 
-    - request-type-match -- Either a request type, a list of request-types,
+    - request-type-match: Either a request type, a list of request-types,
       otherwise, or t. It is an error for the same key to appear in more than
       one clause.
-    - request-slots -- If given, a list of (non-keyword) request slot symbols
+    - request-slots: If given, a list of (non-keyword) request slot symbols
       defined for the specified request type(s).
-    - forms -- A list of forms that process the specified request type(s). The
+    - forms: A list of forms that process the specified request type(s). The
       value of the last form is the value returned by the clause. 
 
-  A clause matches a request if the request-type is equal to or a member of the
-  request-match, or if the request-match is t or otherwise. If no otherwise or
-  t clause appears, it is equivalent to having a final clause that returns nil.
-  If request-slots is given, these symbols are bound to the value of the
-  corresponding request slot in the clause forms. Each element of request-slots
-  can also be a list of the form (variable request-slot), in which case the
-  variable symbol is bound to the value of the request slot specified by the
-  request-slot.
+   A clause matches a request if the request-type is equal to or a member of
+   the request-match, or if the request-match is t or otherwise. If no
+   otherwise or t clause appears, it is equivalent to having a final clause
+   that returns nil.
+    If request-slots is given, these symbols are bound to the value of the
+   corresponding request slot in the clause forms. Each element of request 
+   slots can also be a list of the form (variable request-slot), in which
+   case the variable symbol is bound to the value of the request slot specified
+   by the request-slot.
 
-  If every clause returns nil for each request in the request queue, 
-  request-case waits for another request to arrive. If :timeout is non-nil and
-  no request arrives within the specified timeout interval (given in seconds), 
-  request-case returns nil; if :timeout is nil, request-case will not return
-  until a clause returns non-nil. 
-
-  If ice-flush-p is true, request-case first invokes ice-flush to send any
-  buffered requests.
-
-  If place is given then it should be a symbol. It will be bound to the current
-  handled request. If you need in any form to access the request object then
-  give it a place."
+    If every clause returns nil for each request in the request queue,
+   request-case waits for another request to arrive. If :timeout is non-nil and
+   no request arrives within the specified timeout interval (given in seconds), 
+   request-case returns nil; if :timeout is nil, request-case will not return
+   until a clause returns non-nil. 
+    If ice-flush-p is true, request-case first invokes ice-flush to send any
+   buffered requests.
+    If place is given then it should be a symbol. It will be bound to the
+   current handled request. If you need in any form to access the request
+   object then give it a place."
   (flet ((compute-typecase-clauses (clauses)
 	   (let ((otherwise (last clauses)))
 	     (if (or (eq 'otherwise (caar otherwise)) (eq 't (caar otherwise)))
@@ -218,24 +216,24 @@
 
 (defun open-connection (network-ids &key connection must-authenticate-p)
   "Returns an ice-connection object if it succeeds. Otherwise an error 
-  will be signaled. (its type will depend on the reason of the failure)
+   will be signaled. (its type will depend on the reason of the failure)
   
-  The network-ids must be a list of network-id. An attempt will be made to use
-  the first network-id. If this fails an attempt will be made to use the second
-  one, and so on. Each network-id has the following format:
-    - local/<HOST-NAME>:<PATH>
+   The network-ids must be a list of network-id. An attempt will be made to
+   use the first network-id. If this fails an attempt will be made to use the
+   second one, and so on. Each network-id has the following format:
+    - (local | unix)/<HOST-NAME>:<PATH>
     - tcp/<HOST-NAME>:<PORT-NUMBER>
     - decnet/<HOST-NAME>::<OBJ>
 
-  Any authentication requirements are handled internally by the ICE Library.
-  The method by which authentication data is obtained is implementation
-  dependent. We only use and know the default use of the ICEauthority file.
-  You will need to register your own methods for other authentication methods.
-  To do so see and use register-ice-authentication-protocol.
+   Any authentication requirements are handled internally by the ICE Library.
+   The method by which authentication data is obtained is implementation
+   dependent. We only use and know the default use of the ICEauthority file.
+   You will need to register your own methods for other authentication methods.
+   To do so see and use register-ice-authentication-protocol.
 
-  If connection is non nil it is expected to be of type or a sub-type of
-  ice-connection. If given, it will be filled during the setup phase and
-  returned."
+   If connection is non nil it is expected to be of type or a sub-type of
+   ice-connection. If given, it will be filled during the setup phase and
+   returned."
   (declare (type (or null list) network-ids))
   (declare (type boolean must-authenticate-p))
   (declare (type (or null ice-connection) connection))
@@ -287,7 +285,7 @@
 
 (defmacro with-error-handler ((ice-connection handler) &body body)
   "Changes the error handler of the ice-connection for the specified handler
-  only within the dynamic extent of the body."
+   only within the dynamic extent of the body."
   (let ((old-handler (gensym)))
     `(let ((,old-handler (ice-error-handler ,ice-connection)))
        (declare (type error-handler ,old-handler))
@@ -309,12 +307,12 @@
     - host name        string
     - connection obj   (or string fixnum t). 
 
-  The network-id string has the following format:
-    - local/<HOST-NAME>:<PATH>
+   The network-id string has the following format:
+    - (local | unix)/<HOST-NAME>:<PATH>
     - tcp/<HOST-NAME>:<PORT-NUMBER>
     - decnet/<HOST-NAME>::<OBJ>
 
-  If none of those format is founded an error will be signaled."  
+   If none of those format is founded an error will be signaled."  
   (declare (type string network-id))
   (let* ((slash (or (position #\/ network-id :test #'char=) 0))
 	 (colon (or (position #\: network-id :test #'char= :start slash) 0)))
@@ -324,7 +322,8 @@
     (let ((type (subseq network-id 0 slash))    
 	  (host-name (subseq network-id (1+ slash) colon))
 	  (obj (subseq network-id (1+ colon))))
-      (cond ((string= type "local") (setf type :local))
+      (cond ((or (string= type "local") (string= type "unix"))
+	     (setf type :local))
 	    ((string= type "tcp")
 	     (setf obj (parse-integer obj)) (setf type :tcp))
 	    ((string= type "decnet")
@@ -338,7 +337,7 @@
 
 (defun connect-to-peer (network-ids)
   "Returns as a multiple values the chosen network-id and a two way stream
-  connected to the first peer that accept us."
+   connected to the first peer that accept us."
   (loop with stream = nil
 	for network-id in network-ids do
 	(multiple-value-bind (type hostname obj)
@@ -362,7 +361,7 @@
 
 (defun available-authentication-protocols (proto-name network-id protocols)
   "Returns an array of string containing the names of the available 
-  authentication protocols, according to .ICEauthority file."
+   authentication protocols, according to .ICEauthority file."
   (declare (type string proto-name network-id))
   (declare (type list protocols))
   (let ((names (list)))

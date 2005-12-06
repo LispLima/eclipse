@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE.lisp,v 1.3 2004/12/14 17:58:21 ihatchondo Exp $
+;;; $Id: ICE.lisp,v 1.4 2005/01/08 00:02:51 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -152,8 +152,8 @@
 
 (defun make-data (length &rest args &key (initial-element 0) &allow-other-keys)
   "Creates and returns an array constructed of the most specialized type that
-  can accommodate elements of type (unsigned-byte 8). For the rest of the 
-  options see common-lisp:make-array."
+   can accommodate elements of type (unsigned-byte 8). For the rest of the 
+   options see common-lisp:make-array."
   (declare (type fixnum length))
   (if (getf args :initial-contents)
       (remf args :initial-element)

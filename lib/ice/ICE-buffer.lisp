@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-buffer.lisp,v 1.4 2004/12/14 17:58:20 ihatchondo Exp $
+;;; $Id: ICE-buffer.lisp,v 1.5 2005/03/25 14:43:54 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28

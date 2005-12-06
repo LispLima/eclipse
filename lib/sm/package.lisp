@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: COMMON-LISP; -*-
-;;; $Id: package.lisp,v 1.7 2005/03/25 14:43:52 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.8 2005/09/22 12:21:32 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -77,7 +77,7 @@
     specification.
 
     protocol specification can be found at: 
-     <ftp://ftp.xfree86.org/X.Org/pub/R6.6/xc/doc/hardcopy/SM/xsmp.PS.gz>")
+     {http://www.xfree86.org/current/xsmp.pdf}")
   (:import-from :ice-lib 
     #:make-default-versions
     #:authentication-protocol-index

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-request.lisp,v 1.9 2005/01/06 23:11:08 ihatchondo Exp $
+;;; $Id: ICE-request.lisp,v 1.10 2005/03/25 14:43:54 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -84,8 +84,8 @@
   (:documentation "Both parties must send this message before sending any
   other, including errors. This message specifies the byte order that will be
   used on subsequent messages sent by this party. 
-  Note: If the receiver detects an error in this message, it must be sure to
-  send its own ByteOrder message before sending the Error."))
+   Note: If the receiver detects an error in this message, it must be sure to
+  send its own {defclass byte-order} message before sending the Error."))
 
 (declare-request connection-setup (request)
   ((number-of-versions-offered :type card8)
@@ -99,60 +99,65 @@
    (version-list :type versions :length number-of-versions-offered))
   (:documentation "The party that initiates the connection (the one that does
   the ``(connect ..)'') must send this message as the second message (after
-  ByteOrder) on startup. Versions gives an array of version (array card16 (2)),
-  in decreasing order of preference, of the protocol versions this party is
-  capable of speaking. The specification specifies major version 1, minor
-  version 0. If must-authenticate-p is T, the initiating party demands
-  authentication; the accepting party must pick an authentication scheme and
-  use it. In this case, the only valid response is AuthenticationRequired.
+  {defclass byte-order} ) on startup. Versions gives an array of version
+  (array card16 (2)), in decreasing order of preference, of the protocol
+  versions this party is capable of speaking. The specification specifies
+  major version 1, minor version 0. 
+   If must-authenticate-p is T, the initiating party demands authentication;
+  the accepting party must pick an authentication scheme and use it. In this
+  case, the only valid response is {defclass authentication-required} .
    If must-authenticate-p is NIL, the accepting party may choose an
   authentication mechanism, use a host-address-based authentication scheme,
-  or skip authentication. When must-authenticate-p is NIL, connection-reply
-  and authentication-required are both valid responses. If a 
-  host-address-based authentication scheme is used, authentication-rejected
-  and authentication-failed errors are possible. authentication-protocol-names
-  specifies a (possibly NIL, if must-authenticate-p is NIL) array of
-  authentication protocols names the party is willing to perform.
+  or skip authentication. As a result, a {defclass connection-reply} or a
+  {defclass authentication-required} are both valid responses. If a host
+  address based authentication scheme is used, then in this case both 
+  {defclass authentication-rejected} or {defclass authentication-failed}
+  error messages are possible.
    If must-authenticate is True, presumably the party will offer only
   authentication mechanisms allowing mutual authentication. Vendor gives the
   name of the vendor of this ICE implementation. release-name gives the release
-  identifier of this ICE implementation."))
+  identifier of this ICE implementation.
+   authentication-protocol-names specifies a (or NIL, if must-authenticate-p
+  is NIL) array of authentication protocols names the party is willing to
+  perform."))
 
 (declare-request authentication-required (request)
   ((authentication-protocol-index :type card8 :pad-size 1)
    (length :type card32 :initform 0)
    (length-of-authentication-data :type card16 :pad-size 6)
    (data :type data :length length-of-authentication-data))
-  (:documentation "This message is sent in response to a connection-setup or
-  protocol-setup message to specify that authentication is to be done and what
-  authentication mechanism is to be used. The authentication protocol is
-  specified by a 0-based index into the array of names given in the
-  ConnectionSetup or ProtocolSetup. Any protocol-specific data that might be
-  required is also sent."))
+  (:documentation "This message is sent in response to both messages 
+  {defclass connection-setup} and {defclass protocol-setup} to specify that
+  authentication is to be done and what authentication mechanism is to be used.
+  The authentication protocol is specified by a 0-based index into the array of
+  names given in the connection-setup or protocol-setup. Any protocol-specific
+  data that might be required is also sent."))
 
 (declare-request authentication-reply (request)
   ((minor-opcode :type card8 :pad-size 2)
    (length :type card32 :initform 0)
    (length-of-authentication-data :type card16 :pad-size 6)
    (data :type data :length length-of-authentication-data))
-  (:documentation "This message is sent in response to an 
-  authentication-required or authentication-next-phase message, to supply
-  authentication data as defined by the authentication protocol being used.
-  Note that this message is sent by the party that initiated the current
-  negotiation (the party that sent the connection-setup or protocol-setup
-  message).
-   authentication-next-phase indicates that more is to be done to complete
-  the authentication. If the authentication is complete, connection-reply is
-  appropriate if the current authentication handshake is the result of a
-  connection-setup, and a protocol-reply is appropriate if it is the result
-  of a protocol-setup."))
+  (:documentation "This message is sent in response to both messages 
+  {defclass authentication-required} or {defclass authentication-next-phase}
+  to supply authentication data as defined by the authentication protocol
+  being used.
+   Note that this message is sent by the party that initiated the current
+  negotiation (the party that sent the {defclass connection-setup} or the
+  {defclass protocol-setup} messages).
+   A {defclass authentication-next-phase} message can then be sent to indicate
+  that more is to be done to complete the authentication. If the authentication
+  is complete, a {defclass connection-reply} message is appropriate if the
+  current authentication handshake is the result of a connection setup, but a
+  {defclass protocol-reply} message is appropriate if the authentication is the
+  result of a protocol setup."))
 
 (declare-request authentication-next-phase (request)
   ((minor-opcode :type card8 :pad-size 2)
    (length :type card32 :initform 0)
    (length-of-authentication-data :type card16 :pad-size 6)
    (data :type data :length length-of-authentication-data))
-  (:documentation "This message is sent in response to an AuthenticationReply
+  (:documentation "This message is sent in response to an authentication-reply
   message, to supply authentication data as defined by the authentication
   protocol being used."))
 
@@ -161,12 +166,13 @@
    (length :type card32 :initform 0)
    (vendor-name :type string)
    (release-name :type string))
-  (:documentation "This message is sent in response to a connection-setup or
-  authentication-reply message to indicate that the authentication handshake
-  is complete.
+  (:documentation "This message is sent in response to both messages 
+  {defclass connection-setup} or {defclass authentication-reply} to indicate
+  that the authentication handshake is complete.
   - version-index gives a 0-based index into the array of versions offered in
-  the ConnectionSetup message; it specifies the version of the ICE protocol
-  that both parties should speak for the duration of the connection.
+    the {defclass connection-setup} message; it specifies the version of the
+    ICE protocol that both parties should speak for the duration of the
+    connection.
   - vendor-name gives the name of the vendor of this ICE implementation.
   - release-name gives the release identifier of this ICE implementation."))
 
@@ -200,10 +206,11 @@
   case, the only valid response is authentication-required.
    If must-authenticate-p is NIL, the accepting party may choose an
   authentication mechanism, use a host-address-based authentication scheme, or
-  skip authentication. When must-authenticate-p is NIL, protocol-reply and
-  authentication-required are both valid responses. If a host-address-based
-  authentication scheme is used, authentication-rejected and
-  authentication-failed errors are possible."))
+  skip authentication. When must-authenticate-p is NIL, both response messages 
+  {defclass protocol-reply} and {defclass authentication-required} are valid.
+  But if an host-address-based authentication scheme is used, then both 
+  {defclass authentication-rejected} and {defclass authentication-failed} error
+  messages are possible."))
 
 (declare-request protocol-reply (request)
   ((version-index :type card8)
@@ -211,16 +218,16 @@
    (length :type card32 :initform 0)
    (vendor-name :type string)
    (release-name :type string))
-  (:documentation "This message is sent in response to a protocol-setup or
-  authentication-reply message to indicate that the authentication handshake
-  is complete.
+  (:documentation "This message is sent in response to both messages 
+  {defclass protocol-setup} and {defclass authentication-reply} to indicate
+  that the authentication handshake is complete.
   - major-opcode gives the opcode that this party will use in messages that it
-  sends.
+    sends.
   - version-index gives a 0-based index into the array of versions offered in
-  the protocol-setup message; it specifies the version of the protocol that
-  both parties should speak for the duration of the connection.
+    the {defclass protocol-setup} message; it specifies the version of the
+    protocol that both parties should speak for the duration of the connection.
   - vendor-name and release-name are identification strings with semantics
-  defined by the specific protocol being negotiated."))
+    defined by the specific protocol being negotiated."))
 
 (declare-request ping (request)
   ((minor-opcode :type card8 :pad-size 2)
@@ -231,7 +238,7 @@
 (declare-request ping-reply (request)
   ((minor-opcode :type card8 :pad-size 2)
    (length :type card32 :initform 0))
-  (:documentation "This message is sent in response to a Ping message,
+  (:documentation "This message is sent in response to a ping message,
   indicating that the connection is still functioning."))
 
 (declare-request want-to-close (request)
@@ -241,15 +248,15 @@
   connection. The sending party has noticed that, as a result of mechanisms
   specific to each protocol, there are no active protocols left. There are
   four possible scenarios arising from this request:
-   (1) The receiving side noticed too, and has already sent a want-to-close. 
-       On receiving a want-to-close while already attempting to shut down,
-       each party should simply close the connection.
-   (2) The receiving side hasn't noticed, but agrees. It closes the connection.
-   (3) The receiving side has a protocol-setup ``in flight,'' in which case it
-       is to ignore want-to-close and the party sending WantToClose is to
-       abandon the shutdown attempt when it receives the protocol-setup.
-   (4) The receiving side wants the connection kept open for some reason not
-       specified by the ICE protocol, in which case it sends no-close.
+   - The receiving side noticed too, and has already sent a want-to-close. 
+     On receiving a want-to-close while already attempting to shut down,
+     each party should simply close the connection.
+   - The receiving side hasn't noticed, but agrees. It closes the connection.
+     The receiving side has a {defclass protocol-setup} ``in flight,'' in which
+     case it is to ignore want-to-close and the party sending want-to-close is
+     to abandon the shutdown attempt when it receives the protocol-setup.
+   - The receiving side wants the connection kept open for some reason not
+     specified by the ICE protocol, in which case it sends no-close.
   
   See the state transition diagram in the ICE protocol document for additional
   information."))
@@ -260,7 +267,7 @@
   (:documentation "This message is sent in response to a want-to-close message
   to indicate that the responding party does not want the connection closed at
   this time. The receiving party should not close the connection. Either party
-  may again initiate want-to-close at some future time."))
+  may again initiate {defclass want-to-close} at some future time."))
 
 ;;;; Errors.
 
@@ -316,7 +323,7 @@
 
 (defun get-error-class (error-buffer)
   "Returns the error class of the given error-buffer without modifying the 
-  current position of the buffer index."
+   current position of the buffer index."
   (declare (type buffer error-buffer))
   (let ((buff-pos (buffer-index error-buffer)))
     (declare (type fixnum buff-pos))
@@ -452,7 +459,7 @@
 (declare-error major-opcode-duplicate ()
   ((values :type card8))
   (:documentation "The major opcode specified was already registered. This is
-  fatal to the ``new'' protocol being set up by ProtocolSetup, but it does not
+  fatal to the ``new'' protocol being set up by protocol-setup, but it does not
   affect the existing registration.")
   (:report (lambda (condition stream)
 	     (report-ice-error condition stream)

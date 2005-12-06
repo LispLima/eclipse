@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: SM-LIB; -*-
-;;; $Id: sm.lisp,v 1.10 2005/03/25 14:43:52 ihatchondo Exp $
+;;; $Id: sm.lisp,v 1.11 2005/09/22 12:21:32 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -284,8 +284,8 @@
 
    If the client wants to save additional information after all the other
   clients have finished changing their own state, the client should send
-  save-yourself-phase2-request instead of SaveYourselfDone. The client must
-  then freeze interaction with the user and wait until it receives a
+  save-yourself-phase2-request instead of save-yourself-done. The client
+  must then freeze interaction with the user and wait until it receives a
   save-complete, die, or a shutdown-cancelled message.
 
    If interact-style is :none, the client must not interact with the user while
@@ -398,8 +398,8 @@
    (length :type card32 :initform 0))
   (:documentation "The shutdown currently in process has been aborted. The
   client can now continue as if the shutdown had never happened. If the client
-  has not sent save-yourself-done yet, the client can either abort the save and
-  send save-yourself-Done with the success-p slot set to Nil, or it can
+  has not sent save-yourself-done yet, the client can either abort the save
+  and send save-yourself-done with the success-p slot set to Nil, or it can
   continue with the save and send a SaveYourselfDone with the success-p slot
   set to reflect the outcome of the save."))
 
@@ -544,7 +544,7 @@
    will be used. An attempt will be made to use the first network-id. If this
    fails an attempt will be made to use the second one, and so on. Each
    network-id has the following format:
-    - local/<HOST-NAME>:<PATH>
+    - (local | unix)/<HOST-NAME>:<PATH>
     - tcp/<HOST-NAME>:<PORT-NUMBER>
     - decnet/<HOST-NAME>::<OBJ>
 

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-macros.lisp,v 1.5 2005/01/06 23:31:31 ihatchondo Exp $
+;;; $Id: ICE-macros.lisp,v 1.6 2005/03/25 14:43:54 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -79,31 +79,26 @@
 
 (defmacro defrequest (name (&rest super-classes) (&rest slots) &rest doc)
   "Declares a request. Generate a class named `name' and specialized methods 
-  for: make-request, decode-request, post-request, request-length plus 
-  a predicate function named<name>-p.
-  
-  The syntax is the same than in defclass. The only difference is the four
-  more keyword arguments that exist for slot description:
+   for: make-request, decode-request, post-request, request-length plus a
+   predicate function named<name>-p.
+    The syntax is the same than in defclass. The only difference is the four
+   more keyword arguments that exist for slot description:
 
-  :prefix     symbol   (default: class-name)
-    If given, then it will be use with the slots name to construct the 
-    accessor method name if :accessor option was not given.
-
-  :pad-size   fixnum   (default: 0)
-    You may (or have to) indicate the number of padding bytes between two
-    slots. This information will not be used in the class form, but will
-    be in the encoder and decoder methods.
-
-  :inherited  boolean  (default: NIL)
-    You also need to indicate the inherited slots if any in your declaration
-    (except for the two inherited from the request top level class). This
-    information is needed for the {en/de}coder methods.
-
-  :length     slot-name
-    For sequence type, the decoder method will need this information to be 
-    able to read the correct quantity of items of the given sequence type.
-    For example: if you have a slot typed versions = (simple-array version (*))
-    then the decoder will need to know how much version to read."
+    - :prefix (symbol): If given, then it will be use with the slots name to
+      construct the accessor method name if :accessor option was not given.
+      If not given the class name will be used.
+    - :pad-size (fixnum): You may (or have to) indicate the number of padding
+       bytes between two slots. This information will not be used in the class
+       form, but will be in the encoder and decoder methods. Default is: 0.
+    - :inherited (boolean): You also need to indicate the inherited slots if
+      any in your declaration (except for the two inherited from the request
+      top level class). This information is needed for the {en/de}coder
+      methods. Default: NIL.
+    - :length (slot-name): For sequence type, the decoder method will need this
+      information to be able to read the correct quantity of items of the given
+      sequence type. For example: if you have a slot typed versions where 
+      versions is a for instance (simple-array version (*)) then the decoder
+      will need to know how much version to read."
   (let ((slot-names (list))
 	(class-key-name (kintern (symbol-name name))))
     `(progn
@@ -175,31 +170,26 @@
 
 (defmacro declare-request (name (&rest super-classes) (&rest slots) &rest doc)
   "Declares a request. Generate a class named `name' and specialized methods 
-  for: make-request, decode-request, post-request, request-length plus 
-  a predicate function named<name>-p.
-  
-  The syntax is the same than in defclass. The only difference is the four
-  more keyword arguments that exist for slot description:
+   for: make-request, decode-request, post-request, request-length plus 
+   a predicate function named<name>-p.
+    The syntax is the same than in defclass. The only difference is the four
+   more keyword arguments that exist for slot description:
 
-  :prefix     symbol   (default: class-name)
-    If given, then it will be use with the slots name to construct the 
-    accessor method name if :accessor option was not given.
-
-  :pad-size   fixnum   (default: 0)
-    You may (or have to) indicate the number of padding bytes between two
-    slots. This information will not be used in the class form, but will
-    be in the encoder and decoder methods.
-
-  :inherited  boolean  (default: NIL)
-    You also need to indicate the inherited slots if any in your declaration
-    (except for the two inherited from the request top level class). This
-    information is needed for the {en/de}coder methods.
-
-  :length     slot-name
-    For sequence type, the decoder method will need this information to be 
-    able to read the correct quantity of items of the given sequence type.
-    For example: if you have a slot typed versions = (simple-array version (*))
-    then the decoder will need to know how much version to read."
+    - :prefix (symbol): If given, then it will be use with the slots name to
+      construct the accessor method name if :accessor option was not given.
+      If not given the class name will be used.
+    - :pad-size (fixnum): You may (or have to) indicate the number of padding
+       bytes between two slots. This information will not be used in the class
+       form, but will be in the encoder and decoder methods. Default is: 0.
+    - :inherited (boolean): You also need to indicate the inherited slots if
+      any in your declaration (except for the two inherited from the request
+      top level class). This information is needed for the {en/de}coder
+      methods. Default: NIL.
+    - :length (slot-name): For sequence type, the decoder method will need this
+      information to be able to read the correct quantity of items of the given
+      sequence type. For example: if you have a slot typed versions where 
+      versions is a for instance (simple-array version (*)) then the decoder
+      will need to know how much version to read."
   (let ((minor (list 'MINOR-OPCODE :type 'card8))
 	(major (list 'MAJOR-OPCODE :type 'card8 :initform +ice-proto-minor+)))
     (pushnew minor slots :key #'car)
@@ -225,17 +215,17 @@
 (defmacro declare-error (name (&rest parents) (&rest slots) &body options)
   "Declare an ice error: creates a class named `name' and a condition named
   `ice-error-<name>'.
-   The defined class will be a request-error subclass if no parent classes
-  are supplied.
-   The condition will be a sub condition of ice-error if no parent classes
-  are supplied. The generated condition has only one slot inherited from
-  the ice-error condition: request-error with a reader named
-  `ice-error-request-error'. If parent classes are supplied, then the correct
-  parent conditions will be computed by concatenation of prefix `ice-error-'
-  to the parents, keeping package prefix if any.
-  The interpretation of the slots declaration is as for declare-request. Plus
-  you can pass options, such as in define-condition, that will be pass to the
-  define-condition form."
+    The defined class will be a {defclass request-error} subclass if no parent
+   classes are supplied.
+    The condition will be a sub condition of {define-condition ice-error} if
+   no parent classes are supplied. The generated condition has only one slot
+   inherited from the ice-error condition: request-error with a reader named
+   `ice-error-request-error'. If parent classes are supplied, then the correct
+   parent conditions will be computed by concatenation of prefix `ice-error-'
+   to the parents, keeping package prefix if any.
+    The interpretation of the slots declaration is as for declare-request. Plus
+   you can pass options, such as in define-condition, that will be pass to the
+   define-condition form."
   (let ((condition (sintern (format nil "ICE-ERROR-~a" name)))
 	(cparents (loop for parent in parents collect
 			(intern (format nil "ICE-ERROR-~a" parent)

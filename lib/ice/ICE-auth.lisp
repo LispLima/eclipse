@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-auth.lisp,v 1.3 2004/07/12 21:22:56 ihatchondo Exp $
+;;; $Id: ICE-auth.lisp,v 1.4 2005/01/20 22:39:51 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -57,8 +57,8 @@
 
 (defun read-ice-auth-file (&key filter)
   "Returns the list of entries contained in the default authorization file.
-  If the ICEAUTHORITY environment variable is set this file will be used,
-  otherwise the default authorization file will be: <HOME>/.ICEauthority."
+   If the ICEAUTHORITY environment variable is set this file will be used,
+   otherwise the default authorization file will be: <HOME>/.ICEauthority."
   (let ((file-name 
 	 (or (get-environment-variable "ICEAUTHORITY")
 	     #+:cmu "home:.ICEauthority"
@@ -75,10 +75,10 @@
 
 (defmacro register-ice-authentication-protocol (name handler)
   "Register a handler for the authentication protocol designed by the given
-  name. If the authentication protocol needs some multiple authentication
-  phases, then all phases should be handled in the handler. When invoked two
-  arguments will be passed to the handler: an ice-connection and a request
-  of type authentication-required-request."
+   name. If the authentication protocol needs some multiple authentication
+   phases, then all phases should be handled in the handler. When invoked two
+   arguments will be passed to the handler: an ice-connection and a request
+   of type {defclass authentication-required-request} ."
   (let ((cons (gensym)))
     `(let ((,cons (assoc ,name *ice-authentication-protocols* :test #'string=)))
        (if ,cons
@@ -89,7 +89,7 @@
 
 (defun get-protocol-handler (name)
   "Returns a handler function for handling the named authentication protocol.
-  If no handler is register for this protocol then NIL is returned."
+   If no handler is register for this protocol then NIL is returned."
   (declare (type string name))
   (cdr (assoc name *ice-authentication-protocols* :test #'string=)))
 

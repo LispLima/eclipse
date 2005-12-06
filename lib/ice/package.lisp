@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: COMMON-LISP; -*-
-;;; $Id: package.lisp,v 1.5 2004/03/17 13:38:12 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.6 2005/03/25 14:43:54 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -64,8 +64,8 @@
     ICE server you'll need to implement some functionalities such as creating a
     `socket server' and implmenting an `accept' operation.
 
-    protocol specification can be found at: 
-     <ftp://ftp.xfree86.org/X.Org/pub/R6.6/xc/doc/hardcopy/ICE/ice.PS.gz>")
+    Protocol specification can be found at: www.xfree86.org/current/ice.pdf
+     {http://www.xfree86.org/current/ice.pdf}")
   (:export 
    ;; request classes.
    #:request                     ; protocol class
