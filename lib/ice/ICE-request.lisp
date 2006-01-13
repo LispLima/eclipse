@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-request.lisp,v 1.10 2005/03/25 14:43:54 ihatchondo Exp $
+;;; $Id: ICE-request.lisp,v 1.11 2005/12/06 13:52:47 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -99,7 +99,7 @@
    (version-list :type versions :length number-of-versions-offered))
   (:documentation "The party that initiates the connection (the one that does
   the ``(connect ..)'') must send this message as the second message (after
-  {defclass byte-order} ) on startup. Versions gives an array of version
+  {defclass byte-order} ) on startup. Versions gives an array of version
   (array card16 (2)), in decreasing order of preference, of the protocol
   versions this party is capable of speaking. The specification specifies
   major version 1, minor version 0. 
