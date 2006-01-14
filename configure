@@ -1662,8 +1662,8 @@ then
  ARGS="${core_switch} ${COREDIR}/${CORENAME}\
        ${eval_switch} \"(eclipse:eclipse \${options})\""
 else
- ARGS="${INITCORE} ${load_switch} ${SRC}/load-eclipse.lisp ${eval_switch}\
- \"(start \${options})\""
+ ARGS="${INITCORE} ${load_switch} ${SRC}/load-eclipse.lisp\
+       ${eval_switch} \"(eclipse:eclipse \${options})\""
 fi
 
 #

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: load-eclipse.lisp.in,v 1.6 2004/01/12 11:22:05 ihatchondo Exp $
+;;; $Id: load-eclipse.lisp.in,v 1.7 2004/03/16 18:20:35 ihatchondo Exp $
 ;;;
 ;;; @configure_input@
 ;;; watch out before modify it.
@@ -10,9 +10,3 @@
   (load "@SRC@/system.lisp"))
 
 (eclipse-system:load-eclipse-system)
-
-(defun start (&key display sm-client-id)
-  (handler-case (eclipse:eclipse :display display :sm-client-id sm-client-id)
-    (error (condition)
-      (format *error-output* "~A~%" condition)
-      (eclipse::%quit%))))

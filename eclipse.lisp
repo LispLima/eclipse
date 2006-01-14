@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.23 2005/02/10 23:45:44 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.24 2005/03/01 18:35:20 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -220,7 +220,9 @@
     (setf *display* nil))
   (if die-on-init-error
       (handler-case (initialize display sm-client-id)
-	(error () (%quit%)))
+	(error (condition)
+	  (format *error-output* "~A~%" condition)
+	  (%quit%)))
       (initialize display sm-client-id))
   (when activate-log
     (init-log-file))

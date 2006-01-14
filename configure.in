@@ -1,4 +1,4 @@
-# $Id: configure.in,v 1.8 2004/03/18 12:29:46 ihatchondo Exp $
+# $Id: configure.in,v 1.9 2005/02/25 13:58:26 ihatchondo Exp $
 
 AC_INIT()
 
@@ -206,8 +206,8 @@ then
  ARGS="${core_switch} ${COREDIR}/${CORENAME}\
        ${eval_switch} \"(eclipse:eclipse \${options})\""
 else
- ARGS="${INITCORE} ${load_switch} ${SRC}/load-eclipse.lisp ${eval_switch}\
- \"(start \${options})\""
+ ARGS="${INITCORE} ${load_switch} ${SRC}/load-eclipse.lisp\
+       ${eval_switch} \"(eclipse:eclipse \${options})\""
 fi
 
 #
