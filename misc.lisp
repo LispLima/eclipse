@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.33 2005/01/17 22:53:39 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.34 2005/09/21 16:34:40 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -475,7 +475,7 @@
   (wm-name (widget-window app)))
 
 (defun application-find (name)
-  "Returns the first application widget that is named by the specfied name."
+  "Returns the first application widget that is named by the specified name."
   (car (member name (application-list) :test #'equal :key #'application-name)))
 
 (defun application-class (app)
