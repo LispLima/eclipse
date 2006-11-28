@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: Keyboard -*-
-;;; $Id: keysyms.lisp,v 1.7 2005/01/16 23:22:26 ihatchondo Exp $
+;;; $Id: keysyms.lisp,v 1.8 2005/02/10 23:45:53 ihatchondo Exp $
 ;;;
 ;;; This is a CLX extension for managing keyboard.
 ;;;
@@ -44,12 +44,13 @@
 
 (defun make-modifier-mask-table (disp)
   (loop with map = '(:any #x8000)
+        with ks-per-keycode = (array-dimension (xlib:keyboard-mapping disp) 1)
 	for mods in (multiple-value-list (xlib:modifier-mapping disp))
 	for i = 1 then (* 2 i) do
 	(loop for mod in mods
-	      for key-name = (keycode->keyname disp mod)
+	      for key-name = (modcode->keyname disp mod ks-per-keycode)
 	      for prec = (getf map key-name) do
-	      (setf (getf map key-name) (+ (if (numberp prec) prec 0) i)))
+	      (setf (getf map key-name) (logior (if (numberp prec) prec 0) i)))
 	finally (return map)))
 
 (defun define-keysym (keyname value)
@@ -68,6 +69,16 @@
 (defun keycode->keyname (disp keycode)
   "Returns the keyword that named the specified keycode."
   (keysym->keyname (xlib:keycode->keysym disp keycode 0)))
+
+(defun modcode->keyname (disp keycode keysyms-per-keycode)
+   "Returns the keyword that named the specified modifier keycode."
+   ;; This has been created to deal with X keyboard wierd mapping.
+   ;; For some reasons, for few keys the first keysym in the list,
+   ;; modifiers keysym in particular, does not exists. So lets try
+   ;; to resolve it anyway looking further in the array.
+   (loop for i from 0 below keysyms-per-keycode
+            for keysym = (xlib:keycode->keysym disp keycode i)
+            when (> keysym 0) do (return (keysym->keyname keysym))))
 
 (defun keyname->keycodes (disp keyname)
   "Returns the list of keycode associated with the specified keyname."
