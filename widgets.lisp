@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.45 2005/02/10 23:45:44 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.46 2005/03/01 22:41:31 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -370,6 +370,12 @@
 (defsetf fullscreen-mode (application) (mode)
   "Mode may be (or :on :off). Put or remove application in or from fullscreen."
   `(with-slots (window (fgeometry full-geometry) master icon) ,application
+     ;; reset appropriately _net_wm_state property.
+     (let ((prop (netwm:net-wm-state window)))
+       (if (eq ,mode :on)
+	   (pushnew :_net_wm_state_fullscreen prop)
+	   (setf prop (delete :_net_wm_state_fullscreen prop)))
+       (setf (netwm:net-wm-state window) prop))
      (if (eq ,mode :on)
 	 ;; put in fullscreen mode.
 	 (with-event-mask (*root-window*)
@@ -399,13 +405,7 @@
 		   (slot-value master 'old-frame-style)))
 	   (multiple-value-bind (x y) (geometry-coordinates fgeometry)
 	     (with-slots (window) (or master ,application)
-	       (configure-window window :x x :y y)))))
-     ;; reset appropriately _net_wm_state property.
-     (let ((prop (netwm:net-wm-state window)))
-       (if (eq ,mode :on)
-	   (pushnew :_net_wm_state_fullscreen prop)
-	   (setf prop (delete :_net_wm_state_fullscreen prop)))
-       (setf (netwm:net-wm-state window) prop))))
+	       (configure-window window :x x :y y)))))))
 
 (defun application-leader (application)
   "Returns the \"leader\" of an application. The leader is computed 

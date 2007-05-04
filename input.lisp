@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.43 2005/02/12 02:04:37 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.44 2005/03/01 22:41:31 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -25,7 +25,7 @@
 (deftype client-message-data ()
   `(simple-array (or xlib:card8 xlib:card16 xlib:card32) (*)))
 
-;; Most generals methods.
+;; Most general methods.
 
 (defmethod event-process ((event mapping-notify) null-widget)
   (declare (ignorable null-widget))
@@ -211,10 +211,8 @@
 (defmethod event-process :after ((event button-release) (root root))
   (with-slots (move-status resize-status current-active-widget) root
     (when (or move-status resize-status)
-      (xlib:ungrab-server *display*)
-      (xlib:ungrab-pointer *display*)
       (setf (slot-value current-active-widget 'active-p) nil)
-      (setf (values current-active-widget move-status resize-status) nil))))
+      (dismiss-move-resize root))))
 
 ;;; Events for master (type: decoration)
 
@@ -293,14 +291,28 @@
 	  :_net_active_window))))
 
 (defmethod event-process ((event property-notify) (app application))
-  (with-slots (window master type transient-for) app
+  (with-slots (window master type transient-for initial-geometry) app
     (case (event-atom event)
       (:wm_normal_hints
+       ;; recompute decoration wm-size-hints and initial-geometry.
        (when master
-	 (with-slots (hmargin vmargin) (decoration-frame-style master)
-	   (with-slots (application-gravity wm-size-hints) master
-	     (multiple-value-setq (wm-size-hints application-gravity)
-		 (recompute-wm-normal-hints window hmargin vmargin))))))
+         (with-slots (hmargin vmargin) (decoration-frame-style master)
+           (let ((old-wmsh (decoration-wm-size-hints master)))
+             (with-slots (application-gravity (wmsh wm-size-hints)) master
+               (multiple-value-setq (wmsh application-gravity)
+		 (recompute-wm-normal-hints window hmargin vmargin))
+               ;; wm-size-hints: '#(minw minh maxw maxh incw inch basew baseh).
+               (symbol-macrolet ((minw (aref wmsh 0)) (minh (aref wmsh 1))
+                                 (maxw (aref wmsh 2)) (maxh (aref wmsh 3))
+                                 (incw (aref wmsh 4)) (inch (aref wmsh 5))
+                                 (basew (aref wmsh 6)) (baseh (aref wmsh 7)))
+                 (multiple-value-bind (w h) (geometry-sizes initial-geometry)
+                   (let ((rw (/ (- w (aref old-wmsh 6)) (aref old-wmsh 4)))
+                         (rh (/ (- h (aref old-wmsh 7)) (aref old-wmsh 5))))
+                     (setf (geometry-w initial-geometry)
+                           (max (min (+ (* rw incw) basew) maxw) minw))
+                     (setf (geometry-h initial-geometry)
+                           (max (min (+ (* rh inch) baseh) maxh) minh))))))))))
       ((:wm_name :_net_wm_name)
        (when (and master (get-child master :title-bar))
 	 (with-slots (window item-to-draw) (get-child master :title-bar)
@@ -390,12 +402,12 @@
 	       (iconic-p (uniconify icon)))
 	 (with-slots ((pwindow window)) (root-property-holder *root*)
 	   (let* ((length (length data))
-		  (source (if (> length 0) (aref data 0) 0))
 		  (time (if (> length 1) (aref data 1) 0))
 		  (wtime (or (netwm:net-wm-user-time pwindow) 0)))
-	     (unless (or (= source 1) (> wtime time 0))
+	     (unless (> wtime time 0)
 	       (setf (netwm:net-wm-user-time pwindow) time)
-	       (focus-widget application time)))))
+	       (focus-widget application time)
+	       (put-on-top application)))))
 	(:_net_wm_desktop (migrate-application application (aref data 0)))
 	(:_net_close_window (close-widget application))))))
 

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.50 2005/03/01 22:41:31 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.51 2005/03/13 23:37:07 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -366,22 +366,28 @@
   "Returns as multiple values the decoration initial coordinates."
   (let ((hint (ignore-errors (xlib:wm-normal-hints app-window))))
     (with-slots (top-margin left-margin vmargin hmargin) frame-style
-      (if (and hint (xlib:wm-size-hints-user-specified-position-p hint))
-	  (let ((x (xlib:wm-size-hints-x hint))
-		(y (xlib:wm-size-hints-y hint)))
-	    (case (xlib:wm-size-hints-win-gravity hint)
-	      (:north-east (values (- x hmargin) y))
-	      (:south-east (values (- x hmargin) (- y vmargin)))
-	      (:south-west (values x  (- y vmargin)))
-	      (:static (values (- x left-margin) (- y top-margin)))
-	      (t (values x y))))
-	  (let* ((n (or (window-desktop-num app-window) 0))
-		 (k (if (= +any-desktop+ n) 0 (* 4 n)))
-		 (areas (netwm:net-workarea *root-window*))
-		 (ax (aref areas k)) (ay (aref areas (1+ k))))
-	    (multiple-value-bind (x y) (window-position app-window)
-	      (values (max ax (- x left-margin))
-		      (max ay (- y top-margin)))))))))
+      (flet ((default-coordinates ()
+               (let* ((n (or (window-desktop-num app-window) 0))
+                      (k (if (= +any-desktop+ n) 0 (* 4 n)))
+                      (areas (netwm:net-workarea *root-window*))
+                      (ax (aref areas k)) (ay (aref areas (1+ k))))
+                 (multiple-value-bind (x y) (window-position app-window)
+                   (values (max ax (- x left-margin))
+                           (max ay (- y top-margin)))))))
+        (if (and hint (xlib:wm-size-hints-user-specified-position-p hint))
+            (let ((x (xlib:wm-size-hints-x hint))
+                  (y (xlib:wm-size-hints-y hint)))
+              (if (and x y)
+                  (case (xlib:wm-size-hints-win-gravity hint)
+                    (:north-east (values (- x hmargin) y))
+                    (:south-east (values (- x hmargin) (- y vmargin)))
+                    (:south-west (values x (- y vmargin)))
+                    (:static (values (- x left-margin) (- y top-margin)))
+                    (t (values x y)))
+                  (progn
+                    (format t "user-specified-position-p t but x or y isn't.")
+                    (default-coordinates))))
+            (default-coordinates))))))
 
 (defun make-decoration (app-window application &key theme)
   "Returns a newly initialized decoration to hold the given application."
@@ -431,8 +437,18 @@
     (with-event-mask (master-window)
       (xlib:map-subwindows master-window))
     (with-event-mask (master-window (when map +decoration-event-mask+))
-      (xlib:reparent-window window master-window left-margin top-margin))
+      (xlib:reparent-window window master-window left-margin top-margin)
+      (send-configuration-notify window))
     (setf (application-frame-style application) (decoration-frame-style master))
+    ;; handle maximized states.
+    (let* ((prop (netwm:net-wm-state window))
+           (vert-p (member :_net_wm_state_maximized_vert prop))
+           (horz-p (member :_net_wm_state_maximized_horz prop)))
+      (when (or vert-p horz-p)
+        (setf prop (delete :_net_wm_state_maximized_vert prop))
+        (setf prop (delete :_net_wm_state_maximized_horz prop))
+        (setf (netwm:net-wm-state window) prop)
+        (maximize application (if (and horz-p vert-p) 1 (if horz-p 3 2)))))
     (when map (xlib:map-window window))
     master))
 

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.34 2005/09/21 16:34:40 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.35 2006/01/21 19:15:57 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -331,6 +331,16 @@
       ;; update sizes.
       (when (or width height)
 	(with-event-mask ((or parent win))
+          (when application
+            ;; ensure width or height are compatible with wm-size-hints.
+            (multiple-value-bind (w h)
+                (geometry-sizes (find-max-geometry application 1 nil))
+              (let* ((prop (netwm:net-wm-state win))
+                     (horz-p (member :_net_wm_state_maximized_horz prop))
+                     (vert-p (member :_net_wm_state_maximized_vert prop)))
+                (unless (member :_net_wm_state_fullscreen prop)
+                  (when width (setf width (if horz-p w (min width w))))
+                  (when height (setf height (if vert-p h (min height h))))))))
 	  (xlib:with-state (win)
 	    (when width (setf (xlib:drawable-width win) width))
 	    (when height (setf (xlib:drawable-height win) height)))
