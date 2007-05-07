@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.46 2005/03/01 22:41:31 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.47 2007/05/04 08:26:14 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -274,6 +274,10 @@
       (setf (window-priority (if master (widget-window master) window) desk-w)
 	    (if desk-w :above :below)))))
 
+(defun application-panel-p (application)
+  "Returns t if application is a panel (e.g: _net_wm_window_type_dock)."
+  (member :_net_wm_window_type_dock (application-type application)))
+
 (defun fullscreenable-p (application) 
   (with-slots (window) application
     (let ((hint (ignore-errors (xlib:wm-normal-hints window))))
@@ -443,7 +447,8 @@
     (if master
 	(multiple-value-bind (x y)
 	    (xlib:translate-coordinates window 0 0 *root-window*)
-	  (xlib:reparent-window window *root-window* x y))
+	  (xlib:reparent-window window *root-window* x y)
+          (event-process (make-event :destroy-notify) master))
         (event-process (make-event :destroy-notify :window window) *root*))
     (when state
       (setf (wm-state window) state)

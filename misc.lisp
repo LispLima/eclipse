@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.37 2007/05/04 17:45:19 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.38 2007/05/07 00:19:10 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -331,7 +331,7 @@
       ;; update sizes.
       (when (or width height)
 	(with-event-mask ((or parent win))
-          (when application
+          (when (and application (not (application-panel-p application)))
             ;; ensure width or height are compatible with wm-size-hints.
             (let* ((prop (netwm:net-wm-state win))
                    (horz-p (member :_net_wm_state_maximized_horz prop))
