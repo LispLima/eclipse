@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.44 2005/03/01 22:41:31 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.45 2007/05/04 08:26:14 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -217,7 +217,30 @@
 ;;; Events for master (type: decoration)
 
 (defmethod event-process ((event map-request) (master decoration))
-  (xlib:map-window (event-window event)))
+  ;; When a client has requested to withdraw its top-level and wants then
+  ;; to map it back so quickly that we haven't got honored yet its withdrawal
+  ;; demand, this event is in fact send to the wrong parent and should be re
+  ;; directed to the real parent of the client top-level.
+  ;; The events schema is: 
+  ;;   1 -> map-request => procede-decoration
+  ;;   2 -> unmap-notify => unmap master
+  ;;   3 -> synthetic unmap-notify => undecore-application
+  ;;   4 -> map-request 
+  ;; What happen is that the client ask for mapping its top-level (4) after 
+  ;; sending the synthetic unmap-notify (3), but WE have not handled it yet
+  ;; (otherwise said undecore-application has not been called). So Xserver 
+  ;; generates a map-request event for the known parent: US ! But as soon
+  ;; as undecore-application will occurred we won't be the parent anymore
+  ;; and this event should rather have been sent to the real parent 
+  ;; (aka the root window).
+  (with-slots (window (parent event-window)) event
+    (multiple-value-bind (children real-parent) (xlib:query-tree window)
+      (declare (ignore children))
+      (if (xlib:window-equal parent real-parent)
+          (xlib:map-window (event-window event))
+          (xlib:send-event real-parent :map-request
+              '(:substructure-redirect)
+              :window window :event-window real-parent)))))
 
 (defmethod event-process ((event configure-notify) (master decoration))
   (with-slots ((master-window event-window) (app-window window)) event
