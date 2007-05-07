@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.36 2007/05/04 08:26:14 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.37 2007/05/04 17:45:19 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -368,7 +368,7 @@
    three layers (:_net_wm_state_below none :_net_wm_state_above) of the
    virtual screen that the given `window' argument belongs to. The given
    window will be filtered."
-  (loop with n = (if (eql i +any-desktop+) (current-desk) i)
+  (loop with n = (if (eql (or i +any-desktop+) +any-desktop+) (current-desk) i)
 	for w in (screen-content n :skip-taskbar nil)
         for nwm-state = (netwm:net-wm-state w)
         unless (xlib:window-equal w window)
@@ -454,7 +454,8 @@
           rw :_eclipse_desktop_pointer_positions prop :CARDINAL 32))))
 
 (defun make-viewport-property (n)
-  (make-list (* 2 n) :initial-element 0))
+  (declare (ignore n))
+  (make-list (* 2 1) :initial-element 0))
 
 ;;;; Geometry structure and accessors.
 
