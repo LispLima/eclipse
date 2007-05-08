@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: rectangles.lisp,v 1.3 2004/02/13 15:20:26 ihatchondo Exp $
+;;; $Id: rectangles.lisp,v 1.4 2005/01/17 09:30:40 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2003 Iban HATCHONDO
@@ -188,12 +188,12 @@
 	  (wm-state (car (wm-state window))))
       (and (or (= n scr-num) (= n +any-desktop+))
 	   (or (eq wm-state 1) (and iconify-p (eq wm-state 3)))
-	   (or (multiple-value-bind (resource class)
+	   (or (member :_net_wm_window_type_dock
+		       (netwm:net-wm-window-type window))
+               (multiple-value-bind (resource class)
 		   (xlib:get-wm-class window)
 		 (declare (ignore resource))
-		 (string= class "Panel"))
-	       (member :_net_wm_window_type_dock
-		       (netwm:net-wm-window-type window)))))))
+		 (string= class "Panel")))))))
 
 (defun find-largest-empty-area (application &key area-include-me-p
 				                 (panels-only-p t) direction
