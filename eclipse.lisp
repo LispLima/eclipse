@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.24 2005/03/01 18:35:20 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.25 2006/01/14 15:40:55 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -129,27 +129,29 @@
   (let ((first-desknum (current-vscreen window))
 	(nb-vs (number-of-virtual-screens window))
 	(srcw (screen-width)) (srch (screen-height)))
-    (delete-properties window (append +gnome-protocols+ +netwm-protocol+))
-    (unless (< -1 first-desknum nb-vs) (setf first-desknum 0))
-    (setf (gnome:win-protocols window) +gnome-protocols+
-	  (gnome:win-supporting-wm-check manager) manager
-	  (gnome:win-supporting-wm-check window) manager
-	  (gnome:win-workspace-count window) nb-vs
-	  (gnome:win-workspace window) first-desknum
+    (xlib:with-server-grabbed (*display*)
+      (delete-properties window +netwm-protocol+)
+      (unless (< -1 first-desknum nb-vs) (setf first-desknum 0))
+      (setf (gnome:win-protocols window) +gnome-protocols+
+            (gnome:win-supporting-wm-check manager) manager
+            (gnome:win-supporting-wm-check window) manager
+            (gnome:win-workspace-count window) nb-vs
+            (gnome:win-workspace window) first-desknum)
 
-	  (netwm:net-supported window) +netwm-protocol+
-	  (netwm:net-supporting-wm-check window) manager
-	  (netwm:net-supporting-wm-check manager) manager
-	  (netwm:net-wm-name manager) "eclipse"
-	  (netwm:net-number-of-desktops window) nb-vs
-	  (netwm:net-current-desktop window) first-desknum
-	  (netwm:net-desktop-viewport window) (make-viewport-property nb-vs)
-	  (netwm:net-desktop-geometry window) (list srcw srch)
-	  (netwm:net-workarea window) (make-list nb-vs
-					:initial-element
-					(manager-commons:make-geometry-hint
-					  :x 0 :y 0 :width srcw :height srch))
-	  )))
+      (setf (netwm:net-supported window) +netwm-protocol+
+            (netwm:net-supporting-wm-check window) manager
+            (netwm:net-supporting-wm-check manager) manager
+            (netwm:net-wm-name manager) "eclipse"
+            (netwm:net-number-of-desktops window) nb-vs
+            (netwm:net-current-desktop window) first-desknum
+            (netwm:net-desktop-viewport window) (make-viewport-property nb-vs)
+            (netwm:net-desktop-geometry window) (list srcw srch)
+            (netwm:net-workarea window) (make-list nb-vs
+                                            :initial-element
+                                            (manager-commons:make-geometry-hint
+                                             :x 0 :y 0 :width srcw :height srch))
+
+	  ))))
 
 (defun initialize (display-specification sm-client-id)
   (multiple-value-bind (display screen)
