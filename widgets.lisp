@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.47 2007/05/04 08:26:14 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.48 2007/05/07 13:22:50 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -281,8 +281,8 @@
 (defun fullscreenable-p (application) 
   (with-slots (window) application
     (let ((hint (ignore-errors (xlib:wm-normal-hints window))))
-      (symbol-macrolet ((max-w (xlib:wm-size-hints-max-width hint))
-			(max-h (xlib:wm-size-hints-max-height hint)))
+      (symbol-macrolet ((max-h (and hint (xlib:wm-size-hints-max-height hint)))
+                        (max-w (and hint (xlib:wm-size-hints-max-width hint))))
 	  (and (if max-w (= max-w (screen-width)) t)
 	       (if max-h (= max-h (screen-height)) t))))))
 
