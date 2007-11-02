@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.38 2007/05/07 00:19:10 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.39 2007/05/07 13:22:50 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -210,11 +210,12 @@
 	 (first-win (windows &optional above-p)
 	   (car (if above-p (last windows) windows)))
 	 (restack (app sib-app priority)
-	   (let* ((window (widget-window (or (application-master app) app)))
-		  (sm (when sib-app (application-master sib-app)))
-		  (sibling (when sib-app (widget-window (or sm sib-app)))))
-	     (unless (xlib:window-equal window sibling)
-	       (setf (xlib:window-priority window sibling) priority)))))
+           (unless (application-netwm-type-p app :_net_wm_window_type_desktop)
+             (let* ((window (widget-window (or (application-master app) app)))
+                    (sm (when sib-app (application-master sib-app)))
+                    (sibling (when sib-app (widget-window (or sm sib-app)))))
+               (unless (xlib:window-equal window sibling)
+                 (setf (xlib:window-priority window sibling) priority))))))
     (let* ((win (or (lookup-app-w (lookup-widget window)) window))
 	   (sib (or (lookup-app-w (lookup-widget sibling)) sibling))
 	   (widget (lookup-widget win))

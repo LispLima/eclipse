@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.49 2007/05/11 12:28:40 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.50 2007/11/02 09:11:42 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -273,6 +273,10 @@
     (let ((desk-w (root-desktop *root* t)))
       (setf (window-priority (if master (widget-window master) window) desk-w)
 	    (if desk-w :above :below)))))
+
+(defun application-netwm-type-p (application type)
+  "Returns t if application is of the given type."
+  (member type (application-type application)))
 
 (defun application-panel-p (application)
   "Returns t if application is a panel (e.g: _net_wm_window_type_dock)."
