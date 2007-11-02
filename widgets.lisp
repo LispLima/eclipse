@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.48 2007/05/07 13:22:50 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.49 2007/05/11 12:28:40 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -472,6 +472,11 @@
 	 (protocols (ignore-errors (xlib:wm-protocols window)))
 	 (input-p (and hint (logbitp 0 (first hint)) (= 1 (second hint))))
 	 (take-focus-p (ignore-errors (member :wm_take_focus protocols))))
+    (when (or (not hint) (not (logbitp 0 (first hint))))
+      ;; The input model is not set in the property. For some application
+      ;; that forgot to precise it we'll act as if it was (otherwise they 
+      ;; can't get focused).
+      (setf input-p t))
     (cond ((and (not input-p) (not take-focus-p)) :no-input)
 	  ((and (not input-p) take-focus-p) :globally-active)
 	  ((and input-p (not take-focus-p)) :passive)
