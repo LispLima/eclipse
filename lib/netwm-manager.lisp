@@ -1,9 +1,9 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.21 2005/02/17 19:19:22 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.22 2005/03/01 22:41:34 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
-;;; Copyright (C) 2002 Iban HATCHONDO
+;;; Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 Iban HATCHONDO
 ;;; contact : hatchond@yahoo.fr
 ;;;
 ;;; This program is free software; you can redistribute it and/or
@@ -46,12 +46,12 @@
    #:net-wm-icon-geometry      #:net-wm-icon
    #:net-wm-pid                #:net-wm-handled-icons
    #:net-wm-allowed-actions    #:net-wm-strut-partial
-   #:net-wm-user-time          
+   #:net-wm-user-time          #:net-wm-user-time-window
 
    #:intern-atoms)
   (:documentation
    "This package implements the Extended Window Manager Hints
-   (from Freedesktop.org). - version 1.3 (June 19, 2003) -
+   (from Freedesktop.org). - version 1.4 draft2 -
    In order to use it, you should first call intern-atoms to be sure
    all atoms are in the server."))
 
@@ -70,7 +70,7 @@
 	"_NET_ACTIVE_WINDOW"          "_NET_WORKAREA"
 	"_NET_SUPPORTING_WM_CHECK"    "_NET_VIRTUAL_ROOTS"
 	"_NET_DESKTOP_LAYOUT"         
-
+        
         "_NET_RESTACK_WINDOW"         "_NET_REQUEST_FRAME_EXTENTS"
         "_NET_MOVERESIZE_WINDOW"      "_NET_CLOSE_WINDOW"
         "_NET_WM_MOVERESIZE"
@@ -84,24 +84,29 @@
 	"_NET_WM_ICON_GEOMETRY"       "_NET_WM_ICON"
 	"_NET_WM_PID"                 "_NET_WM_HANDLED_ICONS"
 	"_NET_WM_USER_TIME"           "_NET_FRAME_EXTENTS"
+        "_NET_WM_USER_TIME_WINDOW"
+        "_NET_WM_FULL_PLACEMENT"
         ;; "_NET_WM_MOVE_ACTIONS"
 
-	"_NET_WM_WINDOW_TYPE_DESKTOP" "_NET_WM_STATE_MODAL"
-	"_NET_WM_WINDOW_TYPE_DOCK"    "_NET_WM_STATE_STICKY"
-	"_NET_WM_WINDOW_TYPE_TOOLBAR" "_NET_WM_STATE_MAXIMIZED_VERT"
-	"_NET_WM_WINDOW_TYPE_MENU"    "_NET_WM_STATE_MAXIMIZED_HORZ"
-	"_NET_WM_WINDOW_TYPE_UTILITY" "_NET_WM_STATE_SHADED"
-	"_NET_WM_WINDOW_TYPE_SPLASH"  "_NET_WM_STATE_SKIP_TASKBAR"
-	"_NET_WM_WINDOW_TYPE_DIALOG"  "_NET_WM_STATE_SKIP_PAGER"
-	"_NET_WM_WINDOW_TYPE_NORMAL"  "_NET_WM_STATE_HIDDEN"
-	                              "_NET_WM_STATE_FULLSCREEN"
-				      "_NET_WM_STATE_ABOVE"
-				      "_NET_WM_STATE_BELOW"
-				      "_NET_WM_STATE_DEMANDS_ATTENTION"
-			
+	"_NET_WM_WINDOW_TYPE_DESKTOP"       "_NET_WM_STATE_MODAL"
+	"_NET_WM_WINDOW_TYPE_DOCK"          "_NET_WM_STATE_STICKY"
+	"_NET_WM_WINDOW_TYPE_TOOLBAR"       "_NET_WM_STATE_MAXIMIZED_VERT"
+	"_NET_WM_WINDOW_TYPE_MENU"          "_NET_WM_STATE_MAXIMIZED_HORZ"
+	"_NET_WM_WINDOW_TYPE_UTILITY"       "_NET_WM_STATE_SHADED"
+	"_NET_WM_WINDOW_TYPE_SPLASH"        "_NET_WM_STATE_SKIP_TASKBAR"
+	"_NET_WM_WINDOW_TYPE_DIALOG"        "_NET_WM_STATE_SKIP_PAGER"
+	"_NET_WM_WINDOW_TYPE_NORMAL"        "_NET_WM_STATE_HIDDEN"
+        "_NET_WM_WINDOW_TYPE_DROPDOWN_MENU" "_NET_WM_STATE_FULLSCREEN"
+	"_NET_WM_WINDOW_TYPE_POPUP_MENU"    "_NET_WM_STATE_ABOVE"
+	"_NET_WM_WINDOW_TYPE_TOOLTIP"	    "_NET_WM_STATE_BELOW"
+	"_NET_WM_WINDOW_TYPE_NOTIFICATION"  "_NET_WM_STATE_DEMANDS_ATTENTION"
+	"_NET_WM_WINDOW_TYPE_COMBO"
+	"_NET_WM_WINDOW_TYPE_DND"
+
 	"_NET_WM_ALLOWED_ACTIONS"
 	"_NET_WM_ACTION_MOVE"
 	"_NET_WM_ACTION_RESIZE"
+	"_NET_WM_ACTION_MINIMIZE"
 	"_NET_WM_ACTION_SHADE"
 	"_NET_WM_ACTION_STICK"
 	"_NET_WM_ACTION_MAXIMIZE_HORZ"
@@ -431,9 +436,9 @@
 
 (defun net-wm-icon (window)
   "Returns a vector of possible icons for the client. This is an vector
-  of (unsigned-byte 32) ARGB with high byte being A, low byte being B.
-  The first two cardinals are width, height. Data is in rows, left to right
-  and top to bottom."
+   of (unsigned-byte 32) ARGB with high byte being A, low byte being B.
+   The first two cardinals are width, height. Data is in rows, left to right
+   and top to bottom."
   (get-property window :_NET_WM_ICON :result-type 'vector))
 
 ;; _NET_WM_HANDLED_ICONS
@@ -477,6 +482,35 @@
 
 (defsetf net-wm-user-time (window) (time)
   `(change-property ,window :_NET_WM_USER_TIME (list ,time) :cardinal 32))
+
+;; _NET_WM_USER_TIME_WINDOW
+
+(defun net-wm-user-time-window (window &key window-id)
+  "This property contains the XID of a window on which the client sets
+   the _NET_WM_USER_TIME property. Clients should check whether the window
+   manager supports _NET_WM_USER_TIME_WINDOW and fall back to setting the
+   _NET_WM_USER_TIME property on the toplevel window if it doesn't.
+    Rationale: Storing the frequently changing _NET_WM_USER_TIME property
+   on the toplevel window itself causes every application that is interested
+   in any of the properties of that window to be woken up on every keypress,
+   which is particularly bad for laptops running on battery power.
+ 
+    - window (xlib:window): The window from which the property must be read.
+    - :window-id (boolean, default to nil): if t then the returned value is
+    an xlib:card29 window ID, otherwise an xilb:window is returned or nil if
+    the property is not set."
+  (car (get-window-property window :_NET_WM_USER_TIME_WINDOW (not window-id))))
+
+(defsetf net-wm-user-time-window (window &key window-id) (value)
+  "Sets the  _NET_WM_USER_TIME property.
+   - window (xlib:window): The window from which the property must be read.
+   - value (or xlib:window xlib:card29): property value.
+   - :window-id (boolean, default to nil): indicates how the value must
+     be interpreted."
+  `(change-property ,window
+       :_NET_WM_USER_TIME_WINDOW
+       (list ,value) :window 32 :mode :replace
+       :transform (unless ,window-id #'xlib:window-id)))
 
 ;; _NET_FRAME_EXTENTS
 
