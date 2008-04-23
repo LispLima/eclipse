@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.51 2005/03/13 23:37:07 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.52 2007/05/04 08:26:14 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -686,7 +686,7 @@
 
 (defun procede-decoration (window)
   "Decore, if necessary, add/update properties, map or not, etc a window."
-  (let* ((time (or (ignore-errors (netwm:net-wm-user-time window)) 1))
+  (let* ((time (or (ignore-errors (net-wm-user-time window)) 1))
 	 (rw (xlib:drawable-root window))
 	 (scr-num (current-vscreen rw))
 	 (application (create-application window nil))

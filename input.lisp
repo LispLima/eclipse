@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.46 2007/05/07 00:23:05 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.47 2007/05/07 13:22:50 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -146,7 +146,14 @@
 		 (undecore-application widget :state 0)
 		 (setf (wm-state window) 3)))))
 	(decoration 
-	 (setf (wm-state (get-child widget :application :window t)) 3))))))
+         (let ((application (get-child widget :application)))
+           (if (application-iconic-p application)
+               (setf (wm-state (widget-window application)) 3)
+               (with-slots (window send-event-p) event
+                 (setf send-event-p t)
+                 (setf window (widget-window application))
+                 (format t "about to withdraw: ~a ~%" (wm-name window))
+                 (event-process event root)))))))))
 
 (defmethod event-process ((event destroy-notify) (root root))
   (let ((app (lookup-widget (event-window event))))
@@ -427,9 +434,9 @@
 	 (with-slots ((pwindow window)) (root-property-holder *root*)
 	   (let* ((length (length data))
 		  (time (if (> length 1) (aref data 1) 0))
-		  (wtime (or (netwm:net-wm-user-time pwindow) 0)))
+		  (wtime (or (net-wm-user-time pwindow) 0)))
 	     (unless (> wtime time 0)
-	       (setf (netwm:net-wm-user-time pwindow) time)
+	       ;;(setf (netwm:net-wm-user-time pwindow) time)
 	       (focus-widget application time)
 	       (put-on-top application)))))
 	(:_net_wm_desktop (migrate-application application (aref data 0)))

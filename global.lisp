@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.28 2005/01/16 23:25:59 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.29 2005/03/01 22:41:31 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -37,7 +37,7 @@
     :_net_current_desktop :_net_active_window :_net_close_window :_net_workarea
     :_net_wm_desktop :_net_wm_window_type :_net_desktop_names
     :_net_restack_window :_net_moveresize_window :_net_wm_user_time
-    :_net_request_frame_extents :_net_frame_extents 
+    :_net_wm_user_time_window :_net_request_frame_extents :_net_frame_extents 
     :_net_wm_strut_partial :_net_wm_state :_net_wm_strut
     :_net_wm_window_type_desktop :_net_wm_window_type_dock
     :_net_wm_window_type_toolbar :_net_wm_window_type_menu

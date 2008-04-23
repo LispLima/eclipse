@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.39 2007/05/07 13:22:50 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.40 2007/11/02 09:33:08 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -44,10 +44,11 @@
 (defmacro current-desk () `(current-vscreen *root-window*))
 
 (defmacro id->atom-name (id)
-  `(xlib:atom-name *display* ,id))
+  `(when (typep ,id 'xlib:card29)
+     (xlib:atom-name *display* ,id)))
 
 (defmacro atom-name->id (name)
- `(xlib:find-atom *display* ,name))
+  `(xlib:find-atom *display* ,name))
 
 (defmacro with-root-cursor ((new-cursor) &body body)
   `(unwind-protect
@@ -175,6 +176,19 @@
    if it has win_state_sticky on."
   (or (= (or (window-desktop-num window) -1) +any-desktop+)
       (logbitp 0 (or (gnome:win-state window :result-type t) 0))))
+
+(defun net-wm-user-time (window) 
+  "Returns the _net_wm_user_time property using the _net_wm_user_time_window
+   if present. If the property is not defined return NIL."
+  (let ((user-time-window (netwm:net-wm-user-time-window window)))
+    (netwm:net-wm-user-time (or user-time-window window))))
+
+(defsetf net-wm-user-time (window) (timestamp)
+  "Sets the _net_wm_user_time property using the _net_wm_user_time_window
+   if present, otherwise window is the property holder."
+  (let ((time-window (gensym)))
+    `(let ((,time-window (netwm:net-wm-user-time-window ,window)))
+       (setf (netwm:net-wm-user-time (or ,time-window ,window)) ,timestamp))))
 
 ;;;; Miscellaneous functions.
 
