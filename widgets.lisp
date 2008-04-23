@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.50 2007/11/02 09:11:42 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.51 2007/11/02 09:33:08 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -377,43 +377,46 @@
 
 (defsetf fullscreen-mode (application) (mode)
   "Mode may be (or :on :off). Put or remove application in or from fullscreen."
-  `(with-slots (window (fgeometry full-geometry) master icon) ,application
-     ;; reset appropriately _net_wm_state property.
-     (let ((prop (netwm:net-wm-state window)))
-       (if (eq ,mode :on)
-	   (pushnew :_net_wm_state_fullscreen prop)
-	   (setf prop (delete :_net_wm_state_fullscreen prop)))
-       (setf (netwm:net-wm-state window) prop))
-     (if (eq ,mode :on)
-	 ;; put in fullscreen mode.
-	 (with-event-mask (*root-window*)
-	   (multiple-value-bind (x y w h) (window-geometry window)
-	     (when master
-	       (with-slots (children (master-win window) frame-style) master
-		 (multiple-value-setq (x y) (window-position master-win))
-		 (setf (slot-value master 'old-frame-style) frame-style)
-		 (setf (decoration-frame-style master)
-		       (theme-default-style (lookup-theme "no-decoration")))))
-	     (setf (geometry fgeometry) (values x y w h))
-	     (if (xlib:query-extension *display* "XFree86-VidModeExtension")
-		 (let* ((scr (first (xlib:display-roots *display*)))
-			(ml (xlib:xfree86-vidmode-get-mode-line *display* scr)))
-		   (multiple-value-setq (x y) 
-		     (xlib:xfree86-vidmode-get-viewport *display* scr))
-		   (setf w (xlib:mode-info-hdisplay ml)
-			 h (xlib:mode-info-vdisplay ml)))
-		 (setf x 0 y 0 w (screen-width) h (screen-height)))
-	     (configure-window window :x x :y y :width w :height h))
-	   (focus-widget ,application 0))
-	 ;; revert: restore precedent geometry and decoration style.
-	 (with-event-mask (*root-window*)
-	   (setf (drawable-sizes window) (geometry-sizes fgeometry))
-	   (unless (window-not-decorable-p window)
-	     (setf (decoration-frame-style master)
-		   (slot-value master 'old-frame-style)))
-	   (multiple-value-bind (x y) (geometry-coordinates fgeometry)
-	     (with-slots (window) (or master ,application)
-	       (configure-window window :x x :y y)))))))
+  `(set-fullscreen-mode ,application ,mode))
+
+(defun set-fullscreen-mode (application mode)
+  (with-slots (window (fgeometry full-geometry) master icon) application
+    ;; reset appropriately _net_wm_state property.
+    (let ((prop (netwm:net-wm-state window)))
+      (if (eq mode :on)
+          (pushnew :_net_wm_state_fullscreen prop)
+          (setf prop (delete :_net_wm_state_fullscreen prop)))
+      (setf (netwm:net-wm-state window) prop))
+    (if (eq mode :on)
+        ;; put in fullscreen mode.
+        (with-event-mask (*root-window*)
+          (multiple-value-bind (x y w h) (window-geometry window)
+            (when master
+              (with-slots (children (master-win window) frame-style) master
+                (multiple-value-setq (x y) (window-position master-win))
+                (setf (slot-value master 'old-frame-style) frame-style)
+                (setf (decoration-frame-style master)
+                      (theme-default-style (lookup-theme "no-decoration")))))
+            (setf (geometry fgeometry) (values x y w h))
+            (if (xlib:query-extension *display* "XFree86-VidModeExtension")
+                (let* ((scr (first (xlib:display-roots *display*)))
+                       (ml (xlib:xfree86-vidmode-get-mode-line *display* scr)))
+                  (multiple-value-setq (x y) 
+                    (xlib:xfree86-vidmode-get-viewport *display* scr))
+                  (setf w (xlib:mode-info-hdisplay ml)
+                        h (xlib:mode-info-vdisplay ml)))
+                (setf x 0 y 0 w (screen-width) h (screen-height)))
+            (configure-window window :x x :y y :width w :height h))
+          (focus-widget application 0))
+        ;; revert: restore precedent geometry and decoration style.
+        (with-event-mask (*root-window*)
+          (setf (drawable-sizes window) (geometry-sizes fgeometry))
+          (unless (window-not-decorable-p window)
+            (setf (decoration-frame-style master)
+                  (slot-value master 'old-frame-style)))
+          (multiple-value-bind (x y) (geometry-coordinates fgeometry)
+            (with-slots (window) (or master application)
+              (configure-window window :x x :y y)))))))
 
 (defun application-leader (application)
   "Returns the \"leader\" of an application. The leader is computed 
