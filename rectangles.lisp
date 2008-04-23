@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: rectangles.lisp,v 1.4 2005/01/17 09:30:40 ihatchondo Exp $
+;;; $Id: rectangles.lisp,v 1.5 2007/05/08 22:30:47 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2003 Iban HATCHONDO
@@ -93,7 +93,7 @@
       (and (< ulx1 lrx2) (< ulx2 lrx1) (< uly1 lry2) (< uly2 lry1)))))
 
 (defun include-p (rect1 rect2)
-  "Return true if rectangle1 is included in rectangle2."
+  "Return true if rectangle2 is included in rectangle1."
   (declare (optimize (speed 3) (safety 0)))
   (multiple-value-bind (ulx1 uly1 lrx1 lry1) (rectangle-coordinates rect1)
     (declare (type (signed-byte 16) ulx1 uly1 lrx1 lry1))
@@ -233,8 +233,9 @@
 	  (if rectangles
 	      (rectangle-coordinates
 	       (if area-include-me-p
-		   (loop for r in rectangles until (include-p r app-rect)
-			 finally (return r))
+		   (loop for r in rectangles
+                         when (include-p r app-rect) do (return r)
+			 finally (return (car rectangles)))
 		   (car rectangles)))
 	      (values 0 0 w h))
 	  (if rectangles T NIL))))))
