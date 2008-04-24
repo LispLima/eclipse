@@ -1,12 +1,12 @@
 .TH Eclipse 1 "(c) 2001 Iban HATCHONDO"
-.\"$Id: eclipse.1,v 1.14 2004/01/21 17:48:39 ihatchondo Exp $
+.\"$Id: eclipse.1,v 1.15 2004/02/12 23:30:23 ihatchondo Exp $
 
 .SH NAME
 eclipse - a window manager in Common Lisp
 
 
 .SH SYNOPSIS
-.B eclipse [ --display=display_specification --sm-client-id=id ]
+\fB eclipse \fP[ OPTIONS ]
 
 
 .SH DESCRIPTION
@@ -70,9 +70,16 @@ nor does it work on the root-window.
 
 
 .SH OPTIONS
-\fIeclipse\fP accepts one argument. This argument allows you to
-specify a particular display connection. To use this argument give it
-as the DISPLAY environment variable. Use eclipse gandalf:2.0 for example
+.TP
+\fB--display\fP=display_specification 
+starts eclipse for managing the given X display.
+.TP
+\fB--sm-client-id\fP=ID
+specify a session management ID.
+.TP
+\fB--activate-log\fP
+specifies that errors must be logged in a file. The log file will be
+named as follows: eclipse-YYYY-MM-DD.log
 
 
 .SH MENUS

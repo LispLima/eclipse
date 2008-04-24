@@ -1,5 +1,5 @@
 -*- Mode: ChangeLog -*-
-$Id: changelog,v 1.5 2003/10/06 17:57:27 ihatchondo Exp $
+$Id: changelog,v 1.6 2004/02/12 23:30:23 ihatchondo Exp $
 0.01 => 0.02
 
      Eclipse should now compile on every ANSI-compliant Common Lisp
@@ -333,7 +333,7 @@ pre 0.03=>0.03
 
      - move resize improvements:
 
-       We now use the :pointer-potion-hint in the event-mask. The server
+       We now use the :pointer-motion-hint in the event-mask. The server
        is now free to send only one :motion-notify event, until either the
        key or button state changes, the pointer leaves the event window,
        or the client calls query-pointer or motion-events. 
@@ -375,24 +375,155 @@ pre 0.03=>0.03
 	  - add event handling for map-request on decoration.
 	
      - bug fix and code clean up and more hacking.
-       - error handling at start up.
-       - close-sm-connection (widget.lisp)
-       - (event-process selection-notify null)
-       - bug fix and typo in gestures.lisp
-       - bug fix in ewmh implementation.
-       - ...
+	- error handling at start up.
+	- close-sm-connection (widget.lisp)
+	- (event-process selection-notify null)
+	- bug fix and typo in gestures.lisp
+	- bug fix in ewmh implementation.
+	- ...
 
 O.10 => 0.11
+     - Daniel's Barlow feedbacks implemented:
+       eclipse has now a new keyword parmeter: :die-on-init-error that is
+       used in the starting script. If nil then error during init will
+       drop in the debugger allowing you to debug nicely without any
+       "extra" hacking. If T then it will catch ini errors and quit. 
 
-     
+     - Luca Capello Patch applied: When compiled without dumping an
+       image file, the way eclipse is started wasn't up to
+       date. (latest options of eclipse:eclipse was not handled by
+       the start function). 
 
+     - compile.lisp has been removed. Compilation/Load operations are
+       defined in eclipse/system.lisp.
 
+     - system(s).lisp files now handles asdsf system description as
+       well as mk-defsystem. Both system are created if both package
+       present in the lisp environment. 
 
+     - added an asdf:operate :around overload for sbcl to avoid
+       compilation warnings relatives to structured constant
+       redefinition that break the compilation and drop the user into
+       the debuger. 
 
+     - six new configure options added:
+       + --with-load-switch : to indicate the command line argument of
+         the lisp machine for loading a file.
 
-     
+       + --with-eval-switch : to indicate the command line argument of
+         the lisp machine for evaluating forms.
 
+       + --with-core-switch : to indicate the command line argument of
+         the lisp machine to start it with an alternative image.
 
+       + --with-save-lisp   : to indicate the function name for saving
+           a lisp image. 
 
+       + --with-quit-form   : to indicate a particular quit form.
 
+       + --with-lisp-system : to indicate the name (the same as the
+         one that is present in *features*) of the lisp system you
+         want to use in case we know it (currently sbcl and cmu are
+         known). Use this option if you have a lisp system we know but
+         its executable is not named as expected (lisp for cmucl and
+         sbcl for sbcl for instance).  
 
+     - eclipse: new option --activate-log
+
+     - change in the movement handlers that allow undecorated windows
+       (xmms for example) to moved through mouse strokes or menu.
+       (input.lisp gestures.lisp move-resize.lisp wm.lisp)
+
+     - group of windows (such as described in the ICCCM) are now honored:
+       transient-for windows are supposed to be stack under their
+       dialogs. As another effect, iconifying or sending to another
+       desktop one window of a group affect the entire group.  
+
+     - a new option is now available:
+       *save-and-restore-pointer-position-during-workspace-switch*
+       that allows to save pointer position before switching from a
+       desktop to another and restore previous position when arriving on
+       the new one. (misc.lisp virtual-screen.lisp) This has been done via
+       a private property on the root window named:
+       _ECLIPSE_DESKTOP_POINTER_POSITIONS
+
+     - Update NETWM support: according to 1.4 draft2, note that
+	nothing has been done for the compositing manager selction
+	owning, since this is a complete process to be handled rather
+	than just a property ...	 
+        + _NET_MOVERESIZE_WINDOW client message is now supported.
+        + _NET_WM_STATE_STICKY is now supported. (is it correct since
+	  Eclipse does not implements area's ?)
+        + an ECLIPSE-EXTENSIONS package is defined in order to export
+          all symbols provides by future Eclipse extensions. 
+        + Removed useless property-manager-window from the root
+          object. Instead standard-property-holder class is defined in
+          widgets.lisp. 
+	
+     - man page, compliance updated.
+
+     - enhancements:
+        - enhancement in the focus gestion (input.lisp) to be more
+          ICCCM complient. 
+        - added error output when die-on-init-error is T (eclipse.lisp)
+        - start function has been removed from start-eclipse.lisp.in
+          configure.in updated.
+
+     - documentation generally updated.
+
+     - bug fix, code clean up and hacking:
+	- Fix: (setf window-priority)
+	- Fix: dead windows during window cycling (gestures.lisp)
+        - gestures.lisp: macrologie simplified (may need a few lines
+          of doc). 
+	- Fix: window placement (wm.lisp) decoration where incorrectly
+          placed when user indicates its preferences (via the
+	  wm_normal_hints property)
+	- minor changes in destroy-notify handling on decoration.
+        - Fix: theme default value for title bar position.
+        - Fix: hardcoded boole function value in draw-window-grid. It
+          now use the appropriated constant. 
+        - %resize% => resize-internal
+        - Fix: event-mask wrong value: nil isn't an window-event-mask.
+          (virtual-screen.lisp) 	
+        - Fix: circulate-window keystroke: all modifiers keycodes were
+	  not took in account.  
+        - Fix: lib/clx-ext/keysyms.lisp: multiple-value-list surrounding
+	  xlib:keysym->keycodes was missing. 
+        - Fix sbcl issues with unicode and with-open-file.
+        - Fix bug in with-combo-realizer. Strokes were systematically
+          removed from the hash table.
+        - Fix: the settings of all the net-wm spec root properties is
+	  now surrounded with a with-server-grabbed to avoid tones of
+	  property change event on the root window.
+        - Fix: _net_wm_state_maximized were improperly handled when an
+	  application is newly decorated. 
+        - recomputation of the application geometry before
+	  maximization when the wm-size-hints property is changed. 
+        - Fix: handling of the _net_wm_state_maximized in configure-window
+	  (misc.lisp) 
+        - configure-window when configuring panel window should honor
+	  size without guessing anything (misc.lisp). 
+        - _net_wm__state property update before put an application in
+	  fullscreen to avoid race conditions. (widgets.lisp)
+        - Fix: map-request race condition (input.lisp & widgets.lisp)
+        - application-panel-p predicate (widgets.lisp)
+        - Fix: initial-coordinates to work the with net-workarea
+          property. 
+        - Fix: netwm-user-time usage, and some withdrawal glitches.
+        - Fix: the max sizes were not properly computed.
+        - screen-window-layer computation when the window doesn't have
+          any workspace number associated with. 
+        - Fix: make-viewport-property has only one viewport since we
+	  don't handled multiple viewport. 
+	- Fix: improper variable usage in defsetf. So in order to avoid
+	  glitches set-.. created, and defsetf calls it.
+        - Fix: window->rectangle transformation is now correct.
+        - Fix: rectangle->width/heigth computation is now correct.
+        - Fix: netwm-struts was used as coordinates rather than sizes.
+        - sub-rectangles computation now returns rectangles that does
+	  not overlap anymore
+        - Fix: 'unix' type handling in the SESSION_MANAGER scheme in
+	  ICE-lib.lisp
+        - Fix: ice & SM system load whan not loaded from the eclipse
+          directory. 
