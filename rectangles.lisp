@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: rectangles.lisp,v 1.5 2007/05/08 22:30:47 ihatchondo Exp $
+;;; $Id: rectangles.lisp,v 1.6 2008/04/23 15:12:40 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2003 Iban HATCHONDO
@@ -36,17 +36,25 @@
   "Compute the area of a rectangle. The value NIL represents an empty rectangle"
   (if (null rectangle) 0
       (multiple-value-bind (ulx uly lrx lry) (rectangle-coordinates rectangle)
-	(* (- lrx ulx) (- lry uly)))))
+	(* (1+ (- lrx ulx)) (1+ (- lry uly))))))
 
 (declaim (inline rectangle-width))
 (defun rectangle-width (rect)
   "Returns the width of a rectangle."
-  (if (null rect) 0 (- (rectangle-lrx rect) (rectangle-ulx rect))))
+  (if (null rect) 0 (1+ (- (rectangle-lrx rect) (rectangle-ulx rect)))))
 
 (declaim (inline rectangle-height))
 (defun rectangle-height (rect)
   "Returns the height of a rectangle."
-  (if (null rect) 0 (- (rectangle-lry rect) (rectangle-uly rect))))
+  (if (null rect) 0 (1+ (- (rectangle-lry rect) (rectangle-uly rect)))))
+
+(declaim (inline rectangle-height))
+(defun rectangle-geometry (rect)
+  "Returns the x y width and height of a rectangle as a multiple value."
+  (if (null rect)
+      (values 0 0 0 0)
+      (multiple-value-bind (ulx uly lrx lry) (rectangle-coordinates rect)
+        (values ulx uly (1+ (- lrx ulx)) (1+ (- lry uly))))))
 
 (defun rectangle-surface< (rectangle1 rectangle2)
   (< (rectangle-surface rectangle1) (rectangle-surface rectangle2)))
@@ -72,16 +80,16 @@
     (declare (type (signed-byte 16) ulx1 uly1 lrx1 lry1))
     (multiple-value-bind (ulx2 uly2 lrx2 lry2) (rectangle-coordinates inside)
       (declare (type (signed-byte 16) ulx2 uly2 lrx2 lry2))
-      (let ((seq (list)))
-	(when (< uly1 uly2) ; defines the north sub rectangle.
-	  (push (make-rectangle :ulx ulx1 :uly uly1 :lrx lrx1 :lry uly2) seq))
-	(when (< ulx1 ulx2) ; defines the west sub rectangle.
-	  (push (make-rectangle :ulx ulx1 :uly uly1 :lrx ulx2 :lry lry1) seq))
-	(when (< lry2 lry1) ; defines the south sub rectangle.
-	  (push (make-rectangle :ulx ulx1 :uly lry2 :lrx lrx1 :lry lry1) seq))
-	(when (< lrx2 lrx1) ; defines the east sub rectangle.
-	  (push (make-rectangle :ulx lrx2 :uly uly1 :lrx lrx1 :lry lry1) seq))
-	(stable-sort seq #'rectangle-surface>=)))))
+      (let ((l (list)))
+	(when (< uly1 (1- uly2)) ; defines the north sub rectangle.
+	  (push (make-rectangle :ulx ulx1 :uly uly1 :lrx lrx1 :lry (1- uly2)) l))
+	(when (< ulx1 (1- ulx2)) ; defines the west sub rectangle.
+	  (push (make-rectangle :ulx ulx1 :uly uly1 :lrx (1- ulx2) :lry lry1) l))
+	(when (< (1+ lry2) lry1) ; defines the south sub rectangle.
+	  (push (make-rectangle :ulx ulx1 :uly (1+ lry2) :lrx lrx1 :lry lry1) l))
+	(when (< (1+ lrx2) lrx1) ; defines the east sub rectangle.
+	  (push (make-rectangle :ulx (1+ lrx2) :uly uly1 :lrx lrx1 :lry lry1) l))
+	(stable-sort l #'rectangle-surface>=)))))
 
 (defun overlap-p (rect1 rect2)
   "Returns true if rectangle1 intersects rectangle2."
@@ -131,25 +139,27 @@
 (defun window->rectangle (window)
   "Returns the rectangle that represent this window."
   (multiple-value-bind (x y w h) (window-geometry window)
-    (make-rectangle :ulx x :uly y :lrx (+ x w) :lry (+ y h))))
+    (make-rectangle :ulx x :uly y :lrx (+ x (1- w)) :lry (+ y (1- h)))))
+
+(defun window->rectangle-coordinates (window)
+  "Returns the rectangle coordinates that represent this window."
+  (multiple-value-bind (x y w h) (window-geometry window)
+    (values x y (+ x (1- w)) (+ y (1- h)))))
 
 (defun compute-screen-rectangles (application &optional filter-overlap-p)
   "Gets screen content according to desktop number and filter all windows that 
    are overlaped by the given one except if filter-overlap-p is NIL. Returns a
    list of rectangles that represent all the founded windows."
   (with-slots (window master) application
-    (multiple-value-bind (xx yy ww hh) 
-	(window-geometry (if master (widget-window master) window))
+    (let ((rect (window->rectangle (if master (widget-window master) window))))
       (flet ((predicate (win n icon taskbar desktop dock)
 	       (cond 
 		 ((xlib:window-equal window win) nil)
 		 ((window-belongs-to-vscreen-p win n icon taskbar desktop dock)
 		  (not (and filter-overlap-p
-			    (multiple-value-bind (x y w h)
-				(with-slots ((m master)) (lookup-widget win)
-				  (window-geometry (if m (widget-window m) win)))
-			      (and (< xx (+ x w)) (< x (+ xx ww))
-				   (< yy (+ y h)) (< y (+ yy hh)))))))
+                            (with-slots ((m master)) (lookup-widget win)
+                              (let ((win2 (if m (widget-window m) win)))
+                                (overlap-p rect (window->rectangle win2)))))))
 		 (t (window-panel-p win n icon)))))
 	(mapcar 
 	    (lambda (win)
@@ -165,7 +175,9 @@
       (lambda (win)
 	(multiple-value-bind (l r to b lsy ley rsy rey tsx tex bsx bex)
 	    (netwm:net-wm-strut-partial win)
-	  (multiple-value-bind (w h) (drawable-sizes (xlib:drawable-root win))
+	  (multiple-value-bind (x y w h)
+              (window->rectangle-coordinates (xlib:drawable-root win))
+            (declare (ignorable x y))
 	    (unless l
 	      (multiple-value-setq (l r to b) (netwm:net-wm-strut win))
 	      (multiple-value-setq (lsy ley rsy rey tsx tex bsx bex)
@@ -173,10 +185,14 @@
 	      (unless (and l r to b)
 		(setf (values l r to b) (values 0 0 0 0))))
 	    (cond
-	      ((/= 0 l) (make-rectangle :ulx 0 :uly lsy :lrx l :lry ley))
-	      ((/= 0 r) (make-rectangle :ulx (- w r) :uly rsy :lrx w :lry rey))
-	      ((/= 0 to) (make-rectangle :ulx tsx :uly 0 :lrx tex :lry to))
-	      ((/= 0 b) (make-rectangle :ulx bsx :uly (- h b) :lrx bex :lry h))
+	      ((/= 0 l)
+               (make-rectangle :ulx 0 :uly lsy :lrx (1- l) :lry ley))
+	      ((/= 0 r)
+               (make-rectangle :ulx (- w (1- r)) :uly rsy :lrx w :lry rey))
+	      ((/= 0 to)
+               (make-rectangle :ulx tsx :uly 0 :lrx tex :lry (1- to)))
+	      ((/= 0 b)
+               (make-rectangle :ulx bsx :uly (- h (1- b)) :lrx bex :lry h))
 	      (t (window->rectangle win))))))
       (screen-content scr-num :predicate predicate)))
 
@@ -210,7 +226,8 @@
    - :direction (or :vertical :horizontal :both) to indicate wat kind of 
      region the search should be looking for."
   (with-slots (window (m master)) application
-    (multiple-value-bind (w h) (drawable-sizes (xlib:drawable-root window))
+    (multiple-value-bind (x y w h) 
+        (window->rectangle-coordinates (xlib:drawable-root window))
       (let ((app-rect (window->rectangle (if m (widget-window m) window)))
 	    (rectangles (find-empty-rectangles
 			    (make-rectangle :lrx w :lry h)
@@ -224,18 +241,16 @@
 			      (:vertical #'rectangle-height>=)
 			      (t #'rectangle-surface>=)))))
 	;; clip the application window rectangle to fit in the root one.
-	(when (< (rectangle-ulx app-rect) 0) (setf (rectangle-ulx app-rect) 0))
-	(when (< (rectangle-uly app-rect) 0) (setf (rectangle-uly app-rect) 0))
+	(when (< (rectangle-ulx app-rect) x) (setf (rectangle-ulx app-rect) x))
+	(when (< (rectangle-uly app-rect) y) (setf (rectangle-uly app-rect) y))
 	(when (> (rectangle-lrx app-rect) w) (setf (rectangle-lrx app-rect) w))
 	(when (> (rectangle-lry app-rect) h) (setf (rectangle-lry app-rect) h))
 	;; returns the appropriated area.
-	(multiple-value-call #'values
-	  (if rectangles
-	      (rectangle-coordinates
-	       (if area-include-me-p
-		   (loop for r in rectangles
+        (values 
+         (cond ((and rectangles area-include-me-p)
+                (loop for r in rectangles
                          when (include-p r app-rect) do (return r)
-			 finally (return (car rectangles)))
-		   (car rectangles)))
-	      (values 0 0 w h))
-	  (if rectangles T NIL))))))
+			 finally (return (car rectangles))))
+               (rectangles (car rectangles))
+               (t (window->rectangle (xlib:drawable-root window))))
+         (if rectangles T NIL))))))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.51 2007/11/02 09:33:08 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.52 2008/04/23 15:16:32 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -292,26 +292,27 @@
 
 ;; Maximization helpers.
 (defun find-max-geometry (application direction fill-p &key x y w h)
-  (multiple-value-bind (ulx uly lrx lry)
-      (find-largest-empty-area 
-          application 
-	  :area-include-me-p (or (/= 1 direction) fill-p)
-	  :panels-only-p (not fill-p)
-	  :direction (case direction (2 :vertical) (3 :horizontal) (t :both)))
+  (multiple-value-bind (rx ry rw rh)
+      (rectangle-geometry
+      (find-largest-empty-area
+          application
+      :area-include-me-p (or (/= 1 direction) fill-p)
+      :panels-only-p (not fill-p)
+      :direction (case direction (2 :vertical) (3 :horizontal) (t :both))))
     (with-slots (window master) application
       (with-slots ((hm hmargin) (vm vmargin))
-	  (if master (decoration-frame-style master)
-	      (theme-default-style (lookup-theme "no-decoration")))
-	(symbol-macrolet ((minw (aref wmsh 0)) (minh (aref wmsh 1))
-			  (maxw (aref wmsh 2)) (maxh (aref wmsh 3))
-			  (incw (aref wmsh 4)) (inch (aref wmsh 5))
-			  (basew (aref wmsh 6)) (baseh (aref wmsh 7)))
-	  (let* ((wmsh (recompute-wm-normal-hints window hm vm))
-		 (ww (or w (check-size (- lrx ulx hm) basew incw minw maxw)))
-		 (hh (or h (check-size (- lry uly vm) baseh inch minh maxh))))
-	    (when (> (+ ww hm) (- lrx ulx)) (decf ww incw))
-	    (when (> (+ hh vm) (- lry uly)) (decf hh inch))
-	    (make-geometry :w ww :h hh :x (or x ulx) :y (or y uly))))))))
+      (if master (decoration-frame-style master)
+          (theme-default-style (lookup-theme "no-decoration")))
+    (symbol-macrolet ((minw (aref wmsh 0)) (minh (aref wmsh 1))
+              (maxw (aref wmsh 2)) (maxh (aref wmsh 3))
+              (incw (aref wmsh 4)) (inch (aref wmsh 5))
+              (basew (aref wmsh 6)) (baseh (aref wmsh 7)))
+      (let* ((wmsh (recompute-wm-normal-hints window hm vm))
+                (ww (or w (check-size (- rw hm) basew incw minw maxw)))
+        (hh (or h (check-size (- rh vm) baseh inch minh maxh))))
+        (when (> (+ ww hm) rw) (decf ww incw))
+        (when (> (+ hh vm) rh) (decf hh inch))
+        (make-geometry :w ww :h hh :x (or x rx) :y (or y ry))))))))
 
 (defun compute-max-geometry
     (application x y w h direction fill-p vert-p horz-p)
