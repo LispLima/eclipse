@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.52 2008/04/23 15:16:32 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.53 2008/04/24 08:24:45 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -290,29 +290,39 @@
 	  (and (if max-w (= max-w (screen-width)) t)
 	       (if max-h (= max-h (screen-height)) t))))))
 
+(defun fullscreen-sizes (display)
+  "Returns the fullscreen x, y, width and height as a multiple value."
+  (if (xlib:query-extension display "XFree86-VidModeExtension")
+      (let* ((screen (xlib:display-default-screen display))
+            (ml (xlib:xfree86-vidmode-get-mode-line display screen)))
+        (multiple-value-bind (x y)
+            (xlib:xfree86-vidmode-get-viewport display screen)
+          (values x y (xlib:mode-info-hdisplay ml) (xlib:mode-info-vdisplay ml)))
+        (values 0 0 (screen-width) (screen-height)))))
+
 ;; Maximization helpers.
 (defun find-max-geometry (application direction fill-p &key x y w h)
   (multiple-value-bind (rx ry rw rh)
       (rectangle-geometry
-      (find-largest-empty-area
-          application
-      :area-include-me-p (or (/= 1 direction) fill-p)
-      :panels-only-p (not fill-p)
-      :direction (case direction (2 :vertical) (3 :horizontal) (t :both))))
+       (find-largest-empty-area
+           application
+           :area-include-me-p (or (/= 1 direction) fill-p)
+           :panels-only-p (not fill-p)
+           :direction (case direction (2 :vertical) (3 :horizontal) (t :both))))
     (with-slots (window master) application
       (with-slots ((hm hmargin) (vm vmargin))
-      (if master (decoration-frame-style master)
-          (theme-default-style (lookup-theme "no-decoration")))
-    (symbol-macrolet ((minw (aref wmsh 0)) (minh (aref wmsh 1))
-              (maxw (aref wmsh 2)) (maxh (aref wmsh 3))
-              (incw (aref wmsh 4)) (inch (aref wmsh 5))
-              (basew (aref wmsh 6)) (baseh (aref wmsh 7)))
-      (let* ((wmsh (recompute-wm-normal-hints window hm vm))
-                (ww (or w (check-size (- rw hm) basew incw minw maxw)))
-        (hh (or h (check-size (- rh vm) baseh inch minh maxh))))
-        (when (> (+ ww hm) rw) (decf ww incw))
-        (when (> (+ hh vm) rh) (decf hh inch))
-        (make-geometry :w ww :h hh :x (or x rx) :y (or y ry))))))))
+          (if master (decoration-frame-style master)
+              (theme-default-style (lookup-theme "no-decoration")))
+        (symbol-macrolet ((minw (aref wmsh 0)) (minh (aref wmsh 1))
+                          (maxw (aref wmsh 2)) (maxh (aref wmsh 3))
+                          (incw (aref wmsh 4)) (inch (aref wmsh 5))
+                          (basew (aref wmsh 6)) (baseh (aref wmsh 7)))
+          (let* ((wmsh (recompute-wm-normal-hints window hm vm))
+                 (ww (or w (check-size (- rw hm) basew incw minw maxw)))
+                 (hh (or h (check-size (- rh vm) baseh inch minh maxh))))
+            (when (> (+ ww hm) rw) (decf ww incw))
+            (when (> (+ hh vm) rh) (decf hh inch))
+            (make-geometry :w ww :h hh :x (or x rx) :y (or y ry))))))))
 
 (defun compute-max-geometry
     (application x y w h direction fill-p vert-p horz-p)
@@ -399,14 +409,8 @@
                 (setf (decoration-frame-style master)
                       (theme-default-style (lookup-theme "no-decoration")))))
             (setf (geometry fgeometry) (values x y w h))
-            (if (xlib:query-extension *display* "XFree86-VidModeExtension")
-                (let* ((scr (first (xlib:display-roots *display*)))
-                       (ml (xlib:xfree86-vidmode-get-mode-line *display* scr)))
-                  (multiple-value-setq (x y) 
-                    (xlib:xfree86-vidmode-get-viewport *display* scr))
-                  (setf w (xlib:mode-info-hdisplay ml)
-                        h (xlib:mode-info-vdisplay ml)))
-                (setf x 0 y 0 w (screen-width) h (screen-height)))
+            (multiple-value-setq (x y w h)
+              (fullscreen-sizes (xlib:window-display window)))
             (configure-window window :x x :y y :width w :height h))
           (focus-widget application 0))
         ;; revert: restore precedent geometry and decoration style.

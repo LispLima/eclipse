@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.52 2007/05/04 08:26:14 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.53 2008/04/23 09:54:46 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -392,48 +392,55 @@
 (defun make-decoration (app-window application &key theme)
   "Returns a newly initialized decoration to hold the given application."
   (unless theme (setf theme (root-decoration-theme *root*)))
-  (let* ((dstyle (find-decoration-frame-style theme app-window))
-	 (style dstyle))
-    (when (member :_net_wm_state_fullscreen (netwm:net-wm-state app-window))
+  (let* ((netwm-states (ignore-errors (netwm:net-wm-state app-window)))
+         (dstyle (find-decoration-frame-style theme app-window))
+         (style dstyle)
+         (fullscreen-p (member :_net_wm_state_fullscreen netwm-states)))
+    (when fullscreen-p
       (setf style (theme-default-style (lookup-theme "no-decoration"))))
     (with-slots (hmargin vmargin left-margin top-margin background) style
-      (multiple-value-bind (wm-sizes gravity) 
-	  (recompute-wm-normal-hints app-window hmargin vmargin)
-	(multiple-value-bind (width height) (drawable-sizes app-window)
-	  (multiple-value-bind (x y) (initial-coordinates app-window style)
-	    (let* ((window (xlib:create-window
-			       :parent (xlib:drawable-root app-window)
-			       :x x :y y
-			       :width (+ width hmargin)
-			       :height (+ height vmargin)
-			       :background background
-			       :event-mask +decoration-event-mask+
-			       :do-not-propagate-mask 
-			       '(:button-press :button-release)))
-		   (master (make-instance 'decoration
-			     :window window
-			     :old-frame-style dstyle :frame-style style
-			     :children (list :application application)
-			     :application-gravity gravity
-			     :wm-size-hints wm-sizes)))
-	      (make-frame-parts master)
-	      (make-title-bar master (wm-name app-window))
-	      (update-edges-geometry master)
-	      (with-slots (icon) application
-		(setf (getf (decoration-children master) :icon) icon
-		      (slot-value icon 'master) master
-		      (slot-value application 'master) master
-		      (xlib:drawable-border-width app-window) 0))
-	      master)))))))
+      (multiple-value-bind (wm-sizes gravity)
+          (recompute-wm-normal-hints app-window hmargin vmargin)
+        (multiple-value-bind (width height) (drawable-sizes app-window)
+          (multiple-value-bind (x y) (initial-coordinates app-window style)
+            (let* ((window (xlib:create-window
+                               :parent (xlib:drawable-root app-window)
+                               :x x :y y
+                               :width (+ width hmargin)
+                               :height (+ height vmargin)
+                               :background background
+                               :event-mask +decoration-event-mask+
+                               :do-not-propagate-mask
+                               '(:button-press :button-release)))
+                   (master (make-instance 'decoration
+                               :window window
+                               :old-frame-style dstyle :frame-style style
+                               :children (list :application application)
+                               :application-gravity gravity
+                               :wm-size-hints wm-sizes)))
+              (make-frame-parts master)
+              (make-title-bar master (wm-name app-window))
+              (update-edges-geometry master)
+              (with-slots (icon (fgeometry full-geometry)) application
+                (setf (getf (decoration-children master) :icon) icon
+                      (slot-value icon 'master) master
+                      (slot-value application 'master) master
+                      (xlib:drawable-border-width app-window) 0)
+                (when fullscreen-p
+                  (multiple-value-bind (x y w h)
+                      (fullscreen-sizes (xlib:window-display app-window))
+                    (configure-window app-window :x x :y y :width w :height h))
+                  (setf (geometry fgeometry) (values x y width height))))
+              master)))))))
 
 (defun decore-application (window application &key (map t) theme)
   "Decores an application and map the resulting decoration as indicated
   by the :map keyword argument. (default value is T).
   Returns the newly created decoration instance."
   (let* ((master (make-decoration window application :theme theme))
-	 (master-window (widget-window master))
-	 (left-margin (style-left-margin (decoration-frame-style master)))
-	 (top-margin (style-top-margin (decoration-frame-style master))))
+         (master-window (widget-window master))
+         (left-margin (style-left-margin (decoration-frame-style master)))
+         (top-margin (style-top-margin (decoration-frame-style master))))
     (with-event-mask (master-window)
       (xlib:map-subwindows master-window))
     (with-event-mask (master-window (when map +decoration-event-mask+))
