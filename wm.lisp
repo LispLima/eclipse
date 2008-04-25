@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.53 2008/04/23 09:54:46 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.54 2008/04/25 08:42:45 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -362,16 +362,16 @@
 	(setf (drawable-sizes window)
 	      (values (max 1 (- width hm)) (max 1 (- height vm))))))))
 
-(defun initial-coordinates (app-window frame-style)
+(defun initial-coordinates (window frame-style)
   "Returns as multiple values the decoration initial coordinates."
-  (let ((hint (ignore-errors (xlib:wm-normal-hints app-window))))
+  (let ((hint (ignore-errors (xlib:wm-normal-hints window))))
     (with-slots (top-margin left-margin vmargin hmargin) frame-style
       (flet ((default-coordinates ()
-               (let* ((n (or (window-desktop-num app-window) 0))
+               (let* ((n (or (window-desktop-num window) 0))
                       (k (if (= +any-desktop+ n) 0 (* 4 n)))
-                      (areas (netwm:net-workarea *root-window*))
+                      (areas (netwm:net-workarea (xlib:drawable-root window)))
                       (ax (aref areas k)) (ay (aref areas (1+ k))))
-                 (multiple-value-bind (x y) (window-position app-window)
+                 (multiple-value-bind (x y) (window-position window)
                    (values (max ax (- x left-margin))
                            (max ay (- y top-margin)))))))
         (if (and hint (xlib:wm-size-hints-user-specified-position-p hint))

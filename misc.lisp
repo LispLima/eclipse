@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.40 2007/11/02 09:33:08 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.41 2008/04/23 09:54:46 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -91,14 +91,16 @@
 (defsetf wm-state (window &key (icon-id 0)) (state)
   "Sets the wm_state property of a window. Note that its _net_wm_state property
    will be updated accordingly to the value given for the wm_state."
-  (let ((net-wm-state (gensym)))
-    `(let ((,net-wm-state (netwm:net-wm-state ,window)))
-       (if (or (= ,state 3) (= ,state 0))
-	   (pushnew :_net_wm_state_hidden ,net-wm-state)
-           (setf ,net-wm-state (delete :_net_wm_state_hidden ,net-wm-state)))
-       (setf (netwm:net-wm-state ,window) ,net-wm-state)
-       (xlib:change-property ,window :WM_STATE
-	   (list ,state ,icon-id)
+  (with-gensym (_window _state _net-wm-state)
+    `(let* ((,_window ,window)
+            (,_state ,state)
+            (,_net-wm-state (netwm:net-wm-state ,_window)))
+       (if (or (= ,_state 3) (= ,_state 0))
+	   (pushnew :_net_wm_state_hidden ,_net-wm-state)
+           (setf ,_net-wm-state (delete :_net_wm_state_hidden ,_net-wm-state)))
+       (setf (netwm:net-wm-state ,_window) ,_net-wm-state)
+       (xlib:change-property ,_window :WM_STATE
+	   (list ,_state ,icon-id)
 	   :WM_STATE
 	   32))))
 
@@ -107,12 +109,12 @@
    between _net_wm_desktop_names and _win_workspace_names respectively."
   (or (netwm:net-desktop-names window) (gnome:win-workspace-names window)))
 
-(defsetf workspace-names () (names)
+(defsetf workspace-names (window) (names)
   "Sets both the _win_workspace_names and the _net_wm_desktop_names properties
    to the given list of name."
   `(when ,names
-     (setf (netwm:net-desktop-names *root-window*) ,names
-           (gnome:win-workspace-names *root-window*) ,names)))
+     (setf (netwm:net-desktop-names ,window) ,names
+           (gnome:win-workspace-names ,window) ,names)))
 
 (defun wm-name (window)
   "Returns the name of the window according to the first property that is set

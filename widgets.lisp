@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.53 2008/04/24 08:24:45 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.54 2008/04/25 08:42:44 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -400,7 +400,7 @@
       (setf (netwm:net-wm-state window) prop))
     (if (eq mode :on)
         ;; put in fullscreen mode.
-        (with-event-mask (*root-window*)
+        (with-event-mask ((xlib:drawable-root window))
           (multiple-value-bind (x y w h) (window-geometry window)
             (when master
               (with-slots (children (master-win window) frame-style) master
@@ -414,7 +414,7 @@
             (configure-window window :x x :y y :width w :height h))
           (focus-widget application 0))
         ;; revert: restore precedent geometry and decoration style.
-        (with-event-mask (*root-window*)
+        (with-event-mask ((xlib:drawable-root window))
           (setf (drawable-sizes window) (geometry-sizes fgeometry))
           (unless (window-not-decorable-p window)
             (setf (decoration-frame-style master)
@@ -440,7 +440,7 @@
 	       (with-slots (master window) application
 		 (when (shaded-p application) (shade application))
  		 (setf (window-desktop-num window) new-screen-number)
-		 (with-event-mask (*root-window*)
+		 (with-event-mask ((xlib:drawable-root window))
 		   (let ((master-window (when master (widget-window master))))
 		     (funcall operation (or master-window window))
 		     (when master-window
@@ -457,10 +457,11 @@
   "Removes all decoration of this application widget and reparent it to root."
   (with-slots (window master icon) application
     (if master
-	(multiple-value-bind (x y)
-	    (xlib:translate-coordinates window 0 0 *root-window*)
-	  (xlib:reparent-window window *root-window* x y)
-          (event-process (make-event :destroy-notify) master))
+        (let ((root-window (xlib:drawable-root window)))
+          (multiple-value-bind (x y)
+              (xlib:translate-coordinates window 0 0 root-window)
+            (xlib:reparent-window window root-window x y)
+            (event-process (make-event :destroy-notify) master)))
         (event-process (make-event :destroy-notify :window window) *root*))
     (when state
       (setf (wm-state window) state)
@@ -823,7 +824,7 @@
 	    (setf bkgrd pix))))
       (setf icon (create-button 'icon
 		   :event-mask '(:pointer-motion-hint . #.+std-button-mask+)
-		   :parent *root-window* :master master
+		   :parent (xlib:drawable-root window) :master master
 		   :x 0 :y 0 :width width :height height
 		   :item (unless bkgrd (wm-icon-name window))
 		   :background (or bkgrd bg-color)))

@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.29 2005/03/01 22:41:31 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.30 2008/04/23 09:54:46 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -119,17 +119,20 @@
 (defsetf decoration-theme (&key free-old-theme-p) (name)
   "Sets the theme that must be used for window decoration. This theme will 
    be used for all existing applications as well as futur one." 
-  `(with-slots (decoration-theme) *root*
-     (let ((theme (load-theme *root-window* ,name)))
-       (when decoration-theme
-	 (loop with old-name = (theme-name decoration-theme)
-	       for val being each hash-value in *widget-table*
-	       when (and (application-p val) (application-master val)) do
-	        (with-slots (window master) val
+  `(set-decoration-theme ,name ,free-old-theme-p))
+
+(defun set-decoration-theme (name free-old-theme-p)
+  (with-slots (decoration-theme window) *root*
+    (let ((theme (load-theme window name)))
+      (when decoration-theme
+        (loop with old-name = (theme-name decoration-theme)
+              for val being each hash-value in *widget-table*
+              when (and (application-p val) (application-master val)) do
+                (with-slots (window master) val
 		  (setf (decoration-frame-style master)
 			(find-decoration-frame-style theme window)))
-	       finally (and ,free-old-theme-p (free-theme old-name))))
-       (setf decoration-theme theme))))
+              finally (and free-old-theme-p (free-theme old-name))))
+      (setf decoration-theme theme))))
 
 (defsetf maximize-modifier () (modifier-key)
   "Sets the modifier to use to activate window maximization second behavior."

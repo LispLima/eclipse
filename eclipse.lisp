@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.25 2006/01/14 15:40:55 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.26 2007/05/08 22:33:17 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -129,7 +129,7 @@
   (let ((first-desknum (current-vscreen window))
 	(nb-vs (number-of-virtual-screens window))
 	(srcw (screen-width)) (srch (screen-height)))
-    (xlib:with-server-grabbed (*display*)
+    (xlib:with-server-grabbed (display)
       (delete-properties window +netwm-protocol+)
       (unless (< -1 first-desknum nb-vs) (setf first-desknum 0))
       (setf (gnome:win-protocols window) +gnome-protocols+
@@ -166,7 +166,7 @@
 	    (xlib:display-after-function display) #'xlib:display-force-output)
       (setf *root* (make-instance 'root :window root-window :manager manager)
 	    *root-window* root-window
-	    (root-default-cursor *root*) (get-x-cursor *display* :xc_left_ptr)
+	    (root-default-cursor *root*) (get-x-cursor display :xc_left_ptr)
 	    (root-sm-conn *root*) (connect-to-session-manager
 				      display-specification sm-client-id))
       ;; init all gnome properties on root.
@@ -177,7 +177,7 @@
 	    *white* (xlib:screen-white-pixel screen)
 	    *background1* (xlib:alloc-color colormap *menu-color*)
 	    *background2* (xlib:alloc-color colormap *menu-hilighted-color*)
-	    *cursor-2* (get-x-cursor *display* :xc_fleur)
+	    *cursor-2* (get-x-cursor display :xc_fleur)
 	    *gctxt* (xlib:create-gcontext :drawable root-window :font menu-font)
 	    *max-char-width* (xlib:max-char-width menu-font)
 	    *gcontext* (xlib:create-gcontext

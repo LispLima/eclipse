@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.47 2007/05/07 13:22:50 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.48 2008/04/23 09:54:46 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -90,7 +90,8 @@
     (when (or (decoration-p widget) (application-p (lookup-widget window)))
       (if (eq *focus-type* :on-click)
 	  (give-focus-to-next-widget-in-desktop) 
-	  (multiple-value-bind (x y s child) (xlib:query-pointer *root-window*)
+	  (multiple-value-bind (x y s child)
+              (xlib:query-pointer (xlib:drawable-root window))
 	    (declare (ignore x y s))
 	    (let ((e (make-event :enter-notify :kind :nonlinear :mode :normal)))
 	      (event-process e (or (lookup-widget child) *root*))))))))
@@ -316,7 +317,7 @@
   (with-slots (master window) application
     (unless (eql (event-mode event) :grab)
       (when master (dispatch-repaint master :focus t))
-      (setf (netwm:net-active-window *root-window*) window)
+      (setf (netwm:net-active-window (xlib:drawable-root window)) window)
       (xlib:delete-property
           (widget-window (root-property-holder *root*))
 	  :_net_active_window))))

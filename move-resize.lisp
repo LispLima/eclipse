@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: move-resize.lisp,v 1.17 2004/08/20 21:51:08 ihatchondo Exp $
+;;; $Id: move-resize.lisp,v 1.18 2005/01/17 09:30:40 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -31,9 +31,9 @@
   (when *geometry-info-box*
     (xlib:unmap-window (widget-window *geometry-info-box*))))
 
-(defun initialize-geometry-info-box ()
+(defun initialize-geometry-info-box (parent-window)
   (unless *geometry-info-box*
-    (setf *geometry-info-box* (create-message-box nil :parent *root-window*)))
+    (setf *geometry-info-box* (create-message-box nil :parent parent-window)))
   (with-slots (window) *geometry-info-box*
     (xlib:map-window window)
     (setf (xlib:window-priority window) :above)))
@@ -59,9 +59,9 @@
 
 (defparameter *clone* nil)
 
-(defun initialize-clone ()
+(defun initialize-clone (parent-window)
   (let ((win (xlib:create-window 
-	        :parent *root-window* :x 0 :y 0 :width 100 :height 100)))
+	        :parent parent-window :x 0 :y 0 :width 100 :height 100)))
     (setf *clone* (make-decoration win (create-application win nil)))))
 
 (defun update-*clone* (x y w h decoration-frame-style &optional wm-hints)
@@ -96,13 +96,13 @@
   (with-slots (resize-status move-status current-active-widget window) root
     (with-slots ((widget-window window) gcontext active-p) widget
       (when (and active-p (not (or resize-status move-status)))
-	(or *clone* (initialize-clone))
+	(or *clone* (initialize-clone window))
 	(update-clone widget)
 	(grab-root-pointer)
 	(setf (slot-value root status) t
 	      current-active-widget widget)
 	(when verbose-p
-	  (initialize-geometry-info-box)
+	  (initialize-geometry-info-box window)
 	  (multiple-value-bind (x y w h) (window-geometry widget-window)
 	    (if (and (eq status 'resize-status) (decoration-p widget))
 		(multiple-value-bind (a b c d iw ih bw bh)
@@ -255,7 +255,8 @@
   ;; called when button-release on root and root-resize-status is not nil.
   (with-slots (window gcontext) master
     (when (and (decoration-active-p master) (eql mode :box))
-      (draw-window-grid (widget-window *clone*) gcontext *root-window*)
+      (draw-window-grid
+          (widget-window *clone*) gcontext (xlib:drawable-root window))
       (multiple-value-bind (x y w h)
 	  (window-geometry (widget-window *clone*))
 	(setf (window-position window) (values x y)
@@ -296,9 +297,10 @@
 	(update-edges-geometry master)
 	(resize-from master))
       (with-slots (window gcontext) *clone*
-	(draw-window-grid window gcontext *root-window*)
-	(resize-internal *clone* event verbose-p)
-	(draw-window-grid window gcontext *root-window*))))	
+        (let ((root-window (xlib:drawable-root window)))
+          (draw-window-grid window gcontext root-window)
+          (resize-internal *clone* event verbose-p)
+          (draw-window-grid window gcontext root-window)))))
 
 ;;;; Move.
 
@@ -403,10 +405,11 @@
 	(when verbose-p (display-coordinates new-x new-y))
 	(if (and (or (decoration-p widget) (application-p widget))
 		 (eql mode :box))
-	    (with-slots (window) *clone*	    
-	      (draw-window-grid window gcontext *root-window*)
-	      (setf (window-position window) (values new-x new-y))
-	      (draw-window-grid window gcontext *root-window*))
+	    (with-slots (window) *clone*
+              (let ((root-window (xlib:drawable-root window)))
+                (draw-window-grid window gcontext root-window)
+                (setf (window-position window) (values new-x new-y))
+                (draw-window-grid window gcontext root-window)))
 	    (setf (window-position window) (values new-x new-y)))))))
 
 (defun finish-move (widget &optional verbose-p mode) 
@@ -414,7 +417,7 @@
   (with-slots ((widget-window window) active-p) widget
     (when (eql mode :box)
       (with-slots (window gcontext) *clone*
-	(draw-window-grid window gcontext *root-window*)
+	(draw-window-grid window gcontext (xlib:drawable-root window))
 	(setf (window-position widget-window) (window-position window))))
     (setf active-p nil)
     (when verbose-p (undraw-geometry-info-box)))
