@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.54 2008/04/25 08:42:45 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.55 2008/04/25 16:02:49 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -711,6 +711,7 @@
 	       (decore-application window application :map nil))
 	     (update-lists application 1 *root*)))
 	  ((window-not-decorable-p window (application-type application))
+           (setf (netwm:net-frame-extents window) (values 0 0 0 0))
 	   (setf (wm-state window) 1)
 	   (xlib:map-window window))
 	  (t (decore-application window application :map t)))

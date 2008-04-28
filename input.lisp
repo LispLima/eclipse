@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.49 2008/04/25 16:02:49 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.50 2008/04/28 12:29:38 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -97,7 +97,8 @@
 	      (event-process e (or (lookup-widget child) *root*))))))))
 
 (defmethod event-process ((event client-message) window)
-  (when (xlib:window-p window)
+  (declare (ignorable window))
+  (with-slots ((window event-window)) event
     (case (event-type event) 
       (:_net_request_frame_extents
        (with-slots (left-margin right-margin top-margin bottom-margin)
