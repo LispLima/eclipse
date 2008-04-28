@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.41 2008/04/23 09:54:46 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.42 2008/04/25 16:02:49 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -91,16 +91,14 @@
 (defsetf wm-state (window &key (icon-id 0)) (state)
   "Sets the wm_state property of a window. Note that its _net_wm_state property
    will be updated accordingly to the value given for the wm_state."
-  (with-gensym (_window _state _net-wm-state)
-    `(let* ((,_window ,window)
-            (,_state ,state)
-            (,_net-wm-state (netwm:net-wm-state ,_window)))
-       (if (or (= ,_state 3) (= ,_state 0))
-	   (pushnew :_net_wm_state_hidden ,_net-wm-state)
-           (setf ,_net-wm-state (delete :_net_wm_state_hidden ,_net-wm-state)))
-       (setf (netwm:net-wm-state ,_window) ,_net-wm-state)
-       (xlib:change-property ,_window :WM_STATE
-	   (list ,_state ,icon-id)
+  (let ((net-wm-state (gensym)))
+    `(let* ((,net-wm-state (netwm:net-wm-state ,window)))
+       (if (or (= ,state 3) (= ,state 0))
+	   (pushnew :_net_wm_state_hidden ,net-wm-state)
+           (setf ,net-wm-state (delete :_net_wm_state_hidden ,net-wm-state)))
+       (setf (netwm:net-wm-state ,window) ,net-wm-state)
+       (xlib:change-property ,window :WM_STATE
+	   (list ,state ,icon-id)
 	   :WM_STATE
 	   32))))
 
