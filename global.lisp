@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.30 2008/04/23 09:54:46 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.31 2008/04/25 16:02:49 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -46,7 +46,7 @@
     :_net_wm_state_maximized_horz :_net_wm_state_maximized_vert
     :_net_wm_state_skip_taskbar :_net_wm_state_skip_pager :_net_wm_state_shaded
     :_net_wm_state_sticky :_net_wm_state_fullscreen :_net_wm_state_hidden
-    :_net_wm_state_above :_net_wm_state_below))
+    :_net_wm_state_above :_net_wm_state_below :_net_wm_state_demands_attention))
 
 (defconstant +root-event-mask+
   '(:substructure-redirect :substructure-notify :button-press :button-release

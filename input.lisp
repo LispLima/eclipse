@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.50 2008/04/28 12:29:38 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.51 2008/04/28 16:09:16 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -414,7 +414,9 @@
 		 (put-on-top application))
 	       (when (or-eql :_net_wm_state_below p1 p2)
 		 (set-netwm-state :_net_wm_state_below mode)
-		 (put-on-bottom application))))))
+		 (put-on-bottom application))
+               (when (or-eql :_net_wm_state_demands_attention p1 p2)
+                 (set-netwm-state :_net_wm_state_demands_attention mode))))))
 	(:_net_moveresize_window
 	 (let ((value-mask (logand #x0F (ash (aref data 0) -8)))
 	       (gravity (logand #xFF (aref data 0))))

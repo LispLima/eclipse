@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.55 2008/04/25 16:02:49 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.56 2008/04/28 16:09:16 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -495,6 +495,13 @@
 (defmethod set-focus ((input-model (eql :no-input)) window timestamp)
   (declare (ignorable window timestamp))
   (values))
+
+(defmethod set-focus :after (input-model window timestamp)
+  (declare (ignorable timestamp))
+  (let ((states (netwm:net-wm-state window)))
+    (when (member :_net_wm_state_demands_attention states)
+      (setf (netwm:net-wm-state window)
+            (remove :_net_wm_state_demands_attention states)))))
 
 ;; Next is methods for menu-3 who permit to manage any window :
 ;;  choose an action in the menu and click on a window
