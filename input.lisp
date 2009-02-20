@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.51 2008/04/28 16:09:16 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.52 2008-08-29 14:57:47 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -352,7 +352,7 @@
 	   (setf item-to-draw (wm-name (widget-window app)))
 	   (xlib:queue-event *display* :exposure :window window :count 0))))
       ((:_net_wm_strut_partial :_net_wm_strut)
-       (when (eq type :_net_wm_window_type_dock)
+       (when (member :_net_wm_window_type_dock type)
 	 (update-workarea-property *root*)))
       (:wm_state (update-lists app (car (wm-state window)) *root*))
       (:wm_transient_for (computes-transient-for app)))))
