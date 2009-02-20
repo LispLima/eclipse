@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.55 2008-04-25 16:02:49 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.56 2009-02-20 18:05:16 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -477,9 +477,9 @@
     (let ((transient (lookup-widget (ignore-errors (xlib:transient-for win)))))
       (when (and transient (not (eq *root* transient)))
         (pushnew application (slot-value transient 'dialogs)))
-     (when (and transient-for (not (equal transient-for transient)))
-       (with-slots (dialogs) transient-for
-         (setf dialogs (delete application dialogs))))
+      (when (and transient-for (not (equal transient-for transient)))
+        (with-slots (dialogs) transient-for
+          (setf dialogs (delete application dialogs))))
       (setf transient-for transient))))
 
 (defun find-input-model (window)
