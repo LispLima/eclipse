@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.54 2008/04/25 08:42:44 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.55 2008-04-25 16:02:49 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -200,8 +200,9 @@
    (initial-geometry :initform (make-geometry) :initarg :initial-geometry)
    (full-geometry :initform (make-geometry) :initarg :full-geometry)
    (type :initarg :type :accessor application-type)
-   (transient-for :initarg :transient-for :accessor application-transient-for)
-   (dialogs :initform nil :writer (setf application-dialogs))))
+   (dialogs :initform nil :writer (setf application-dialogs))
+   (transient-for :initform nil :initarg :transient-for
+                  :accessor application-transient-for)))
 
 (defmethod application-dialogs ((application application))
   "Returns all dialog applications of an application (including dialog of a
@@ -474,10 +475,12 @@
    the dialogs list of its leader."
   (with-slots (transient-for (win window)) application
     (let ((transient (lookup-widget (ignore-errors (xlib:transient-for win)))))
-      (setf transient-for 
-	    (when (and transient (not (eq *root* transient)))
-	      (push application (slot-value transient 'dialogs))
-	      transient)))))
+      (when (and transient (not (eq *root* transient)))
+        (pushnew application (slot-value transient 'dialogs)))
+     (when (and transient-for (not (equal transient-for transient)))
+       (with-slots (dialogs) transient-for
+         (setf dialogs (delete application dialogs))))
+      (setf transient-for transient))))
 
 (defun find-input-model (window)
   "Returns the input model keyword of this window according to ICCCM (4.1.7)."
