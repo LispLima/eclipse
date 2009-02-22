@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: COMMON-LISP; -*-
-;;; $Id: package.lisp,v 1.8 2005/09/22 12:21:32 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.9 2005/12/06 13:52:49 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -133,6 +133,27 @@
    ;; constants & vars
    #:+sm-proto-major+
    #:+sm-proto-minor+
+
+   #:+clone-command+
+   #:+current-directory+
+   #:+discard-command+
+   #:+environment+
+   #:+process-id+
+   #:+program+
+   #:+restart-command+
+   #:+resign-command+
+   #:+restart-style-hint+
+   #:+shutdown-command+
+   #:+user-id+
+
+   #:+restart-if-running+
+   #:+restart-anyway+
+   #:+restart-immediately+
+   #:+restart-never+
+
+   #:+list-of-array8+
+   #:+array8+
+   #:+card8+
 
    ;; macros.
    #:buffer-read-array8

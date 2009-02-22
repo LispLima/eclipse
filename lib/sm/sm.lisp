@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: SM-LIB; -*-
-;;; $Id: sm.lisp,v 1.11 2005/09/22 12:21:32 ihatchondo Exp $
+;;; $Id: sm.lisp,v 1.12 2005/12/06 13:52:49 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -33,6 +33,74 @@
 
 (defconstant +release-name+ "CL-SM-1.0")
 (defconstant +vendor-name+ "LoopFor & Mapcar corp")
+
+#| XSMP 11.  Predefined Properties
+
+All property values are stored in a LISTofARRAY8.  If the
+type of the property is CARD8, the value is stored as a
+LISTofARRAY8 with one ARRAY8 that is one byte long.  That
+single byte contains the CARD8.  If the type of the property
+is ARRAY8, the value is stored in the first element of a
+single element LISTofARRAY8.
+
+The required properties must be set each time a client con-
+nects with the SM.  The properties must be set after the
+client sends RegisterClient and before the client sends
+SaveYourselfDone.  Otherwise, the behavior of the session
+manager is not defined.
+
+Clients may set, get, and delete nonstandard properties.
+The lifetime of stored properties does not extend into sub-
+sequent sessions.
+
+----------------------------------------------------------
+Name               Type          Posix Type     Required?
+----------------------------------------------------------
+CloneCommand       OS-specific   LISTofARRAY8     Yes
+CurrentDirectory   OS-specific   ARRAY8           No
+DiscardCommand     OS-specific   LISTofARRAY8     No*
+Environment        OS-specific   LISTofARRAY8     No
+ProcessID          OS-specific   ARRAY8           No
+Program            OS-specific   ARRAY8           Yes
+RestartCommand     OS-specific   LISTofARRAY8     Yes
+ResignCommand      OS-specific   LISTofARRAY8     No
+RestartStyleHint   CARD8         CARD8            No
+ShutdownCommand    OS-specific   LISTofARRAY8     No
+UserID             ARRAY8        ARRAY8           Yes
+----------------------------------------------------------
+|#
+
+(defconstant +clone-command+ "CloneCommand")
+(defconstant +current-directory+ "CurrentDirectory")
+(defconstant +discard-command+ "DiscardCommand")
+(defconstant +environment+ "Environment")
+(defconstant +process-id+ "ProcessID")
+(defconstant +program+ "Program")
+(defconstant +restart-command+ "RestartCommand")
+(defconstant +resign-command+ "ResignCommand")
+(defconstant +restart-style-hint+ "RestartStyleHint")
+(defconstant +shutdown-command+ "ShutdownCommand")
+(defconstant +user-id+ "UserID")
+
+#|
+---------------------------
+Name                 Value
+---------------------------
+RestartIfRunning       0
+RestartAnyway          1
+RestartImmediately     2
+RestartNever           3
+---------------------------
+|#
+
+(defconstant +restart-if-running+ 0)
+(defconstant +restart-anyway+ 1)
+(defconstant +restart-immediately+ 2)
+(defconstant +restart-never+ 3)
+
+(defconstant +list-of-array8+ "LISTofARRAY8")
+(defconstant +array8+ "ARRAY8")
+(defconstant +card8+ "CARD8")
 
 ;;;; Types.
 
