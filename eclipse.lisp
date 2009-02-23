@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.26 2007/05/08 22:33:17 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.27 2008/04/25 16:02:49 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -30,33 +30,59 @@
   "Sets the xsmp properties that are required by the protocols."
   (declare (type (or null string) dpy))
   (let ((id (format nil "--sm-client-id=~a" (sm-lib:sm-client-id sm-conn)))
-	(display (format nil "--display=~a" dpy)))
+	(display (when dpy (format nil "--display=~a" dpy))))
     (ice-lib:post-request :set-properties sm-conn
       :properties
       (list (sm-lib:make-property
-	     :name "CloneCommand"
-	     :type "LISTofARRAY8"
-	     :values (cons (sm-lib:string->array8 "eclipse")
-			   (when dpy (sm-lib:strings->array8s display))))
-	    (sm-lib:make-property
-	     :name "Program"
-	     :type "ARRAY8"
+	     :name sm-lib:+program+
+	     :type sm-lib:+ARRAY8+
 	     :values (sm-lib:strings->array8s "eclipse"))
 	    (sm-lib:make-property
-	     :name "RestartCommand"
-	     :type "LISTofARRAY8"
-	     :values (sm-lib:strings->array8s "eclipse" id))
+	     :name sm-lib:+user-id+
+	     :type sm-lib:+array8+
+	     :values (sm-lib:strings->array8s (get-username)))
+            (sm-lib:make-property
+	     :name sm-lib:+restart-style-hint+
+             :type sm-lib:+card8+
+             ;; RestartImmediately
+             :values (list (sm-lib:make-array8 1 :initial-element 2)))
+            (sm-lib:make-property
+	     :name sm-lib:+process-id+
+             :type sm-lib:+array8+
+             :values (sm-lib:strings->array8s (format nil "~a" (getpid))))
+            (sm-lib:make-property
+	     :name sm-lib:+current-directory+
+             :type sm-lib:+array8+
+             :values (sm-lib:strings->array8s (user-homedir)))
+            (sm-lib:make-property
+	     :name sm-lib:+clone-command+
+	     :type sm-lib:+list-of-array8+
+	     :values (if display
+                         (sm-lib:strings->array8s "eclipse" display)
+                         (sm-lib:strings->array8s "eclipse")))
 	    (sm-lib:make-property
-	     :name "UserID"
-	     :type "ARRAY8"
-	     :values (sm-lib:strings->array8s (get-username)))))))
+	     :name sm-lib:+restart-command+
+	     :type sm-lib:+list-of-array8+
+	     :values (if display
+                         (sm-lib:strings->array8s "eclipse" display id)
+                         (sm-lib:strings->array8s "eclipse" id)))
+            ;; Only for Gnome Session Manager
+            (sm-lib:make-property
+             :name "_GSM_Priority"
+             :type  sm-lib:+card8+
+             :values (list (sm-lib:make-array8 1 :initial-element 20)))))))
 
 (defun connect-to-session-manager (dpy-name &optional previous-id)
   "Try to connect us to the session manager. If connected set xsmp
    properties and returns the sm-connection instance."  
+  (unless previous-id
+    (setf previous-id (getenv "DESKTOP_AUTOSTART_ID"))
+    ;; unset $DESKTOP_AUTOSTART_ID in order to avoid
+    ;; child processes to use the same client id.
+    (setf (getenv "DESKTOP_AUTOSTART_ID") ""))
   (handler-case
       (let ((sm-conn (sm-lib:open-sm-connection :previous-id previous-id)))
-	(sm-init sm-conn dpy-name)
+        (sm-init sm-conn dpy-name)
 	sm-conn)
     (error (condition) (format *error-output* "~&~A~&" condition))))
 
@@ -71,7 +97,9 @@
 	(sm-lib:die () (close-sm-connection root-widget :exit-p t) nil)
 	(t t))
     (exit-eclipse (condition) (signal condition))
-    (error (condition) (format *error-output* "~&~A~&" condition))))
+    (error (condition)
+      #+cmu (debug::backtrace)
+      (format *error-output* "~&~A~&" condition))))
 
 (defun initialize-manager (display root-window)
   ;; ICCCM section 2.8
@@ -224,7 +252,7 @@
       (handler-case (initialize display sm-client-id)
 	(error (condition)
 	  (format *error-output* "~A~%" condition)
-	  (%quit%)))
+	  (quit)))
       (initialize display sm-client-id))
   (when activate-log
     (init-log-file))
@@ -248,4 +276,4 @@
     (progn
       (ignore-errors (xlib:close-display *display*))
       (format t "Eclipse exited. Bye.~%")
-      (%quit%))))
+      (quit))))

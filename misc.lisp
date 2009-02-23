@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.42 2008/04/25 16:02:49 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.43 2008/04/28 12:29:39 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -64,6 +64,7 @@
      (declare (ignorable condition))
      ,@(when verbose
 	`((format *stderr* "error - ~A - : ~A~%" ',type condition)
+          ;; #+cmu (debug::backtrace)
 	  (finish-output *stderr*)))
      ,(unless return `(throw ',(or throw type) ,@(or body '(nil))))))
 
@@ -428,7 +429,7 @@
    run the program named `program' with arguments `arguments'. If the 
    invocation failed a pop-up window will appear reporting the error."
   (lambda ()
-    (handler-case (%run-program% program arguments)
+    (handler-case (run-program program arguments)
       (error () (timed-message-box *root-window* "Wrong application name")))))
 
 (defun eclipse-desktop-pointer-positions (window &optional desk-num)

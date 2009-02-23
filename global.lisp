@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.31 2008/04/25 16:02:49 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.32 2008-08-29 14:57:47 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -169,7 +169,7 @@
 
 ;;;; System dependent functions.
 
-(defun %quit% (&optional code)
+(defun quit (&optional code)
   #+allegro (excl:exit code)
   #+clisp (#+lisp=cl ext:quit #-lisp=cl lisp:quit code)
   #+cmu (unix:unix-exit (or code 0))
@@ -182,7 +182,7 @@
   (error 'not-implemented :proc (list 'quit code))
   )
 
-(defun %run-program% (program arguments)
+(defun run-program (program arguments)
   #+:lucid (run-program program :arguments arguments)
   #+:allegro (excl:run-shell-command
 	      (format nil "~A~@[ ~{~A~^ ~}~]" program arguments))
@@ -201,6 +201,59 @@
 		       (unix:unix-getpwuid (unix:unix-getuid)))
   #+allegro-v6.2 (excl.osi:pwent-name (excl.osi:getpwent (excl.osi:getuid)))
   #-(or sbcl cmu allegro-v6.2) "nobody")
+
+(defun getenv (var)
+  "Returns shell environment variable named var."
+  #+allegro (sys::getenv (string var))
+  #+clisp (ext:getenv (string var))
+  #+(or cmu scl)
+  (cdr (assoc (string var) ext:*environment-list* :test #'equalp
+              :key #'string))
+  #+gcl (si:getenv (string var))
+  #+lispworks (lw:environment-variable (string var))
+  #+lucid (lcl:environment-variable (string var))
+  #+mcl (ccl::getenv var)
+  #+sbcl (sb-posix:getenv (string var))
+  #-(or allegro clisp cmu gcl lispworks lucid mcl sbcl scl)
+  (error 'not-implemented :proc (list 'getenv var)))
+
+
+(defun (setf getenv) (val var)
+  "Sets the value of the environment variable named var to val."
+  #+allegro (setf (sys::getenv (string var)) (string val))
+  #+clisp (setf (ext:getenv (string var)) (string val))
+  #+(or cmu scl)
+  (let ((cell (assoc (string var) ext:*environment-list* :test #'equalp
+                     :key #'string)))
+    (if cell
+        (setf (cdr cell) (string val))
+        (push (cons (intern (string var) "KEYWORD") (string val))
+              ext:*environment-list*)))
+  #+gcl (si:setenv (string var) (string val))
+  #+lispworks (setf (lw:environment-variable (string var)) (string val))
+  #+lucid (setf (lcl:environment-variable (string var)) (string val))
+  #+sbcl (sb-posix:putenv (format nil "~A=~A" (string var) (string val)))
+  #-(or allegro clisp cmu gcl lispworks lucid sbcl scl)
+  (error 'not-implemented :proc (list '(setf getenv) var)))
+
+(defun getpid ()
+  "Returns the unix process-id of the current lisp process."
+  #+cmu (unix:unix-getpid)
+  #+sbcl (sb-posix:getpid)
+  #+allegro (excl::getpid)
+  #+mcl (ccl::getpid)
+  #+clisp (let ((getpid (or (find-symbol "PROCESS-ID" :system)
+                            ;; old name prior to 2005-03-01, clisp <= 2.33.2
+                            (find-symbol "PROGRAM-ID" :system)
+                            #+win32 ; integrated into the above since 2005-02-24
+                            (and (find-package :win32) ; optional modules/win32
+                                 (find-symbol "GetCurrentProcessId" :win32)))))
+            (funcall getpid))
+  #-(or cmu sbcl allegro clisp) -1)
+
+(defun user-homedir ()
+  #+cmu (extensions:unix-namestring (user-homedir-pathname))
+  #-cmu (namestring (user-homedir-pathname)))
 
 ;;;; Error handler.
 ;; The X errors handler.
@@ -227,5 +280,6 @@
 	    (format *stderr* "Dead window removed from table~%"))
 	  (when (member resource-id (netwm:net-client-list *root-window*))
 	    (remove-window-from-client-lists resource *root*)))))
+  ;; #+cmu (debug::backtrace)
   (finish-output *stderr*)
   (error 'already-handled-xerror))
