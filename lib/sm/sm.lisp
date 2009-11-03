@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: SM-LIB; -*-
-;;; $Id: sm.lisp,v 1.12 2005/12/06 13:52:49 ihatchondo Exp $
+;;; $Id: sm.lisp,v 1.13 2009-02-22 23:56:46 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: SM Library
 ;;;   Created: 2004 01 15 15:28
@@ -631,8 +631,8 @@ RestartNever           3
   (declare (type (or null client-id) previous-id))
   (declare (type boolean must-authenticate-p))
   (unless network-ids
-    (setf network-ids (list (get-environment-variable)))
-    (when (null (car network-ids))
+    (setf network-ids (ice-lib:split-ids (or (get-environment-variable) "")))
+    (unless network-ids
       (signal-sm-error "SESSION_MANAGER environment variable is undefined.")))
   (let ((sm-conn (make-instance 'sm-connection)))
     (open-connection 

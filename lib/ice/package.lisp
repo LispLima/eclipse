@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: COMMON-LISP; -*-
-;;; $Id: package.lisp,v 1.6 2005/03/25 14:43:54 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.7 2005/12/06 13:52:47 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -219,6 +219,7 @@
    #:protocol-reply-p 
    #:protocol-setup-p 
    #:request-p 
+   #:split-ids
    #:setup-failed-p 
    #:unknown-protocol-p 
    #:want-to-close-p 

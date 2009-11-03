@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-lib.lisp,v 1.12 2005/09/18 17:48:15 ihatchondo Exp $
+;;; $Id: ICE-lib.lisp,v 1.13 2005/12/06 13:52:47 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -300,6 +300,19 @@
 ;;;;                           utility routines                            ;;;;
 ;;;;                                                                       ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun split-ids (ids)
+  "Returns a list of string that is the result of splitting the given one 
+   assuming it is a coma separated list. For instance if the given string 
+   is: \"local/zorglub:/tmp/.ICE-unix/3493,unix/zorglub:/tmp/.ICE-unix/3493\"
+   then the returned list is:
+        '(\"local/zorglub:/tmp/.ICE-unix/3493\"
+          \"unix/zorglub:/tmp/.ICE-unix/3493\")"
+  (declare (type string ids))
+  (loop for i = 0 then (+ 1 coma)
+     for coma = (position #\, ids :start i)
+     for id = (string-trim '(#\Space #\Tab #\Newline) (subseq ids i coma)) 
+     when (> (length id) 0) collect id while coma))
 
 (defun parse-network-id (network-id)
   "Returns as a multiple values: 
