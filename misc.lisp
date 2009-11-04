@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.43 2008/04/28 12:29:39 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.44 2009-02-23 00:00:35 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -400,10 +400,11 @@
 	  nconc (multiple-value-bind (ulx uly llx lly)
 		    (multiple-value-bind (w h) (drawable-sizes window)
 		      (rectangle-coordinates
-		          (car (find-empty-rectangles
-				   (make-rectangle :lrx w :lry h)
-				   (find-all-panel-rectangles i)
-				   #'rectangle-surface>=))))
+                          (or (car (find-empty-rectangles
+				       (make-rectangle :lrx w :lry h)
+                                       (find-all-panel-rectangles i)
+                                       #'rectangle-surface>=))
+                              (window->rectangle window))))
 		  (list ulx uly (- llx ulx) (- lly uly)))
 	  into workareas
 	  finally (xlib:change-property
