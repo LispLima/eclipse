@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: rectangles.lisp,v 1.6 2008/04/23 15:12:40 ihatchondo Exp $
+;;; $Id: rectangles.lisp,v 1.7 2008/04/24 08:24:45 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2003 Iban HATCHONDO
@@ -193,8 +193,14 @@
                (make-rectangle :ulx tsx :uly 0 :lrx tex :lry (1- to)))
 	      ((/= 0 b)
                (make-rectangle :ulx bsx :uly (- h (1- b)) :lrx bex :lry h))
-	      (t (window->rectangle win))))))
+	      (t (if (window-netwm-dock-p win)
+                     (make-rectangle)
+                     (window->rectangle win)))))))
       (screen-content scr-num :predicate predicate)))
+
+(defun window-netwm-dock-p (window)
+  "Returns true if window has :_net_wm_window_type_dock in its properties."
+  (member :_net_wm_window_type_dock (netwm:net-wm-window-type window)))
 
 (defun window-panel-p (window scr-num iconify-p &rest options)
   "Returns true if window is a panel (in the sens of Gnome/KDE panel)."
@@ -204,8 +210,7 @@
 	  (wm-state (car (wm-state window))))
       (and (or (= n scr-num) (= n +any-desktop+))
 	   (or (eq wm-state 1) (and iconify-p (eq wm-state 3)))
-	   (or (member :_net_wm_window_type_dock
-		       (netwm:net-wm-window-type window))
+	   (or (window-netwm-dock-p window)
                (multiple-value-bind (resource class)
 		   (xlib:get-wm-class window)
 		 (declare (ignore resource))
