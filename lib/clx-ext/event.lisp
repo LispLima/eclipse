@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: CLX-EXTENSIONS -*-
-;;; $Id: event.lisp,v 1.8 2005/01/05 00:23:57 ihatchondo Exp $
+;;; $Id: event.lisp,v 1.9 2005/01/15 12:27:00 ihatchondo Exp $
 ;;;
 ;;; Add on for CLX to have some CLOS events.
 ;;; This file is part of Eclipse.
@@ -248,8 +248,15 @@
   #+lucid `(clos:slot-definition-initargs ,slot)
   #+sbcl `(slot-value ,slot 'sb-pcl::initargs))
 
+(defmacro finalize-inheritance (class)
+  #+sbcl `(sb-mop:finalize-inheritance ,class)
+  #+cmu `(pcl:finalize-inheritance ,class)
+  #+clisp `(clos:finalize-inheritance ,class))
+
 (defmacro class-initargs (class)
-  `(loop for slot in (class-slots ,class) collect (car (slot-initargs slot))))
+  `(progn 
+     (finalize-inheritance ,class)
+     (loop for slot in (class-slots ,class) collect (car (slot-initargs slot)))))
 
 (macrolet ((define-make-event-function ()
   (flet ((make-initarg-key-value-pair (initargs)
