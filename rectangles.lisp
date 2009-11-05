@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: rectangles.lisp,v 1.8 2009-11-04 19:08:34 ihatchondo Exp $
+;;; $Id: rectangles.lisp,v 1.9 2009-11-05 15:10:02 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2003 Iban HATCHONDO
@@ -180,11 +180,12 @@
           ;; Also note that those value are card32 but the rest of the 
           ;; computation is done in int16. This should be fixed, otherwise
           ;; resolution greater than 32765 might lead to type errors.
-          (when (> lsy ley) (setf lsy 0))
-          (when (> rsy rey) (setf rsy 0))
-          (when (> tsx tex) (setf tsx 0))
-          (when (> bsx bex) (setf bsx 0))
-	  (multiple-value-bind (x y w h)
+          (when l
+            (when (> lsy ley) (setf lsy 0))
+            (when (> rsy rey) (setf rsy 0))
+            (when (> tsx tex) (setf tsx 0))
+            (when (> bsx bex) (setf bsx 0)))
+          (multiple-value-bind (x y w h)
               (window->rectangle-coordinates (xlib:drawable-root win))
             (declare (ignorable x y))
 	    (unless l
