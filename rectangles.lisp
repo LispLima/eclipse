@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: rectangles.lisp,v 1.7 2008/04/24 08:24:45 ihatchondo Exp $
+;;; $Id: rectangles.lisp,v 1.8 2009-11-04 19:08:34 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2003 Iban HATCHONDO
@@ -175,6 +175,15 @@
       (lambda (win)
 	(multiple-value-bind (l r to b lsy ley rsy rey tsx tex bsx bex)
 	    (netwm:net-wm-strut-partial win)
+          ;; Some applications are reporting broken strut-partial with
+          ;; start_{x,y} being FFffFFff so let clamp the value to 0 ... 
+          ;; Also note that those value are card32 but the rest of the 
+          ;; computation is done in int16. This should be fixed, otherwise
+          ;; resolution greater than 32765 might lead to type errors.
+          (when (> lsy ley) (setf lsy 0))
+          (when (> rsy rey) (setf rsy 0))
+          (when (> tsx tex) (setf tsx 0))
+          (when (> bsx bex) (setf bsx 0))
 	  (multiple-value-bind (x y w h)
               (window->rectangle-coordinates (xlib:drawable-root win))
             (declare (ignorable x y))
