@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.56 2008/04/28 16:09:16 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.57 2008-08-29 14:57:47 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -653,7 +653,7 @@
 (defun remove-window-from-client-lists (window root)
   "Removes a window from the client lists root properties."
   (with-slots ((rw window) client-list) root
-    (remhash window client-list)
+    (remwinhash window client-list)
     (setf (netwm:net-client-list-stacking rw :mode :remove) window
 	  (gnome:win-client-list rw :mode :remove) window
 	  (netwm:net-client-list rw :mode :remove) window)))
@@ -661,8 +661,8 @@
 (defun add-window-in-client-lists (window root)
   "Add a window in the client lists root properties."
   (with-slots ((rw window) client-list) root
-    (let ((up2date (gethash window client-list)))
-      (setf (gethash window client-list) window)
+    (let ((up2date (getwinhash window client-list)))
+      (setf (getwinhash window client-list) window)
       (update-client-list-stacking root)
       (unless up2date
 	(setf (netwm:net-client-list rw :mode :append) window))
@@ -675,7 +675,7 @@
   "Recompute and set the root property net_client_list_stacking."
   (with-slots (window client-list) root
     (loop for win in (query-application-tree window)
-	  when (gethash win client-list) collect win into wins
+	  when (getwinhash win client-list) collect win into wins
 	  finally (setf (netwm:net-client-list-stacking window) wins))))
 
 (defun update-lists (app state root)
