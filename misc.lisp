@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.44 2009-02-23 00:00:35 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.45 2009-11-04 19:24:59 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -70,6 +70,29 @@
 
 (make-error-handler (error :return t))
 (make-error-handler (end-of-file :throw end))
+
+;;;; Window hashtable
+;; Wrapper functions over hashtable using xlib:window as hash keys. 
+;; Since we can't pass a custom predicate to make-hash-table, those
+;; wrappers are there to deal with it using window-id and null window.
+
+(defun getwinhash (window hashtable &optional default)
+  (declare (type (or null xlib:window) window))
+  (declare (type hash-table hashtable))
+  (declare (optimize (speed 3) (safety 0)))
+  (gethash (and window (xlib:window-id window)) hashtable default))
+
+(defun remwinhash (window hashtable)
+  (declare (type (or null xlib:window) window))
+  (declare (type hash-table hashtable))
+  (declare (optimize (speed 3) (safety 0)))
+  (remhash (and window (xlib:window-id window)) hashtable))
+
+(defsetf getwinhash (window hashtable &optional default) (value)
+  (let ((key (gensym)))
+    `(let ((,key ,window))
+       (setf (gethash (and ,key (xlib:window-id ,key)) ,hashtable ,default)
+             ,value))))
 
 ;;;; Property readers.
 ;; They are not defined in the clx-ext package, because we customize them
