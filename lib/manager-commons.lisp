@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: MANAGER-COMMONS -*-
-;;; $Id: manager-commons.lisp,v 1.7 2005/01/07 22:34:57 ihatchondo Exp $
+;;; $Id: manager-commons.lisp,v 1.8 2005/02/10 23:45:51 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -254,23 +254,26 @@
    
    :reader-documentation (string): the reader function documentation string.
    :writer-documentation (string): the setf function documentation string."
-  (let ((reader (intern (with-standard-io-syntax (format nil "~A" name)))))
+  (let ((reader (intern (with-standard-io-syntax (format nil "~A" name))))
+        (seter (intern (with-standard-io-syntax (format nil "SET-~A" name)))))
     `(progn
-
        (defun ,reader (window &key window-list)
 	 ,@(when reader-documentation `(,reader-documentation))
 	 (get-window-property window ,property-atom window-list))
 
-       (defsetf ,reader (window &key (mode :replace) window-id) (win)
+       (defun ,seter (window value &key (mode :replace) window-id)
+         (unless (null value)
+           (change-property window ',property-atom
+               (cond ((eq mode :remove)
+                      (let ((prop (,reader window :window-list (not window-id)))
+                            (test (if window-id #'eql #'xlib:window-equal)))
+                        (remove value prop :test test)))
+                     ((listp value) value)
+                     (t (list value)))
+               ',data-type 32
+               :mode (if (eq mode :remove) :replace mode)
+               :transform (unless window-id #'xlib:window-id))))
+
+       (defsetf ,reader (window &key (mode :replace) window-id) (value)
 	 ,@(when writer-documentation `(,writer-documentation))
-	 `(when ,win
-	    (change-property ,window ,',property-atom
-	      (cond ((eq ,mode :remove)
-		     (remove ,win
-		         (,',reader ,window :window-list (not ,window-id))))
-		    ((listp ,win) ,win)
-		    (t (list ,win)))
-	      ,',data-type
-	      32
-	      :mode (if (eq ,mode :remove) :replace ,mode)
-	      :transform (unless ,window-id #'xlib:window-id)))))))
+         `(,',seter ,window ,value :mode ,mode :window-id ,window-id)))))
