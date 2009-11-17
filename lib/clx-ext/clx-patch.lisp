@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp -*-
-;;; $Id: clx-patch.lisp,v 1.5 2003/12/05 13:41:54 ihatchondo Exp $
+;;; $Id: clx-patch.lisp,v 1.6 2004-03-03 09:05:12 ihatchondo Exp $
 ;;;
 ;;; This file contains the patch fixing a bug in CLX as distributed
 ;;; with vanilla CMUCL versions up to 18d.
@@ -50,6 +50,33 @@ Indeed O or 1 are inappropriated ID's.
 	  (1 :pointer-root)
 	  (t (xlib::lookup-window dpy id))))
       (xlib::member8-get 1 :none :pointer-root :parent))))
+
+;; This is a patch for the equality functions. Not accepting at least
+;; nil arguments is pretty anoying. It will still complain if at least
+;; one is not of the proper type but this should save us from lots of 
+;; testing.
+
+(macrolet ((make-mumble-equal (type)
+	     ;; Since caching is only done for objects created by the
+	     ;; client, we must always compare ID and display for
+	     ;; non-identical mumbles.
+	     (let ((predicate (xintern type '-equal))
+		   (id (xintern type '-id))
+		   (dpy (xintern type '-display)))
+		`(within-definition (,type make-mumble-equal)
+		   (defun ,predicate (a b)
+		     (declare (type (or null ,type) a b))
+                     (when (and a b)
+                       (or (eql a b)
+                           (and (= (,id a) (,id b))
+                                (eq (,dpy a) (,dpy b))))))))))
+  (make-mumble-equal window)
+  (make-mumble-equal pixmap)
+  (make-mumble-equal cursor)
+  (make-mumble-equal font)
+  (make-mumble-equal gcontext)
+  (make-mumble-equal colormap)
+  (make-mumble-equal drawable))
 
 ;; It seems that sometimes some id are still present in the clx display
 ;; internal cache even when those resources have been destroyed. This has
