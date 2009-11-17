@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.32 2008-08-29 14:57:47 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.33 2009-02-23 00:00:35 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -270,6 +270,9 @@
   (format *stderr* 
 	  "X error ~A ~:[~;with id~]~%=> ~{~A ~}~%" 
 	  err resource-id keys)
+  (unless asynchronous
+    ;;#+:cmu (debug::backtrace most-positive-fixnum *stderr*)
+    )
   (when resource-id
     (let* ((resource (xlib::lookup-window dpy resource-id))
 	   (widget (lookup-widget resource)))
