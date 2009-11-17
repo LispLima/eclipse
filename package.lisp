@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.19 2005/01/16 23:25:59 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.20 2009-11-17 21:17:29 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -344,7 +344,6 @@
 
    ;; user custom variables.
    #:*change-desktop-message-active-p* 	  
-   #:*close-display-p* 			  
    #:*cycle-icons-p*                       
    #:*double-click-speed*                  
    #:*focus-type* 			  
