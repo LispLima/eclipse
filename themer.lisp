@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: themer.lisp,v 1.10 2005/01/07 16:32:17 ihatchondo Exp $
+;;; $Id: themer.lisp,v 1.11 2005/03/01 10:06:37 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -348,26 +348,22 @@
 		       (bottom-left-w eclipse::bottom-left-w)
 		       (bottom-left-h eclipse::bottom-left-h)) ,style-to-define
 	    ,@(loop for (key names) in items
-		    for array = (make-array 4 :initial-element nil)
-		    when (eq key :custom)
-		    do (setf array (make-array (length names))) end
 		    when (case key ((:close :icon-b :maximize) t))
 		    collect `(incf nb-buttons) end
-		    collect `(setf (gethash ,key frame-item-pixmaps) ,array)
+		    collect `(setf (gethash ,key frame-item-pixmaps)
+                                   (make-array
+                                       ,(if (eq key :custom) (length names) 4)))
 		    nconc  
 		     (loop for name in names
 			   for i from 0
 			   for k = (eclipse::make-keyword name)
-			   for pix = (gensym)
-			   for form = 
-			    `(let ((,pix 
-				    (or ,(and style 
-					      `(eclipse:get-pixmap ,style ,k))
-					(eclipse:load-pnm->pixmap 
-					    ,directory ,name ,window))))
-			       (setf (gethash ,k pixmap-table) ,pix)
-			       (setf (aref ,array ,i) ,pix))
-			   collect form))
+			   collect
+                            `(setf (aref (gethash ,key frame-item-pixmaps) ,i)
+                                   (setf (gethash ,k pixmap-table)
+                                         (or ,(when style 
+                                                `(eclipse:get-pixmap ,style ,k))
+                                             (eclipse:load-pnm->pixmap
+                                                 ,directory ,name ,window))))))
 	    (multiple-value-setq (top-left-w top-left-h)
 	      (eclipse:frame-item-sizes ,style-to-define :top-left))
 	    (multiple-value-setq (top-right-w top-right-h)
