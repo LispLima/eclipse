@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.27 2008/04/25 16:02:49 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.28 2009-02-23 00:00:36 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -98,7 +98,9 @@
 	(t t))
     (exit-eclipse (condition) (signal condition))
     (error (condition)
-      #+cmu (debug::backtrace)
+      #+:cmu (debug::backtrace)
+      #+:sbcl (sb-debug::backtrace)
+      #+:clisp (system::print-backtrace)
       (format *error-output* "~&~A~&" condition))))
 
 (defun initialize-manager (display root-window)

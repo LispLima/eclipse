@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.34 2009-11-17 17:32:09 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.35 2009-11-17 21:47:07 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -270,7 +270,9 @@
 	  "X error ~A ~:[~;with id~]~%=> ~{~A ~}~%" 
 	  err resource-id keys)
   (unless asynchronous
-    ;;#+:cmu (debug::backtrace most-positive-fixnum *stderr*)
+    ;; #+:cmu (debug::backtrace most-positive-fixnum *stderr*)
+    ;; #+:sbcl (sb-debug::backtrace most-positive-fixnum *stderr*)
+    ;; #+:clisp (system::print-backtrace :out *stderr*)
     )
   (when resource-id
     (let* ((resource (xlib::lookup-window dpy resource-id))
@@ -282,6 +284,8 @@
 	    (format *stderr* "Dead window removed from table~%"))
 	  (when (member resource-id (netwm:net-client-list *root-window*))
 	    (remove-window-from-client-lists resource *root*)))))
-  ;; #+cmu (debug::backtrace)
+  ;; #+:cmu (debug::backtrace)
+  ;; #+:sbcl (sb-debug:backtrace)
+  ;; #+:clisp (system::print-backtrace)
   (finish-output *stderr*)
   (error 'already-handled-xerror))

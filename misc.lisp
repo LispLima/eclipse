@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.45 2009-11-04 19:24:59 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.46 2009-11-17 17:30:00 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -64,7 +64,9 @@
      (declare (ignorable condition))
      ,@(when verbose
 	`((format *stderr* "error - ~A - : ~A~%" ',type condition)
-          ;; #+cmu (debug::backtrace)
+          ;; #+:cmu (debug::backtrace most-positive-fixnum *stderr*)
+          ;; #+:sbcl (sb-debug:backtrace most-positive-fixnum *stderr*)
+          ;; #+:clisp (system::print-backtrace :out *stderr*)
 	  (finish-output *stderr*)))
      ,(unless return `(throw ',(or throw type) ,@(or body '(nil))))))
 
