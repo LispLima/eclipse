@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.58 2009-11-17 17:31:25 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.59 2009-11-17 21:17:29 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -682,10 +682,9 @@
   "Update root properties win_client_list, net_client_list(_stacking), 
   by adjoining or removing the given application depending of state."
   (with-slots ((appw window) iconic-p) app
-    (with-slots ((rw window) client-list) root
-      (case (if (and (= state 3) (not iconic-p)) 0 state)
-	(0 (remove-window-from-client-lists appw root))
-	(1 (add-window-in-client-lists appw root))))))
+    (case (if (and (= state 3) (not iconic-p)) 0 state)
+      (0 (remove-window-from-client-lists appw root))
+      (1 (add-window-in-client-lists appw root)))))
 
 (defun window-not-decorable-p (window &optional type)
   "Returns T if a window `should' not be decorated. Typically, a splash screen,
@@ -737,7 +736,8 @@
      :type boolean :reader close-application-p)))
 
 (defun eclipse-internal-loop ()
-  (let* ((exit 0))
+  (let ((close-display-p t)
+        (exit 0))
 
     ;; Sets the root window pop-up menu
     (when *menu-1-exit-p*
@@ -783,7 +783,7 @@
 	      (case exit
 		(1 (loop for val being each hash-value in *widget-table*
 			 when (application-p val) 
-			   if *close-display-p* do (close-widget val)
+			   if close-display-p do (close-widget val)
 			   else do (undecore-application val))
 		   (setf exit 2))
 		(2 (when (root-sm-conn *root*)
@@ -795,7 +795,8 @@
 		   (xlib:display-finish-output *display*)
 		   (return))))
 	  (exit-eclipse (c)
-	    (setf *close-display-p* (close-application-p c) exit 1))
+            (setf close-display-p (close-application-p c))
+            (setf exit 1))
 	  (end-of-file (c) (handle-end-of-file-condition c))
 	  (already-handled-xerror () nil)
 	  (error (c) (handle-error-condition c)))))
