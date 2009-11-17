@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.56 2009-02-20 18:05:16 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.57 2009-02-20 18:07:01 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -111,10 +111,10 @@
 
 (defmethod initialize-instance :after ((widget base-widget) &rest rest)
   (declare (ignore rest))
-  (setf (gethash (widget-window widget) *widget-table*) widget))
+  (save-widget (widget-window widget) widget))
 
 (defmethod remove-widget ((widget base-widget))
-  (remhash (widget-window widget) *widget-table*))
+  (clear-widget (widget-window widget)))
 
 (defmethod put-on-top ((widget base-widget))
   (setf (xlib:window-priority (widget-window widget)) :above))
@@ -127,10 +127,20 @@
 
 (defun lookup-widget (window)
   "Returns the associated widget if any."
-  (declare (optimize (speed 3) (safety 1)))
-  (gethash window *widget-table*))
+  (declare (optimize (speed 3) (safety 0)))
+  (declare (inline getwinhash))
+  (getwinhash window *widget-table*))
 
-(declaim (inline lookup-widget))
+(defun save-widget (window widget)
+  (declare (optimize (speed 3) (safety 0)))
+  (setf (getwinhash window *widget-table*) widget))
+
+(defun clear-widget (window)
+  (declare (optimize (speed 3) (safety 0)))
+  (declare (inline remwinhash))
+  (remwinhash window *widget-table*))
+
+(declaim (inline lookup-widget save-widget clear-widget))
 
 (defclass standard-property-holder (base-widget) ())
 
@@ -245,11 +255,12 @@
 (defmethod focused-p ((application application))
   (loop with window = (widget-window application)
 	with foc = (xlib:input-focus *display*)
-	until (or (xlib:window-equal window foc) (not (xlib:window-p foc)))
+	until (or (not (xlib:window-p foc)) (xlib:window-equal window foc))
 	do (multiple-value-bind (children parent) (xlib:query-tree foc)
 	     (declare (ignore children))
 	     (setq foc parent))
-	finally (return (xlib:window-equal window foc))))
+	finally
+          (return (and (xlib:window-p foc) (xlib:window-equal window foc)))))
 
 (defmethod shaded-p ((widget application))
   (member :_net_wm_state_shaded (netwm:net-wm-state (widget-window widget))))
@@ -656,12 +667,13 @@
 (defun timed-message-box (window &rest messages)
   "Map a small box, of parent `window',  displaying the given string messages.
    This box will automatically destroyed two seconds after being mapped."
-  (with-slots (window) (create-message-box messages :parent window)
-    (xlib:map-window window)
-    (pt:arm-timer 2 (lambda ()
-		      (xlib:display-finish-output *display*)
-		      (remhash window *widget-table*)
-		      (xlib:destroy-window window)))))
+  (let ((box (create-message-box messages :parent window)))
+    (with-slots (window) box
+      (xlib:map-window window)
+      (pt:arm-timer 2 (lambda ()
+                        (xlib:display-finish-output *display*)
+                        (remove-widget box)
+                        (xlib:destroy-window window))))))
 
 ;;;; Push button
 ;; Everybody knows what a push button is.

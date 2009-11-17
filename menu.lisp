@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: menu.lisp,v 1.7 2004/03/09 19:26:27 ihatchondo Exp $
+;;; $Id: menu.lisp,v 1.8 2004-11-30 23:48:10 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO, Robert STRANDH
@@ -114,7 +114,7 @@
 				     :key-press
 				     :key-release
 				     :owner-grab-button)))
-	      (setf (gethash window *widget-table*) item)
+              (save-widget window item)
 	      (incf y *default-menu-height*)
 	      (when map (xlib:map-window window))))
 	 items))
@@ -240,8 +240,8 @@
 			      :background (make-background-pixmap
 					      root-window
 					      subwidth
-					      subheight))
-	      (gethash item-container *widget-table*) sub-menu))
+					      subheight))))
+      (save-widget item-container sub-menu)
       (decf subwidth (* 2 *menu-item-margin*))
       (realize-menu-items item-container subwidth items))))
 
@@ -250,10 +250,10 @@
     (when has-substructure
       (mapc #'(lambda (item)
 		(destroy-substructure item)
-		(remhash (slot-value item 'window) *widget-table*)
+                (clear-widget (slot-value item 'window))
 		(setf (slot-value item 'window) nil))
 	    items)
-      (remhash item-container *widget-table*)
+      (clear-widget item-container)
       (xlib:destroy-window item-container))
     (setf armed nil
 	  has-substructure nil
@@ -320,8 +320,8 @@
 				     root-window
 				     (+ subwidth (* 2 *menu-item-margin*))
 				     (+ subheight (* 2 *menu-item-margin*))))
-	    (gethash window *widget-table*) pop-up-menu
 	    armed t)
+      (save-widget window pop-up-menu)
       (xlib:map-window window)
       (realize-menu-items window subwidth items :map t))))
 
@@ -330,11 +330,11 @@
     (when window
       (mapc #'(lambda (item)
 		(destroy-substructure item)
-		(remhash (slot-value item 'window) *widget-table*)
+                (clear-widget (slot-value item 'window))
 		(setf (slot-value item 'window) nil))
 	    items)
       (xlib:destroy-window window)
-      (remhash window *widget-table*)
+      (clear-widget window)
       (setf (slot-value pop-up-menu 'armed) nil
 	    window nil))))
 
