@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: PPM -*-
-;;; $Id: image-reader.lisp,v 1.13 2005/02/03 22:47:05 ihatchondo Exp $
+;;; $Id: image-reader.lisp,v 1.14 2005/09/18 17:46:28 ihatchondo Exp $
 ;;;
 ;;; This a ppm image reader for CLX
 ;;; This file is part of Eclipse
@@ -273,9 +273,7 @@
 
 (defun load-ppm-into-clx-image (filename drawable)
   "Returns a clx image representation of a pnm image readed in a pnm file."
-  (let ((image (load-ppm filename)))
-    (prog1 (image->clx-image image drawable)
-      (setf (slot-value image 'pixels) nil))))
+  (image->clx-image (load-ppm filename) drawable))
 
 ;;;; private routines.
 
