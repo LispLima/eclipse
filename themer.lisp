@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: themer.lisp,v 1.11 2005/03/01 10:06:37 ihatchondo Exp $
+;;; $Id: themer.lisp,v 1.12 2009-11-17 18:08:43 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -31,11 +31,11 @@
   (gethash name *themes*))
 
 (defclass frame-style ()
-  ((name 
-     :initform "no name"
-     :type string
-     :initarg :theme-name
-     :reader frame-style-theme-name)
+  ((theme 
+     :initform nil
+     :type (or null theme)
+     :initarg style-theme
+     :reader frame-style-theme)
    (title-bar-position
      :initform :top
      :type keyword
@@ -239,6 +239,9 @@
 
 (defmethod initialize-instance :after ((theme theme) &rest options)
   (declare (ignorable options))
+  (with-slots (default-style transient-style) theme
+    (when default-style (setf (slot-value default-style 'theme) theme))
+    (when transient-style (setf (slot-value transient-style 'theme) theme)))
   (setf (gethash (theme-name theme) *themes*) theme))
 
 ;;;; build-in no decoration theme.
@@ -247,7 +250,6 @@
 
 (make-instance 'theme :name "no-decoration"
   :default-style (make-instance 'default-style
-		   :theme-name "no-decoration"
 		   :title-bar-position :none))
 
 ;;;; misc functions.
@@ -299,11 +301,8 @@
 
 ;;;; theme manipulation.
 
-;; I defined this here, just to avoid compilation warnings.
-;; But it doesn't matter, because just before loading a theme 
-;; (fmakunbound 'initialize-frame) is called.
-(defun initialize-frame (directory-name window) 
-  (declare (ignorable directory-name window))
+(defmethod initialize-frame (theme-class-symbol directory-name window) 
+  (declare (ignorable theme-class-symbol directory-name window))
   (values))
 
 (defun free-theme (name)
@@ -316,11 +315,13 @@
 
 (defun load-theme (root-window name)
   "Loads and returns theme named by parameter name. Themes are cached."
-  (unless (lookup-theme name)
-    (fmakunbound 'initialize-frame)
-    (setf name (ensure-theme-directory-exists name))
-    (load (concatenate 'string name "theme.o"))
-    (setf name (theme-name (initialize-frame name root-window))))
+  (unless (lookup-theme name) 
+    (let* ((tclass (string-upcase name))
+	   (theme-package (concatenate 'string tclass "-ECLIPSE-THEME")))
+      (setf name (ensure-theme-directory-exists name))
+      (load (concatenate 'string name "theme.o"))
+      (let ((tclass (with-standard-io-syntax (intern tclass theme-package))))
+	(setf name (theme-name (initialize-frame tclass name root-window))))))
   (use-package (format nil "~:@(~A~)-ECLIPSE-THEME" name))
   (lookup-theme name))
 
@@ -407,28 +408,30 @@
 	  ((style1 title-pos1 bkgrd1 parts-to-redraw-on-focus1 items1)
 	   (style2 title-pos2 bkgrd2 parts-to-redraw-on-focus2 items2))
 	(mapcar #'parse-args forms)
-
-      `(defun initialize-frame (dir window)
-	 (let ((fs1 ,(and items1 
+      (let ((theme-class (format nil "~:@(~a~)" (symbol-value theme-name))))
+	`(progn
+	   (defclass ,(intern theme-class) (eclipse::theme) ()
+	     (:documentation ,(format nil "~a theme base class" theme-name)))
+	   (defmethod eclipse-internals::initialize-frame
+	       ((name (eql ',(intern theme-class))) dir window)
+	     (let ((fs1 ,(and items1 
 			  `(make-instance 
 			    ',(intern (symbol-name style1) "ECLIPSE-INTERNALS")
-			    :theme-name ,theme-name
 			    :title-bar-position ,title-pos1
 			    :background (make-background ,bkgrd1 window dir)
 			    :parts-to-redraw-on-focus
 			    ',parts-to-redraw-on-focus1)))
-	       (fs2 ,(and items2 
+		   (fs2 ,(and items2 
 			  `(make-instance
 			    ',(intern (symbol-name style2) "ECLIPSE-INTERNALS")
-			    :theme-name ,theme-name
 			    :title-bar-position ,title-pos2
 			    :background (make-background ,bkgrd2 window dir)
 			    :parts-to-redraw-on-focus
 			    ',parts-to-redraw-on-focus2))))
-	   ,(unless items2 `(declare (ignorable fs2)))
-	   ,(when items1 (define-style `fs1 items1 `dir `window))
-	   ,(when items2 (define-style `fs2 items2 `dir `window `fs1))
-	   (make-instance 'eclipse::theme :name ,theme-name 
-	     ,@(and style1 `(,style1 fs1))
-	     ,@(and style2 `(,style2 fs2))))))))
+	       ,(unless items2 `(declare (ignorable fs2)))
+	       ,(when items1 (define-style `fs1 items1 `dir `window))
+	       ,(when items2 (define-style `fs2 items2 `dir `window `fs1))
+	       (make-instance ',(intern theme-class) :name ,theme-name 
+		 ,@(and style1 `(,style1 fs1))
+		 ,@(and style2 `(,style2 fs2))))))))))
 

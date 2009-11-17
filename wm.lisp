@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.57 2008-08-29 14:57:47 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.58 2009-11-17 17:31:25 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -159,9 +159,9 @@
 (defmethod dispatch-repaint ((master decoration) 
 			     &key (focus (focused-p master)))
   (declare (optimize (speed 3) (safety 1)))
-  (with-slots (parts-to-redraw-on-focus name) (decoration-frame-style master)
-    (declare (type string name))
-    (mapc #'(lambda (k) (repaint (get-child master k) name focus))
+  (with-slots (parts-to-redraw-on-focus theme) (decoration-frame-style master)
+    (declare (type theme theme))
+    (mapc #'(lambda (k) (repaint (get-child master k) theme focus))
 	  parts-to-redraw-on-focus)))
 
 (defun recompute-wm-normal-hints (window hmargin vmargin)
@@ -720,7 +720,7 @@
 	  ((window-not-decorable-p window (application-type application))
            (setf (netwm:net-frame-extents window) (values 0 0 0 0))
 	   (setf (wm-state window) 1)
-	   (xlib:map-window window))
+           (xlib:map-window window))
 	  (t (decore-application window application :map t)))
     (with-slots (wants-focus-p input-model type) application
       (unless (member :_net_wm_window_type_desktop type)
@@ -737,7 +737,7 @@
      :type boolean :reader close-application-p)))
 
 (defun eclipse-internal-loop ()
-  (let* ((exit 0) time)
+  (let* ((exit 0))
 
     ;; Sets the root window pop-up menu
     (when *menu-1-exit-p*
@@ -765,10 +765,9 @@
 
       (xlib:with-server-grabbed (*display*)
 	(mapc (lambda (w)
-		(unless (ignore-errors (ignorable-window-p w))
+                (unless (ignore-errors (ignorable-window-p w))
 		  (procede-decoration w)))
 	      (xlib:query-tree *root-window*))))
-
     ;; Main loop
     (loop
       (catch 'general-error
@@ -786,7 +785,7 @@
 			 when (application-p val) 
 			   if *close-display-p* do (close-widget val)
 			   else do (undecore-application val))
-		   (setf time 10 exit 2))
+		   (setf exit 2))
 		(2 (when (root-sm-conn *root*)
 		     (close-sm-connection *root* :exit-p nil))
 		   (xlib:display-finish-output *display*)

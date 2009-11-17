@@ -48,8 +48,8 @@
       (:right ("right"))
       (:left ("left"))))))
 
-(defmethod repaint ((widget title-bar) (name (eql +CoolClean+)) (focus t))
-  (declare (ignorable name focus))
+(defmethod repaint ((widget title-bar) (theme CoolClean) (focus t))
+  (declare (ignorable theme focus))
   (with-slots ((window eclipse::window)
 	       (item-to-draw eclipse::item-to-draw)
 	       (gcontext eclipse::gcontext)
@@ -61,8 +61,8 @@
 	    (xlib:draw-rectangle window gcontext 0 0 width height t)))))
     (draw-centered-text window gcontext item-to-draw :color *white* :x 5)))
 
-(defmethod repaint ((widget title-bar) (name (eql +CoolClean+)) (focus null))
-  (declare (ignorable name focus))
+(defmethod repaint ((widget title-bar) (theme CoolClean) (focus null))
+  (declare (ignorable theme focus))
   (with-slots ((window eclipse::window)
 	       (item-to-draw eclipse::item-to-draw)
 	       (gcontext eclipse::gcontext)) widget

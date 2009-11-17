@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: User -*-
-;;; $Id: package.lisp,v 1.18 2004/03/01 14:53:57 ihatchondo Exp $
+;;; $Id: package.lisp,v 1.19 2005/01/16 23:25:59 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -181,7 +181,7 @@
    #:pixmap-width 			  ;function
    #:procede-decoration 		  ;function
    #:query-application-tree 		  ;function
-   #:%quit% 				  ;function
+   #:quit 				  ;function
    #:realize-menu-items 		  ;function
    #:realize-pop-up 			  ;function
    #:recompute-wm-normal-hints 		  ;function
@@ -254,6 +254,7 @@
    #:frame-item-pixmaps 		  ;generic function
    #:frame-item-sizes 			  ;generic function
    #:frame-item-width 			  ;generic function
+   #:frame-style-theme                    ;generic function
    #:free-frame-style 			  ;generic function
    #:get-child 				  ;generic function
    #:get-pixmap 			  ;generic function

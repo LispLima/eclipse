@@ -41,8 +41,8 @@
       (:right ("side"))
       (:left ("side"))))))
 
-(defmethod repaint ((widget title-bar) (name (eql +Step+)) (focus t))
-  (declare (ignorable name focus))
+(defmethod repaint ((widget title-bar) (theme Step) (focus t))
+  (declare (ignorable theme focus))
   (with-slots ((window eclipse::window)
 	       (item-to-draw eclipse::item-to-draw)
 	       (gcontext eclipse::gcontext)
@@ -54,8 +54,8 @@
 	    (xlib:draw-rectangle window gcontext 0 0 width height t)))))
     (draw-centered-text window gcontext item-to-draw :color *white*)))
 
-(defmethod repaint ((widget title-bar) (name (eql +Step+)) (focus null))
-  (declare (ignorable name focus))
+(defmethod repaint ((widget title-bar) (theme Step) (focus null))
+  (declare (ignorable theme focus))
   (with-slots ((window eclipse::window)
 	       (item-to-draw eclipse::item-to-draw)
 	       (gcontext eclipse::gcontext)) widget

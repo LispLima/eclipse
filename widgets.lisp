@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.57 2009-02-20 18:07:01 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.58 2009-11-17 17:33:21 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -73,12 +73,12 @@
     maximization the widget will be enlarged to cover the whole screen except
     any existing panels (e.g applications with the :_net_wm_window_type_dock
     atom present in there _net_wm_window_type property.
-     widget (base-widget): the widget to (un)maximize.
-     code (integer 1 3): 
-      1 operates on width and height.
-      2 operates on height. 
-      3 operates on width.
-     :fill-p (boolean): If NIL, cover the whole screen (except dock type
+     - widget (base-widget): the widget to (un)maximize.
+     - code (integer 1 3): 
+      -- 1 operates on width and height.
+      -- 2 operates on height. 
+      -- 3 operates on width.
+     - :fill-p (boolean): If NIL, cover the whole screen (except dock type
      applications). If T, finds the first region of the screen that does
      not overlap applications not already overlapped by the widget."))
 
@@ -96,14 +96,14 @@
   (:documentation "Returns T if one of the state :win_state_fixed_position
    :_net_wm_state_sticky is set for the widget."))
 
-(defgeneric repaint (widget theme-name focus)
-  (:method (widget theme-name focus) nil)
+(defgeneric repaint (widget theme focus)
+  (:method (widget theme focus) nil)
   (:documentation
    "This method is dedicated to widget repaint such as every buttons, icons,
     edges ...
-    It is specialized on widget type, theme name (via an eql specializer) and a
-    boolean that indicate if the corresponding toplevel (type decoration) is or
-    not focused.
+
+    It is specialized on widget type, frame-style theme and a boolean that
+    indicate if the corresponding toplevel (type decoration) is or not focused.
 
     Except for standard expose events, the repaint dispatching on focus change
     will be perform according to parts-to-redraw-on-focus list given in
@@ -567,16 +567,16 @@
 (defconstant +std-button-mask+
   '(:button-press :button-release :button-motion :owner-grab-button :exposure))
 
-(defmethod repaint ((widget button) theme-name (focus t))
-  (declare (ignorable theme-name focus))
+(defmethod repaint ((widget button) theme (focus t))
+  (declare (ignorable theme focus))
   (with-slots (item-to-draw window gcontext) widget
     (xlib:clear-area window)
     (typecase item-to-draw
       (string (draw-centered-text window gcontext item-to-draw))
       (xlib:pixmap (draw-pixmap window gcontext item-to-draw)))))
 
-(defmethod repaint ((widget button) theme-name (focus null))
-  (declare (ignorable theme-name focus))
+(defmethod repaint ((widget button) theme (focus null))
+  (declare (ignorable theme focus))
   (xlib:clear-area (widget-window widget)))
 
 (defmethod shaded-p ((widget button))
@@ -654,8 +654,8 @@
 		(window-position window) (values x y)
 		(slot-value box 'item-to-draw) m))))))
 
-(defmethod repaint ((widget box-button) theme-name focus &aux x)
-  (declare (ignorable theme-name focus))
+(defmethod repaint ((widget box-button) theme focus &aux x)
+  (declare (ignorable theme focus))
   (with-slots (window item-to-draw gcontext pixmap) widget
     (xlib:clear-area window)
     (when pixmap
@@ -713,19 +713,19 @@
   (declare (ignorable value))
   (with-slots (window master) button
     (when (decoration-p master)
-      (with-slots (name) (decoration-frame-style master)
-	(repaint button name (focused-p master))))))
+      (with-slots (theme) (decoration-frame-style master)
+	(repaint button theme (focused-p master))))))
 
-(defmethod repaint ((widget push-button) theme-name (focus t))
-  (declare (ignorable theme-name focus))
+(defmethod repaint ((widget push-button) theme (focus t))
+  (declare (ignorable theme focus))
   (with-slots (window gcontext armed active-p item-to-draw) widget
     (xlib:clear-area window)
     (let ((p (and armed active-p (push-button-pixmap widget :focused-click))))
       (when (or p item-to-draw)
 	(draw-pixmap window gcontext (or p item-to-draw))))))
 
-(defmethod repaint ((widget push-button) theme-name (focus null))
-  (declare (ignorable theme-name focus))
+(defmethod repaint ((widget push-button) theme (focus null))
+  (declare (ignorable theme focus))
   (with-slots (window gcontext armed active-p) widget
     (xlib:clear-area window)
     (let ((pixmap (push-button-pixmap widget :unfocused-click)))
@@ -752,8 +752,8 @@
    (hmargin :initform 0)
    (parent :initform nil)))
 
-(defmethod repaint ((widget title-bar) theme-name focus)
-  (declare (ignorable theme-name focus))
+(defmethod repaint ((widget title-bar) theme focus)
+  (declare (ignorable theme focus))
   (with-slots (item-to-draw window gcontext) widget
     (xlib:clear-area window)
     (when item-to-draw
@@ -931,8 +931,8 @@
     (and pixmap-to-free (xlib:free-pixmap pixmap-to-free))
     (setf pixmap-to-free nil)))
 
-(defmethod repaint ((widget icon) theme-name focus)
-  (declare (ignorable theme-name focus))
+(defmethod repaint ((widget icon) theme focus)
+  (declare (ignorable theme focus))
   (with-slots (window item-to-draw gcontext) widget
     (xlib:clear-area window)
     (draw-centered-text window gcontext item-to-draw :color *white*)))

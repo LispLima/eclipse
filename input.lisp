@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.52 2008-08-29 14:57:47 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.53 2009-02-20 18:03:55 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -148,13 +148,12 @@
 		 (undecore-application widget :state 0)
 		 (setf (wm-state window) 3)))))
 	(decoration 
-         (let ((application (get-child widget :application)))
+	 (let ((application (get-child widget :application)))
            (if (application-iconic-p application)
                (setf (wm-state (widget-window application)) 3)
-               (with-slots (window send-event-p) event
+               (progn
                  (setf send-event-p t)
                  (setf window (widget-window application))
-                 (format t "about to withdraw: ~a ~%" (wm-name window))
                  (event-process event root)))))))))
 
 (defmethod event-process ((event destroy-notify) (root root))
@@ -451,13 +450,13 @@
 (defmethod event-process ((event exposure) (button button))
   (when (zerop (event-count event))
     (let* ((master (slot-value button 'master))
-	   (name (if master 
-		     (slot-value (decoration-frame-style master) 'name)
-		     (theme-name (root-decoration-theme *root*)))))
-      (repaint button name (and master (focused-p master))))))
+	   (theme (if master 
+		      (slot-value (decoration-frame-style master) 'theme)
+		      (root-decoration-theme *root*))))
+      (repaint button theme (and master (focused-p master))))))
 
 (defmethod event-process ((event exposure) (box box-button))
-  (repaint box (theme-name (root-decoration-theme *root*)) nil))
+  (repaint box (root-decoration-theme *root*) nil))
 
 (defmethod event-process ((event button-release) (close close-button))
   (close-widget (get-child (button-master close) :application)))

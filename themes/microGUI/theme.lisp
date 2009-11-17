@@ -73,16 +73,16 @@
 	(xlib:draw-rectangle window gcontext w 0 pix-w h t))
       (draw-centered-text window gcontext item-to-draw :color *white* :x 5))))
 
-(defmethod repaint ((widget title-bar) (name (eql +microGUI+)) (focus t))
-  (declare (ignorable name focus))
+(defmethod repaint ((widget title-bar) (theme microGUI) (focus t))
+  (declare (ignorable theme focus))
   (with-slots ((frame-style eclipse::frame-style)) (button-master widget)
     (when (default-style-p frame-style)
       (redraw-title-bar widget
 			(get-pixmap frame-style :top-blue)
 			(get-pixmap frame-style :top-curves)))))
 
-(defmethod repaint ((widget title-bar) (name (eql +microGUI+)) (focus null))
-  (declare (ignorable name focus))
+(defmethod repaint ((widget title-bar) (theme microGUI) (focus null))
+  (declare (ignorable theme focus))
   (with-slots ((frame-style eclipse::frame-style)) (button-master widget)
     (when (default-style-p frame-style)    
       (redraw-title-bar widget

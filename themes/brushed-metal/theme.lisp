@@ -91,16 +91,16 @@
       (multiple-value-bind (width height) (drawable-sizes window)
 	(xlib:draw-rectangle window gcontext 0 0 width height t)))))
 
-(defmethod repaint ((widget title-bar) (name (eql +brushed-metal+)) (focus t))
-  (declare (ignorable name focus))
+(defmethod repaint ((widget title-bar) (theme brushed-metal) (focus t))
+  (declare (ignorable theme focus))
   (with-slots (frame-style) (button-master widget)
     (typecase frame-style
       (default-style (default-draw-on-focus-in widget frame-style))
       (transient-style (transient-draw-on-focus-in widget frame-style)))))
 
-(defmethod repaint ((wget title-bar) (name (eql +brushed-metal+)) (focus null))
-  (declare (ignorable name focus))
-  (with-slots (frame-style) (button-master wget)
+(defmethod repaint ((widget title-bar) (theme brushed-metal) (focus null))
+  (declare (ignorable theme focus))
+  (with-slots (frame-style) (button-master widget)
     (typecase frame-style
-      (default-style (default-draw-on-focus-out wget frame-style))
-      (transient-style (xlib:clear-area (widget-window wget))))))
+      (default-style (default-draw-on-focus-out widget frame-style))
+      (transient-style (xlib:clear-area (widget-window widget))))))

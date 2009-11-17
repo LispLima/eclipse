@@ -58,7 +58,7 @@
   :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
 (define-key-combo :scroll-down
   :keys '(:q)
-  :modifiers '(:and :ALT-LEFT :CONTROL-LEFT))
+  :modifiers '(:and :ISO-LEVEL3-SHIFT :CONTROL-LEFT))
 
 ;; example of user define keystroke:
 ;(define-key-combo :raise-pointered-window
