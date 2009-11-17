@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.33 2009-02-23 00:00:35 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.34 2009-11-17 17:32:09 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -72,7 +72,6 @@
 
 ;; Default value of all the "customisable" environment variables
 (defparameter *menu-1-exit-p* t)
-(defparameter *close-display-p* t)
 (defparameter *menu-1-items* nil)
 (defparameter *change-desktop-message-active-p* t)
 (defparameter *save-and-restore-pointer-position-during-workspace-switch* nil)
