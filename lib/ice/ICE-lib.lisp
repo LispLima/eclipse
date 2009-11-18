@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: ICE-LIB; -*-
-;;; $Id: ICE-lib.lisp,v 1.13 2005/12/06 13:52:47 ihatchondo Exp $
+;;; $Id: ICE-lib.lisp,v 1.14 2009-11-03 11:41:52 ihatchondo Exp $
 ;;; ---------------------------------------------------------------------------
 ;;;     Title: ICE Library
 ;;;   Created: 2004 01 15 15:28
@@ -106,7 +106,7 @@
 
 (defmethod read-request ((ice-connection ice-connection))
   (with-slots (input-buffer input-byte-order stream) ice-connection
-    (declare (type (or null buffer) input-buffer))
+    #-:sbcl(declare (type (or null buffer) input-buffer))
     (setf input-buffer (make-buffer 4096 input-byte-order))
     (buffer-read-sequence input-buffer stream :start 0 :end 8)
     (setf (buffer-index input-buffer) 4)
