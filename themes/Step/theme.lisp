@@ -2,6 +2,7 @@
 
 (defpackage "STEP-ECLIPSE-THEME"
   (:use eclipse clx-ext common-lisp)
+  (:shadow "STEP")
   (:size 10)
   (:export repaint initialize-frame)
   (:documentation ""))
