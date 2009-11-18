@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: themer.lisp,v 1.12 2009-11-17 18:08:43 ihatchondo Exp $
+;;; $Id: themer.lisp,v 1.13 2009-11-17 21:17:29 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -353,7 +353,8 @@
 		    collect `(incf nb-buttons) end
 		    collect `(setf (gethash ,key frame-item-pixmaps)
                                    (make-array
-                                       ,(if (eq key :custom) (length names) 4)))
+                                       ,(if (eq key :custom) (length names) 4)
+                                       :initial-element nil))
 		    nconc  
 		     (loop for name in names
 			   for i from 0
