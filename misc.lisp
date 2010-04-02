@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.46 2009-11-17 17:30:00 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.47 2009-11-17 22:40:49 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -109,6 +109,18 @@
    _net_wm_state property."
   (or (xlib:transient-for app-window)
       (member :_net_wm_window_type_dialog (netwm:net-wm-state app-window))))
+
+(defun wm-normal-hints (window)
+  "Returns the window WM_NORMAL_HINTS property with the obsolete values 
+   reset to the window geometry."
+  (let ((hint (ignore-errors (xlib:wm-normal-hints window))))
+    (unless (null hint)
+      (multiple-value-bind (x y w h) (window-geometry window)
+        (setf (xlib:wm-size-hints-x hint) x
+              (xlib:wm-size-hints-y hint) y
+              (xlib:wm-size-hints-width hint) w
+              (xlib:wm-size-hints-height hint) h)))
+    hint))
 
 (defun wm-state (window)
   "Returns the wm_state property of a window as xlib:get-property would."
@@ -247,6 +259,9 @@
   (flet ((lookup-app-w (widget)
 	   (when (decoration-p widget)
 	     (get-child widget :application :window t)))
+	 (layer-member (window windows)
+	   (when (xlib:window-p window)
+	     (member window windows :test #'xlib:window-equal)))	     
 	 (first-win (windows &optional above-p)
 	   (car (if above-p (last windows) windows)))
 	 (restack (app sib-app priority)
@@ -254,7 +269,7 @@
              (let* ((window (widget-window (or (application-master app) app)))
                     (sm (when sib-app (application-master sib-app)))
                     (sibling (when sib-app (widget-window (or sm sib-app)))))
-               (unless (xlib:window-equal window sibling)
+               (unless (and sibling (xlib:window-equal window sibling))
                  (setf (xlib:window-priority window sibling) priority))))))
     (let* ((win (or (lookup-app-w (lookup-widget window)) window))
 	   (sib (or (lookup-app-w (lookup-widget sibling)) sibling))
@@ -272,20 +287,20 @@
 		(setf wnwm-state (nconc wnwm-state (netwm:net-wm-state lw)))))
 	    ;; Find the correct sibling and reset the priority if needed.
 	    (cond ((member :_net_wm_state_below wnwm-state)
-		   (unless (member sib below-layer :test #'xlib:window-equal)
+		   (unless (layer-member sib below-layer)
 		     (setf sib (first-win (or below-layer std-layer above-layer)
-				      (and below-layer above-p)))
+                                          (and below-layer above-p)))
 		     (unless below-layer (setf stack-mode :below))))
 		  ((member :_net_wm_state_above wnwm-state)
-		   (unless (member sib above-layer :test #'xlib:window-equal)
+		   (unless (layer-member sib above-layer)
 		     (unless (member :_net_wm_state_fullscreen snwm-state)
 		       (setf sib (first-win above-layer above-p))
 		       (unless above-layer (setf stack-mode :above)))))
 		  ((member :_net_wm_state_fullscreen wnwm-state)
-		   (when (member sib below-layer :test #'xlib:window-equal)
+		   (when (layer-member sib below-layer)
 		     (setf sib (first-win (or std-layer above-layer)))
 		     (setf stack-mode :below)))
-		  ((not (member sib std-layer :test #'xlib:window-equal))
+		  ((not (layer-member sib std-layer))
 		   (setf sib (first-win (or std-layer below-layer above-layer)
 					(if std-layer above-p below-layer)))
 		   (unless std-layer
@@ -348,7 +363,7 @@
 	 (parent (when master (widget-window master)))
 	 (top-margin 0) (left-margin 0)
 	 (g (or gravity	(and master (decoration-application-gravity master))
-		(let ((h (ignore-errors (xlib:wm-normal-hints win))))
+		(let ((h (ignore-errors (wm-normal-hints win))))
 		  (if h (xlib:wm-size-hints-win-gravity h) :north-west)))))
     (when master
       (setf top-margin (style-top-margin (decoration-frame-style master)))

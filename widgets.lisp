@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.58 2009-11-17 17:33:21 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.59 2009-11-17 21:17:29 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -296,7 +296,7 @@
 
 (defun fullscreenable-p (application) 
   (with-slots (window) application
-    (let ((hint (ignore-errors (xlib:wm-normal-hints window))))
+    (let ((hint (ignore-errors (wm-normal-hints window))))
       (symbol-macrolet ((max-h (and hint (xlib:wm-size-hints-max-height hint)))
                         (max-w (and hint (xlib:wm-size-hints-max-width hint))))
 	  (and (if max-w (= max-w (screen-width)) t)
@@ -515,7 +515,7 @@
    actual geometry of the specified window. If the optional geometry is 
    given then it will be filled and returned."
   (multiple-value-bind (x y w h) (window-geometry window)
-    (let ((hint (ignore-errors (xlib:wm-normal-hints window))))
+    (let ((hint (ignore-errors (wm-normal-hints window))))
       (setf (geometry geometry)
 	    (values (or (when hint (xlib:wm-size-hints-x hint)) x)
 		    (or (when hint (xlib:wm-size-hints-y hint)) y)

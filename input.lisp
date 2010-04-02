@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: input.lisp,v 1.53 2009-02-20 18:03:55 ihatchondo Exp $
+;;; $Id: input.lisp,v 1.54 2009-11-17 21:17:29 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -47,7 +47,8 @@
   (with-slots (window (candidat event-window)) event
     (multiple-value-bind (children parent) (xlib:query-tree window)
       (declare (ignore children))
-      (unless (xlib:window-equal candidat parent)
+      (declare (type (or null xlib:window) parent))
+      (unless (and parent (xlib:window-equal candidat parent))
         (xlib:send-event parent :map-request
             '(:substructure-redirect) :window window :event-window parent)))))
 

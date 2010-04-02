@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.28 2009-02-23 00:00:36 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.29 2009-11-17 22:40:49 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -113,6 +113,8 @@
 				     :override-redirect :on
 				     :width 1 :height 1
 				     :x 0 :y 0)))
+    (declare (type xlib:window manager))
+    (declare (type (or null xlib:window) old-wm))
     (when old-wm
       (setf (xlib:window-event-mask old-wm) '(:structure-notify)))
 
@@ -132,8 +134,10 @@
 	(t nil)))
 
     ;; Are we the selection owner after all ?
-    (unless (xlib:window-equal manager (xlib:selection-owner display +xa-wm+))
-      (error "ICCCM Error: failed to aquire selection ownership~%"))
+    (let ((owner (xlib:selection-owner display +xa-wm+)))
+      (declare (type (or null xlib:window) owner))
+      (unless (and owner (xlib:window-equal manager owner))
+        (error "ICCCM Error: failed to aquire selection ownership~%")))
 
     ;; Check if a non ICCCM complient window manager is not running.
     (handler-case

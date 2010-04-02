@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.59 2009-11-17 21:17:29 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.60 2009-11-17 21:36:08 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -169,7 +169,7 @@
   the window gravity of the designed window. The wm-normal-hints property is
   recomputed in order to reflect the margin that a top level decoration widget
   (aka master) might introduce."
-  (let ((hints (or (ignore-errors (xlib:wm-normal-hints window))
+  (let ((hints (or (ignore-errors (wm-normal-hints window))
 		   (xlib:make-wm-size-hints)))
 	(max-ww (screen-width))
 	(max-hh (screen-height)))
@@ -364,7 +364,7 @@
 
 (defun initial-coordinates (window frame-style)
   "Returns as multiple values the decoration initial coordinates."
-  (let ((hint (ignore-errors (xlib:wm-normal-hints window))))
+  (let ((hint (ignore-errors (wm-normal-hints window))))
     (with-slots (top-margin left-margin vmargin hmargin) frame-style
       (flet ((default-coordinates ()
                (let* ((n (or (window-desktop-num window) 0))
