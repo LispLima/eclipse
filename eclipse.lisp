@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.29 2009-11-17 22:40:49 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.30 2010-04-02 09:57:53 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -220,7 +220,7 @@
 			  :fill-style :solid  :line-style :solid
 			  :line-width 1 :exposures :OFF))
       ;; load personal configuration file, or the default one.
-      (labels ((load-if (f) (and (probe-file f) (load-config-file f))))
+      (labels ((load-if (f) (and (file-exists-p f) (load-config-file f))))
 	(or (load-if (home-subdirectory cl-user::*eclipse-initfile*))
 	    (load-if (eclipse-path "eclipserc"))
 	    (error "Unable to read a configuration file.~%")))

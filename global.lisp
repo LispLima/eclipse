@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.35 2009-11-17 21:47:07 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.36 2009-11-17 22:40:49 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -216,7 +216,6 @@
   #-(or allegro clisp cmu gcl lispworks lucid mcl sbcl scl)
   (error 'not-implemented :proc (list 'getenv var)))
 
-
 (defun (setf getenv) (val var)
   "Sets the value of the environment variable named var to val."
   #+allegro (setf (sys::getenv (string var)) (string val))
@@ -253,6 +252,12 @@
 (defun user-homedir ()
   #+cmu (extensions:unix-namestring (user-homedir-pathname))
   #-cmu (namestring (user-homedir-pathname)))
+
+(defun file-exists-p (filename)
+  "Returns true if the given filename is an existing file and not a directory."
+  (and #+clisp (not (probe-directory (make-pathname :directory filename)))
+       #-clisp (not (probe-file (make-pathname :directory filename)))
+       (probe-file filename)))
 
 ;;;; Error handler.
 ;; The X errors handler.
