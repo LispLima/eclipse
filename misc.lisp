@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: misc.lisp,v 1.47 2009-11-17 22:40:49 ihatchondo Exp $
+;;; $Id: misc.lisp,v 1.48 2010-04-02 09:57:53 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -71,7 +71,7 @@
      ,(unless return `(throw ',(or throw type) ,@(or body '(nil))))))
 
 (make-error-handler (error :return t))
-(make-error-handler (end-of-file :throw end))
+(make-error-handler (end-of-file :return t))
 
 ;;;; Window hashtable
 ;; Wrapper functions over hashtable using xlib:window as hash keys. 

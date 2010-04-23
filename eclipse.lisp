@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: eclipse.lisp,v 1.30 2010-04-02 09:57:53 ihatchondo Exp $
+;;; $Id: eclipse.lisp,v 1.31 2010-04-23 14:36:49 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2002 Iban HATCHONDO
@@ -276,10 +276,8 @@
 	  (mp::start-lisp-connection-listener :port 6789 :password "clara"))
 
   (unwind-protect
-      (catch 'end
-	(handler-bind ((end-of-file #'handle-end-of-file-condition))
-	  (eclipse-internal-loop)))
-    (progn
-      (ignore-errors (xlib:close-display *display*))
-      (format t "Eclipse exited. Bye.~%")
-      (quit))))
+       (handler-case (eclipse-internal-loop)
+         (end-of-file (c) (handle-end-of-file-condition c)))
+    (ignore-errors (xlib:close-display *display*))
+    (format t "Eclipse exited. Bye.~%")
+    (quit)))

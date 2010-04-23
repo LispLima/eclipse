@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: wm.lisp,v 1.60 2009-11-17 21:36:08 ihatchondo Exp $
+;;; $Id: wm.lisp,v 1.61 2010-04-02 09:57:53 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -770,34 +770,33 @@
 	      (xlib:query-tree *root-window*))))
     ;; Main loop
     (loop
-      (catch 'general-error
-	(handler-case
-	    (let ((event (get-next-event *display* :discard-p t :timeout 2)))
-	      (when event
-		(with-slots (event-window) event
-		  (event-process event (lookup-widget event-window)))
-		(xlib:display-finish-output *display*))
-	      (when pt:preprogrammed-tasks (pt:execute-preprogrammed-tasks))
-	      (with-slots (sm-conn) *root*
-		(when sm-conn (handle-session-manager-request sm-conn *root*)))
-	      (case exit
-		(1 (loop for val being each hash-value in *widget-table*
-			 when (application-p val) 
-			   if close-display-p do (close-widget val)
-			   else do (undecore-application val))
+       (handler-case
+           (let ((event (get-next-event *display* :discard-p t :timeout 2)))
+             (when event
+               (with-slots (event-window) event
+                 (event-process event (lookup-widget event-window)))
+               (xlib:display-finish-output *display*))
+             (when pt:preprogrammed-tasks (pt:execute-preprogrammed-tasks))
+             (with-slots (sm-conn) *root*
+               (when sm-conn (handle-session-manager-request sm-conn *root*)))
+             (case exit
+               (1 (loop for val being each hash-value in *widget-table*
+                        when (application-p val) 
+                        if close-display-p do (close-widget val)
+                        else do (undecore-application val))
 		   (setf exit 2))
-		(2 (when (root-sm-conn *root*)
-		     (close-sm-connection *root* :exit-p nil))
-		   (xlib:display-finish-output *display*)
-		   (setf (xlib:window-event-mask *root-window*) 0)
-		   (let ((win (netwm:net-supporting-wm-check *root-window*)))
-		     (xlib:destroy-window win))
-		   (xlib:display-finish-output *display*)
-		   (return))))
-	  (exit-eclipse (c)
-            (setf close-display-p (close-application-p c))
-            (setf exit 1))
-	  (end-of-file (c) (handle-end-of-file-condition c))
-	  (already-handled-xerror () nil)
-	  (error (c) (handle-error-condition c)))))
+               (2 (when (root-sm-conn *root*)
+                    (close-sm-connection *root* :exit-p nil))
+                  (xlib:display-finish-output *display*)
+                  (setf (xlib:window-event-mask *root-window*) 0)
+                  (let ((win (netwm:net-supporting-wm-check *root-window*)))
+                    (xlib:destroy-window win))
+                  (xlib:display-finish-output *display*)
+                  (return))))
+         (exit-eclipse (c)
+           (setf close-display-p (close-application-p c))
+           (setf exit 1))
+         (end-of-file (c) (error c))
+         (already-handled-xerror () nil)
+         (error (c) (handle-error-condition c))))
     (format t "~%Main loop exited~%")))
