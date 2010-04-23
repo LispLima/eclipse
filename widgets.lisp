@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: widgets.lisp,v 1.59 2009-11-17 21:17:29 ihatchondo Exp $
+;;; $Id: widgets.lisp,v 1.60 2010-04-02 09:57:53 ihatchondo Exp $
 ;;;
 ;;; ECLIPSE. The Common Lisp Window Manager.
 ;;; Copyright (C) 2000, 2001, 2002 Iban HATCHONDO
@@ -444,10 +444,12 @@
 (defun migrate-application (application new-screen-number)
   "Put an application, all its related dialogs and the top-level it is
    transient-for (if any) to the a new virtual screen."
-  (with-slots (master window transient-for) application
+  (with-slots (master window transient-for iconic-p) application
     (let* ((focused-p (focused-p application))
 	   (unmap-p (/= new-screen-number +any-desktop+ (current-desk)))
-	   (operation (if unmap-p #'xlib:unmap-window #'xlib:map-window)))
+	   (operation (if (or iconic-p unmap-p)
+                          #'xlib:unmap-window
+                          #'xlib:map-window)))
       (flet ((migrate (application)
 	       (with-slots (master window) application
 		 (when (shaded-p application) (shade application))
