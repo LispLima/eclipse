@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: EXTENDED-WINDOW-MANAGER-HINTS -*-
-;;; $Id: netwm-manager.lisp,v 1.22 2005/03/01 22:41:34 ihatchondo Exp $
+;;; $Id: netwm-manager.lisp,v 1.23 2007/11/04 22:27:19 ihatchondo Exp $
 ;;;
 ;;; This is the CLX support for the managing with gnome.
 ;;;
@@ -32,23 +32,46 @@
   (:import-from :xlib #:get-property #:change-property)
   (:import-from :manager-commons #:card-32 #:card-16 #:card-8 #:int-16)
   (:export
-   #:net-supported             #:net-client-list
-   #:net-client-list-stacking  #:net-number-of-desktops
-   #:net-current-desktop       #:net-desktop-geometry
-   #:net-desktop-viewport      #:net-desktop-names
-   #:net-active-window         #:net-workarea
-   #:net-supporting-wm-check   #:net-virtual-roots
+   #:intern-atoms
+   #:net-active-window
+   #:net-client-list
+   #:net-client-list-stacking
+   #:net-current-desktop
+   #:net-desktop-geometry
+   #:net-desktop-layout
+   #:net-desktop-names
+   #:net-desktop-viewport
    #:net-frame-extents
-   #:net-wm-name               #:net-wm-visible-name
-   #:net-wm-icon-name          #:net-wm-visible-icon-name
-   #:net-wm-desktop            #:net-wm-window-type
-   #:net-wm-state              #:net-wm-strut
-   #:net-wm-icon-geometry      #:net-wm-icon
-   #:net-wm-pid                #:net-wm-handled-icons
-   #:net-wm-allowed-actions    #:net-wm-strut-partial
-   #:net-wm-user-time          #:net-wm-user-time-window
+   #:net-number-of-desktops
+   #:net-showing-desktop
+   #:net-supported
+   #:net-supporting-wm-check
+   #:net-virtual-roots
+   #:net-wm-allowed-actions
+   #:net-wm-desktop
+   #:net-wm-handled-icons
+   #:net-wm-icon
+   #:net-wm-icon-geometry
+   #:net-wm-icon-name
+   #:net-wm-name
+   #:net-wm-pid
+   #:net-wm-state
+   #:net-wm-strut
+   #:net-wm-strut-partial
+   #:net-wm-user-time
+   #:net-wm-user-time-window
+   #:net-wm-visible-icon-name
+   #:net-wm-visible-name
+   #:net-wm-window-type
+   #:net-workarea
 
-   #:intern-atoms)
+   #:make-desktop-layout
+
+   #:desktop-layout-orientation
+   #:desktop-layout-starting-corner
+   #:desktop-layout-x
+   #:desktop-layout-y
+   )
   (:documentation
    "This package implements the Extended Window Manager Hints
    (from Freedesktop.org). - version 1.4 draft2 -
@@ -63,58 +86,86 @@
 		   (compilation-speed 0)))
 
 (defconstant +exwm-atoms+
-  (list "_NET_SUPPORTED"              "_NET_CLIENT_LIST"
-	"_NET_CLIENT_LIST_STACKING"   "_NET_NUMBER_OF_DESKTOPS"
-	"_NET_CURRENT_DESKTOP"        "_NET_DESKTOP_GEOMETRY"
-	"_NET_DESKTOP_VIEWPORT"       "_NET_DESKTOP_NAMES"
-	"_NET_ACTIVE_WINDOW"          "_NET_WORKAREA"
-	"_NET_SUPPORTING_WM_CHECK"    "_NET_VIRTUAL_ROOTS"
-	"_NET_DESKTOP_LAYOUT"         
-        
-        "_NET_RESTACK_WINDOW"         "_NET_REQUEST_FRAME_EXTENTS"
-        "_NET_MOVERESIZE_WINDOW"      "_NET_CLOSE_WINDOW"
-        "_NET_WM_MOVERESIZE"
-
-	"_NET_WM_SYNC_REQUEST"        "_NET_WM_PING"    
-
-	"_NET_WM_NAME"                "_NET_WM_VISIBLE_NAME"
-	"_NET_WM_ICON_NAME"           "_NET_WM_VISIBLE_ICON_NAME"
-	"_NET_WM_DESKTOP"             "_NET_WM_WINDOW_TYPE"
-	"_NET_WM_STATE"               "_NET_WM_STRUT"
-	"_NET_WM_ICON_GEOMETRY"       "_NET_WM_ICON"
-	"_NET_WM_PID"                 "_NET_WM_HANDLED_ICONS"
-	"_NET_WM_USER_TIME"           "_NET_FRAME_EXTENTS"
-        "_NET_WM_USER_TIME_WINDOW"
+  (list "_NET_ACTIVE_WINDOW"
+        "_NET_CLIENT_LIST"
+        "_NET_CLIENT_LIST_STACKING"
+        "_NET_CLOSE_WINDOW"
+        "_NET_CURRENT_DESKTOP"
+        "_NET_DESKTOP_GEOMETRY"
+        "_NET_DESKTOP_LAYOUT"
+        "_NET_DESKTOP_NAMES"
+        "_NET_DESKTOP_VIEWPORT"
+        "_NET_FRAME_EXTENTS"
+        "_NET_MOVERESIZE_WINDOW"
+        "_NET_NUMBER_OF_DESKTOPS"
+        "_NET_REQUEST_FRAME_EXTENTS"
+        "_NET_RESTACK_WINDOW"
+        "_NET_SHOWING_DESKTOP"
+        "_NET_SUPPORTED"
+        "_NET_SUPPORTING_WM_CHECK"
+        "_NET_VIRTUAL_ROOTS"
+        "_NET_WM_ALLOWED_ACTIONS"
+        "_NET_WM_DESKTOP"
         "_NET_WM_FULL_PLACEMENT"
-        ;; "_NET_WM_MOVE_ACTIONS"
+        "_NET_WM_HANDLED_ICONS"
+        "_NET_WM_ICON"
+        "_NET_WM_ICON_GEOMETRY"
+        "_NET_WM_ICON_NAME"
+        "_NET_WM_MOVERESIZE"
+        "_NET_WM_NAME"
+        "_NET_WM_PID"
+        "_NET_WM_PING"
+        "_NET_WM_STATE"
+        "_NET_WM_STRUT"
+        "_NET_WM_STRUT_PARTIAL"
+        "_NET_WM_SYNC_REQUEST"
+        "_NET_WM_USER_TIME"
+        "_NET_WM_USER_TIME_WINDOW"
+        "_NET_WM_VISIBLE_ICON_NAME"
+        "_NET_WM_VISIBLE_NAME"
+        "_NET_WM_WINDOW_TYPE"
+        "_NET_WORKAREA"
 
-	"_NET_WM_WINDOW_TYPE_DESKTOP"       "_NET_WM_STATE_MODAL"
-	"_NET_WM_WINDOW_TYPE_DOCK"          "_NET_WM_STATE_STICKY"
-	"_NET_WM_WINDOW_TYPE_TOOLBAR"       "_NET_WM_STATE_MAXIMIZED_VERT"
-	"_NET_WM_WINDOW_TYPE_MENU"          "_NET_WM_STATE_MAXIMIZED_HORZ"
-	"_NET_WM_WINDOW_TYPE_UTILITY"       "_NET_WM_STATE_SHADED"
-	"_NET_WM_WINDOW_TYPE_SPLASH"        "_NET_WM_STATE_SKIP_TASKBAR"
-	"_NET_WM_WINDOW_TYPE_DIALOG"        "_NET_WM_STATE_SKIP_PAGER"
-	"_NET_WM_WINDOW_TYPE_NORMAL"        "_NET_WM_STATE_HIDDEN"
-        "_NET_WM_WINDOW_TYPE_DROPDOWN_MENU" "_NET_WM_STATE_FULLSCREEN"
-	"_NET_WM_WINDOW_TYPE_POPUP_MENU"    "_NET_WM_STATE_ABOVE"
-	"_NET_WM_WINDOW_TYPE_TOOLTIP"	    "_NET_WM_STATE_BELOW"
-	"_NET_WM_WINDOW_TYPE_NOTIFICATION"  "_NET_WM_STATE_DEMANDS_ATTENTION"
-	"_NET_WM_WINDOW_TYPE_COMBO"
-	"_NET_WM_WINDOW_TYPE_DND"
+        "_NET_WM_STATE_ABOVE"
+        "_NET_WM_STATE_BELOW"
+        "_NET_WM_STATE_DEMANDS_ATTENTION"
+        "_NET_WM_STATE_FULLSCREEN"
+        "_NET_WM_STATE_HIDDEN"
+        "_NET_WM_STATE_MAXIMIZED_HORZ"
+        "_NET_WM_STATE_MAXIMIZED_VERT"
+        "_NET_WM_STATE_MODAL"
+        "_NET_WM_STATE_SHADED"
+        "_NET_WM_STATE_SKIP_PAGER"
+        "_NET_WM_STATE_SKIP_TASKBAR"
+        "_NET_WM_STATE_STICKY"
 
-	"_NET_WM_ALLOWED_ACTIONS"
-	"_NET_WM_ACTION_MOVE"
-	"_NET_WM_ACTION_RESIZE"
-	"_NET_WM_ACTION_MINIMIZE"
-	"_NET_WM_ACTION_SHADE"
-	"_NET_WM_ACTION_STICK"
-	"_NET_WM_ACTION_MAXIMIZE_HORZ"
-	"_NET_WM_ACTION_MAXIMIZE_VERT"
-	"_NET_WM_ACTION_FULLSCREEN"
-	"_NET_WM_ACTION_CHANGE_DESKTOP"
-	"_NET_WM_ACTION_CLOSE"
+        "_NET_WM_WINDOW_TYPE_COMBO"
+        "_NET_WM_WINDOW_TYPE_DESKTOP"
+        "_NET_WM_WINDOW_TYPE_DIALOG"
+        "_NET_WM_WINDOW_TYPE_DND"
+        "_NET_WM_WINDOW_TYPE_DOCK"
+        "_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"
+        "_NET_WM_WINDOW_TYPE_MENU"
+        "_NET_WM_WINDOW_TYPE_NORMAL"
+        "_NET_WM_WINDOW_TYPE_NOTIFICATION"
+        "_NET_WM_WINDOW_TYPE_POPUP_MENU"
+        "_NET_WM_WINDOW_TYPE_SPLASH"
+        "_NET_WM_WINDOW_TYPE_TOOLBAR"
+        "_NET_WM_WINDOW_TYPE_TOOLTIP"
+        "_NET_WM_WINDOW_TYPE_UTILITY"
 
+        "_NET_WM_ACTION_ABOVE"
+        "_NET_WM_ACTION_BELOW"
+        "_NET_WM_ACTION_CHANGE_DESKTOP"
+        "_NET_WM_ACTION_CLOSE"
+        "_NET_WM_ACTION_FULLSCREEN"
+        "_NET_WM_ACTION_MAXIMIZE_HORZ"
+        "_NET_WM_ACTION_MAXIMIZE_VERT"
+        "_NET_WM_ACTION_MINIMIZE"
+        "_NET_WM_ACTION_MOVE"
+        "_NET_WM_ACTION_RESIZE"
+        "_NET_WM_ACTION_SHADE"
+        "_NET_WM_ACTION_STICK"
 	))
 
 ;; General initialisation
@@ -272,6 +323,7 @@
 ;; _NET_SHOWING_DESKTOP
 
 (defun net-showing-desktop (window)
+  "Returns T if the window manager is in 'showing desktop' mode."
   (= 1 (the card-32 (first (get-property window :_NET_SHOWING_DESKTOP)))))
 
 (defsetf net-showing-desktop (window) (mode-p)
