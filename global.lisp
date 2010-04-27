@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.36 2009-11-17 22:40:49 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.37 2010-04-23 14:36:49 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -256,7 +256,22 @@
 (defun file-exists-p (filename)
   "Returns true if the given filename is an existing file and not a directory."
   (and #+clisp (not (probe-directory (make-pathname :directory filename)))
-       #-clisp (not (probe-file (make-pathname :directory filename)))
+       #-clisp (let ((pathname (probe-file (make-pathname :directory filename))))
+                 ;; When NIL is returned by probe-file, it indicates that NO
+                 ;; directory exists under this filename.
+                 ;; But when a valid pathname is returned, it does not 
+                 ;; necessarily indicate that it is a directory.
+                 ;; In this case, one needs to check if the returned pathname
+                 ;; has a type or a name, what a directory pathname doesn't
+                 ;; have.
+                 ;; This last case concerns systems like SBCL, while the former
+                 ;; case corresponds at least to CMUCL.
+                 (if pathname
+                     (let ((name (pathname-name pathname))
+                           (type (pathname-type pathname)))
+                       (or (and type (not (eql type :unspecific)))
+                           (and name (not (eql type :unspecific)))))
+                     t))
        (probe-file filename)))
 
 ;;;; Error handler.
