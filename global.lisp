@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Package: ECLIPSE-INTERNALS -*-
-;;; $Id: global.lisp,v 1.37 2010-04-23 14:36:49 ihatchondo Exp $
+;;; $Id: global.lisp,v 1.38 2010-04-27 08:12:20 ihatchondo Exp $
 ;;;
 ;;; This file is part of Eclipse.
 ;;; Copyright (C) 2001, 2002 Iban HATCHONDO
@@ -168,6 +168,15 @@
 
 ;;;; System dependent functions.
 
+(define-condition not-implemented (error)
+  ((proc :initarg :proc))
+  (:report (lambda (condition stream)
+             (format stream
+                     "Function ~a is not yet implemented on ~a release ~a~%"
+                     (slot-value condition 'proc)
+                     (lisp-implementation-type)
+                     (lisp-implementation-version)))))
+
 (defun quit (&optional code)
   #+allegro (excl:exit code)
   #+clisp (#+lisp=cl ext:quit #-lisp=cl lisp:quit code)
@@ -191,6 +200,8 @@
   #+:lispworks (foreign:call-system-showing-output
 		(format nil "~A~@[ ~{~A~^ ~}~]" program arguments))
   #+clisp (ext:run-program program :arguments arguments :wait nil)
+  #-(or lucid allegro KCL cmu sbcl lispworks clisp)
+  (error 'not-implemented :proc (list 'run-program arguments))
   )
 
 (defun get-username ()
