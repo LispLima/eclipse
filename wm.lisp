@@ -49,9 +49,9 @@
 (defun title-bar-horizontal-p (master)
   (eq :horizontal (style-title-bar-direction (decoration-frame-style master))))
 
-(defconstant +decoration-event-mask+
-  '(:substructure-redirect :substructure-notify
-    :visibility-change :enter-window :owner-grab-button))
+(define-constant +decoration-event-mask+
+    '(:substructure-redirect :substructure-notify
+      :visibility-change :enter-window :owner-grab-button) :test #'equalp)
 
 (defmethod get-child ((master decoration) label &key window)
   "Returns the child widget/window labeled `label' or nil if no such

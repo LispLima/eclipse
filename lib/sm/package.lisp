@@ -78,14 +78,15 @@
 
     protocol specification can be found at: 
      {http://www.xfree86.org/current/xsmp.pdf}")
-  (:import-from :ice-lib 
-    #:make-default-versions
-    #:authentication-protocol-index
-    #:protocol-major-opcode
-    #:major-opcode #:offending-minor-opcode
-    #:version-index #:vendor-name #:release-name
-    #:sintern #:index+
-    )
+  (:import-from #:ice-lib
+                #:make-default-versions
+                #:authentication-protocol-index
+                #:protocol-major-opcode
+                #:major-opcode #:offending-minor-opcode
+                #:version-index #:vendor-name #:release-name
+                #:sintern #:index+)
+  (:import-from #:alexandria
+                #:define-constant)
   (:shadow
     #:get-properties
     #:string-length #:strings-length #:strings

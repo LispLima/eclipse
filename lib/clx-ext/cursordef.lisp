@@ -28,7 +28,7 @@
 
 (declaim (type (simple-array keyword (78)) +cursors+))
 
-(defconstant +cursors+ 
+(alexandria:define-constant +cursors+
   '#(:XC_X_CURSOR              :XC_ARROW
      :XC_BASED_ARROW_DOWN      :XC_BASED_ARROW_UP
      :XC_BOAT                  :XC_BOGOSITY
@@ -67,4 +67,5 @@
      :XC_TOP_TEE               :XC_TREK
      :XC_UL_ANGLE              :XC_UMBRELLA
      :XC_UR_ANGLE              :XC_WATCH
-     :XC_XTERM                 :XC_NUM_GLYPHS))
+     :XC_XTERM                 :XC_NUM_GLYPHS)
+  :test #'equalp)

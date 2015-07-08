@@ -355,7 +355,7 @@
       (card32 (screen-position scr dpy))
       ((sequence :format card16) v))))
 
-(defconstant +mode-status+
+(alexandria:define-constant +mode-status+
   '#(:MODE_BAD             ; unspecified reason 
      :MODE_ERROR           ; error condition 
      :MODE_OK              ; Mode OK 
@@ -392,7 +392,8 @@
      :MODE_ONE_WIDTH       ; only one width is supported 
      :MODE_ONE_HEIGHT      ; only one height is supported 
      :MODE_ONE_SIZE        ; only one resolution is supported 
-     ))
+     )
+  :test #'equalp)
 
 (defun decode-status-mode (status)
   (declare (type int32 status))

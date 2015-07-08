@@ -29,10 +29,11 @@
 
 ;; The two following constants represent all the gnome protocols 
 ;; and Extended Window Manager Hints actions we want to be responsible for.
-(defconstant +gnome-protocols+
+(define-constant +gnome-protocols+
   '(:_win_workspace :_win_workspace_count :_win_client_list
-    :_win_workspace_names))
-(defconstant +netwm-protocol+
+    :_win_workspace_names) :test #'equalp)
+
+(define-constant +netwm-protocol+
   '(:_net_client_list :_net_client_list_stacking :_net_number_of_desktops
     :_net_current_desktop :_net_active_window :_net_close_window :_net_workarea
     :_net_wm_desktop :_net_wm_window_type :_net_desktop_names
@@ -46,21 +47,22 @@
     :_net_wm_state_maximized_horz :_net_wm_state_maximized_vert
     :_net_wm_state_skip_taskbar :_net_wm_state_skip_pager :_net_wm_state_shaded
     :_net_wm_state_sticky :_net_wm_state_fullscreen :_net_wm_state_hidden
-    :_net_wm_state_above :_net_wm_state_below :_net_wm_state_demands_attention))
+    :_net_wm_state_above :_net_wm_state_below :_net_wm_state_demands_attention)
+  :test #'equalp)
 
-(defconstant +root-event-mask+
+(define-constant +root-event-mask+
   '(:substructure-redirect :substructure-notify :button-press :button-release
     :owner-grab-button :key-press :key-release :enter-window :leave-window
-    :focus-change))
+    :focus-change) :test #'equalp)
 
-(defconstant +pointer-event-mask+
+(define-constant +pointer-event-mask+
   '(:button-press :button-release :pointer-motion :pointer-motion-hint
-    :enter-window :leave-window))
+    :enter-window :leave-window) :test #'equalp)
 
 (defconstant +any-desktop+ #xFFFFFFFF)
 
-(defconstant +default-font-name+ 
-  "-misc-fixed-medium-r-normal--14-110-100-100-c-70-iso8859-1")
+(define-constant +default-font-name+ 
+  "-misc-fixed-medium-r-normal--14-110-100-100-c-70-iso8859-1" :test #'string=)
 
 (defvar *cursor-2* nil)
 (defvar *display* nil)

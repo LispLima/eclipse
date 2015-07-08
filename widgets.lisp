@@ -193,11 +193,13 @@
 
 ;;;; Application
 
-(defconstant +application-mask+
-  '(:property-change :enter-window :visibility-change :focus-change))
+(define-constant +application-mask+
+    '(:property-change :enter-window :visibility-change :focus-change)
+  :test #'equalp)
 
-(defconstant +properties-to-delete-on-withdrawn+
-  '(:_net_wm_state :_net_wm_desktop :_win_workspace))
+(define-constant +properties-to-delete-on-withdrawn+
+    '(:_net_wm_state :_net_wm_desktop :_win_workspace)
+  :test #'equalp)
 
 (defclass application (base-widget)
   ((master :initarg :master :reader application-master)
@@ -566,8 +568,9 @@
   ((master :initarg :master :reader button-master)
    (item-to-draw :initarg :item-to-draw :accessor button-item-to-draw)))
 
-(defconstant +std-button-mask+
-  '(:button-press :button-release :button-motion :owner-grab-button :exposure))
+(define-constant +std-button-mask+
+    '(:button-press :button-release :button-motion :owner-grab-button :exposure)
+  :test #'equalp)
 
 (defmethod repaint ((widget button) theme (focus t))
   (declare (ignorable theme focus))
@@ -684,7 +687,8 @@
   ((armed :initform nil :accessor button-armed)
    (active-p :initform nil :accessor button-active-p)))
 
-(defconstant +push-button-mask+ '(:exposure . #.+pointer-event-mask+))
+(define-constant +push-button-mask+ '(:exposure . #.+pointer-event-mask+)
+  :test #'equalp)
 
 (defmethod focus-widget ((button push-button) timestamp)
   (focus-widget (button-master button) timestamp))
@@ -768,8 +772,9 @@
 
 ;; Those are master edges and master corners
 
-(defconstant +edge-event-mask+
-  '(:button-press :button-release :button-motion :owner-grab-button))
+(define-constant +edge-event-mask+
+    '(:button-press :button-release :button-motion :owner-grab-button)
+  :test #'equalp)
 
 (defclass edge (button)
   ((gravity :initform :north-west :accessor edge-gravity)

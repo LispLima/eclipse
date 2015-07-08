@@ -85,7 +85,7 @@
 		   (debug 1)
 		   (compilation-speed 0)))
 
-(defconstant +exwm-atoms+
+(alexandria:define-constant +exwm-atoms+
   (list "_NET_ACTIVE_WINDOW"
         "_NET_CLIENT_LIST"
         "_NET_CLIENT_LIST_STACKING"
@@ -166,7 +166,8 @@
         "_NET_WM_ACTION_RESIZE"
         "_NET_WM_ACTION_SHADE"
         "_NET_WM_ACTION_STICK"
-	))
+        )
+  :test #'equalp)
 
 ;; General initialisation
 (defun intern-atoms (display)
@@ -339,11 +340,11 @@
 ;; _NET_DESKTOP_LAYOUT property of length 3 and use _NET_WM_TOPLEFT as
 ;; the starting corner in this case.
 
-(defconstant +desktop-layout-orientation+
-  '#(:horzontal :vertical))
+(alexandria:define-constant +desktop-layout-orientation+
+    '#(:horzontal :vertical) :test #'equalp)
 
-(defconstant +desktop-layout-starting-corner+
-  '#(:top-left :top-right :bottom-right :bottom-left))
+(alexandria:define-constant +desktop-layout-starting-corner+
+    '#(:top-left :top-right :bottom-right :bottom-left) :test #'equalp)
 
 (defstruct desktop-layout
   (orientation :veritcal)

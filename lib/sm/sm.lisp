@@ -31,8 +31,8 @@
 
 ;; Protocol release and vendor names
 
-(defconstant +release-name+ "CL-SM-1.0")
-(defconstant +vendor-name+ "LoopFor & Mapcar corp")
+(define-constant +release-name+ "CL-SM-1.0" :test #'string=)
+(define-constant +vendor-name+ "LoopFor & Mapcar corp" :test #'string=)
 
 #| XSMP 11.  Predefined Properties
 
@@ -70,17 +70,17 @@ UserID             ARRAY8        ARRAY8           Yes
 ----------------------------------------------------------
 |#
 
-(defconstant +clone-command+ "CloneCommand")
-(defconstant +current-directory+ "CurrentDirectory")
-(defconstant +discard-command+ "DiscardCommand")
-(defconstant +environment+ "Environment")
-(defconstant +process-id+ "ProcessID")
-(defconstant +program+ "Program")
-(defconstant +restart-command+ "RestartCommand")
-(defconstant +resign-command+ "ResignCommand")
-(defconstant +restart-style-hint+ "RestartStyleHint")
-(defconstant +shutdown-command+ "ShutdownCommand")
-(defconstant +user-id+ "UserID")
+(define-constant +clone-command+ "CloneCommand" :test #'string=)
+(define-constant +current-directory+ "CurrentDirectory" :test #'string=)
+(define-constant +discard-command+ "DiscardCommand" :test #'string=)
+(define-constant +environment+ "Environment" :test #'string=)
+(define-constant +process-id+ "ProcessID" :test #'string=)
+(define-constant +program+ "Program" :test #'string=)
+(define-constant +restart-command+ "RestartCommand" :test #'string=)
+(define-constant +resign-command+ "ResignCommand" :test #'string=)
+(define-constant +restart-style-hint+ "RestartStyleHint" :test #'string=)
+(define-constant +shutdown-command+ "ShutdownCommand" :test #'string=)
+(define-constant +user-id+ "UserID" :test #'string=)
 
 #|
 ---------------------------
@@ -98,9 +98,9 @@ RestartNever           3
 (defconstant +restart-immediately+ 2)
 (defconstant +restart-never+ 3)
 
-(defconstant +list-of-array8+ "LISTofARRAY8")
-(defconstant +array8+ "ARRAY8")
-(defconstant +card8+ "CARD8")
+(define-constant +list-of-array8+ "LISTofARRAY8" :test #'string=)
+(define-constant +array8+ "ARRAY8" :test #'string=)
+(define-constant +card8+ "CARD8" :test #'string=)
 
 ;;;; Types.
 

@@ -23,6 +23,8 @@
 (defpackage "ECLIPSE-INTERNALS"
   (:nicknames eclipse ewmi)
   (:use clx-extensions common-lisp)
+  (:import-from #:alexandria
+                #:define-constant)
   (:size 500)
   (:documentation "")
   (:export 

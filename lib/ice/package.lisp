@@ -47,6 +47,8 @@
 
 (defpackage "ICE-LIB"
   (:use common-lisp)
+  (:import-from #:alexandria
+                #:define-constant)
   (:size 200)
   (:documentation
    "Inter-Client Exchange (ICE) protocol provides a generic framework for

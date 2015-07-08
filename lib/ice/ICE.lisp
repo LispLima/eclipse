@@ -27,8 +27,8 @@
 
 ;;; Protocol release and vendor names
 
-(defconstant +release-name+ "CL-SM-1.0")
-(defconstant +vendor-name+ "LoopFor & Mapcar corp")
+(define-constant +release-name+ "CL-SM-1.0" :test #'string=)
+(define-constant +vendor-name+ "LoopFor & Mapcar corp" :test #'string=)
 
 ;;; ICE minor opcodes
 

@@ -55,7 +55,7 @@
 		   (debug 1)
 		   (compilation-speed 0)))
 
-(defconstant +gnome-atoms+
+(alexandria:define-constant +gnome-atoms+
   (list "_WIN_SUPPORTING_WM_CHECK"  "_WIN_PROTOCOLS"
 	"_WIN_LAYER"                "_WIN_STATE"
 	"_WIN_HINTS"                "_WIN_APP_STATE"
@@ -64,7 +64,7 @@
 	"_WIN_WORKSPACE_NAMES"      "_WIN_CLIENT_LIST"
 	"_WIN_DESKTOP_BUTTON_PROXY" "_WIN_AREA"
 	"_WIN_AREA_COUNT"
-  ))
+  ) :test #'equalp)
 
 ;; General initialisation
 (defun intern-gnome-atom (display)
@@ -186,7 +186,7 @@
 ;; use list of appropriate keywords, or give directly a mask value.
 ;; (setf (win-state window) '(:WIN_STATE_STICKY :WIN_STATE_MINIMIZED ... ))
 
-(defconstant +win-state-vector+
+(alexandria:define-constant +win-state-vector+
   '#(:win_state_sticky          ;; everyone knows sticky
      :win_state_minimized       ;; reserved - definition is unclear
      :win_state_maximized_vert  ;; window in maximized v state
@@ -197,7 +197,7 @@
      :win_state_hid_transient   ;; owner of transient is hidden
      :win_state_fixed_position  ;; window is fixed in position even
      :win_state_arrange_ignore  ;; ignore for auto arranging
-     ))
+     ) :test #'equalp)
 
 (deftype win-state ()
   '(member :win_state_sticky :win_state_maximized_vert :win_state_fixed_position
@@ -218,13 +218,13 @@
 
 ;; _WIN_HINTS
 
-(defconstant +win-hints-vector+
+(alexandria:define-constant +win-hints-vector+
   '#(:win_hints_skip_focus      ;; 'alt-tab' skips this win
      :win_hints_skip_winlist    ;; do not show in window list
      :win_hints_skip_taskbar    ;; do not show on taskbar
      :win_hints_group_transient ;; Reserved - definition is unclear
      :win_hints_focus_on_click  ;; app only accepts focus if clicked
-     ))
+     ) :test #'equalp)
 
 (deftype win-hints ()
   '(member :win_hints_skip_focus :win_hints_skip_winlist :win_hints_skip_taskbar
@@ -250,14 +250,14 @@
 ;; layers above and below its own layer. If the Window Manager changes
 ;; the layer of an application it should change this property.
 
-(defconstant +win-layer-vector+
+(alexandria:define-constant +win-layer-vector+
   '#(:win_layer_desktop
      :win_layer_below
      :win_layer_normal
      :win_layer_ontop
      :win_layer_dock
      :win_layer_above_dock
-     :win_layer_menu))
+     :win_layer_menu) :test #'equalp)
 
 (defun win-layer (window &key (result-type 'keyword))
   (let ((layer (first (get-property window :_WIN_LAYER))))
@@ -280,7 +280,7 @@
 ;; will pick this up and display something appropriate.
 ;; !! ONLY the client sets this property !!
 
-(defconstant +win-app-state-vector+
+(alexandria:define-constant +win-app-state-vector+
   '#(:win_app_state_none
      :win_app_state_active1          :win_app_state_active2
      :win_app_state_error1           :win_app_state_error2
@@ -303,7 +303,7 @@
      :win_app_state_percent070_1 :win_app_state_percent070_2
      :win_app_state_percent080_1 :win_app_state_percent080_2
      :win_app_state_percent090_1 :win_app_state_percent090_2
-     :win_app_state_percent100_1 :win_app_state_percent100_2))
+     :win_app_state_percent100_1 :win_app_state_percent100_2) :test #'equalp)
 
 (defun win-app-state (window &key (result-type 'keyword))
   (let ((state (first (get-property window :_WIN_APP_STATE))))
