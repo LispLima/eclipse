@@ -568,9 +568,10 @@
   ((master :initarg :master :reader button-master)
    (item-to-draw :initarg :item-to-draw :accessor button-item-to-draw)))
 
-(define-constant +std-button-mask+
-    '(:button-press :button-release :button-motion :owner-grab-button :exposure)
-  :test #'equalp)
+(eval-when (:compile-toplevel :load-toplevel)
+  (define-constant +std-button-mask+
+      '(:button-press :button-release :button-motion :owner-grab-button :exposure)
+    :test #'equalp))
 
 (defmethod repaint ((widget button) theme (focus t))
   (declare (ignorable theme focus))
